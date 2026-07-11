@@ -76,6 +76,7 @@ h3 { margin-bottom: 10px; font-size: 21px; line-height: 1.25; }
 .guide-grid { display: grid; grid-template-columns: repeat(2, 1fr); border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
 .guide-grid article { min-height: 270px; padding: 30px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .guide-label { margin-bottom: 42px; color: var(--accent); font-size: 12px; font-weight: 800; letter-spacing: .08em; }
+.secondary-guide-label { margin-top: 32px; margin-bottom: 14px; }
 .guide-grid article > p:not(.guide-label) { max-width: 470px; color: var(--muted); }
 .text-link { display: inline-flex; gap: 8px; margin-top: 8px; color: var(--teal); font-size: 15px; font-weight: 750; }
 .text-link:hover { color: var(--accent); }
