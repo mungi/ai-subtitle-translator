@@ -37,8 +37,12 @@ a { color: inherit; text-decoration: none; }
 
 .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 750; }
 .brand-mark { width: 34px; height: 34px; padding: 2px; object-fit: contain; background: #fff; }
+.header-actions { display: flex; align-items: center; gap: 24px; }
 nav { display: flex; gap: 24px; color: var(--muted); font-size: 14px; font-weight: 650; }
 nav a:hover { color: var(--accent); }
+.language-picker select { min-height: 34px; padding: 5px 30px 5px 10px; color: var(--ink); border: 1px solid var(--line); border-radius: 4px; background: #fff; font: inherit; font-size: 13px; font-weight: 650; cursor: pointer; }
+.language-picker select:focus-visible { outline: 3px solid rgba(15, 118, 110, .28); outline-offset: 2px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 .hero { min-height: 650px; position: relative; display: grid; align-items: center; overflow: hidden; background: #e9edef; }
 .hero-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; }
@@ -90,6 +94,7 @@ footer { display: flex; justify-content: space-between; gap: 24px; padding-top: 
 
 @media (max-width: 760px) {
   .site-header { min-height: 64px; }
+  .header-actions { gap: 12px; }
   nav { gap: 14px; font-size: 13px; }
   .brand { font-size: 14px; }
   .hero { min-height: 620px; align-items: end; }
