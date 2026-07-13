@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { getSettings, saveSettings } from "../extension/shared/storage.js";
+import { getPublicSettings, getSettings, saveSettings } from "../extension/shared/storage.js";
 import {
   readEncryptedProviderSecrets,
   secretStorageInternals,
@@ -79,6 +79,26 @@ test("saveSettings removes plaintext API keys from llmSettings and restores them
     const restored = await getSettings();
     assert.equal(restored.providers.openai.apiKey, "sk-saved-secret");
     assert.equal(restored.providers.openai.model, "gpt-test");
+  } finally {
+    globalThis.chrome = previousChrome;
+  }
+});
+
+test("getPublicSettings never exposes decrypted provider API keys", async () => {
+  const previousChrome = globalThis.chrome;
+  const harness = createChromeStorage();
+  globalThis.chrome = harness.chrome;
+
+  try {
+    await saveSettings({
+      providers: {
+        openai: { apiKey: "sk-public-bridge-secret", model: "gpt-test" }
+      }
+    });
+
+    const publicSettings = await getPublicSettings();
+    assert.equal(publicSettings.providers.openai.apiKey, undefined);
+    assert.doesNotMatch(JSON.stringify(publicSettings), /sk-public-bridge-secret/);
   } finally {
     globalThis.chrome = previousChrome;
   }

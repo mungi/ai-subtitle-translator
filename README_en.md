@@ -4,6 +4,8 @@
 
 A Chrome Manifest V3 extension that collects subtitles from Udemy and YouTube, translates them with Google Translate or an LLM provider, and displays them over the video.
 
+Chrome 102 or later is required.
+
 ## Key features
 
 - Collects Udemy lecture subtitle tracks and parses WebVTT cues.
@@ -37,6 +39,8 @@ For LLM translation, the first minute at the current playback position is proces
 - Resize the subtitle window manually from its corner; its width is saved.
 - Configure subtitle fonts, web fonts, colors, shadows, outlines, and backgrounds.
 - Encrypt API keys with AES-GCM and display saved values masked.
+- Prevent direct content-script storage access and expose only a secret-free settings bridge.
+- Restrict hosted providers to official HTTPS origins and Local LLM endpoints to loopback hosts.
 - Back up and restore settings with a user-password-encrypted file.
 - Localize the settings UI and default target language based on browser language.
 
@@ -55,10 +59,12 @@ For LLM translation, the first minute at the current playback position is proces
 - [TASKS.md](TASKS.md): Completed items, verified items, and manual QA checklist. (Korean)
 - [docs/code-analysis.md](docs/code-analysis.md): File responsibilities, message contracts, test, and risk analysis. (Korean)
 - Chrome Web Store copy: [Korean](docs/chrome-web-store-ko.md), [English](docs/chrome-web-store-en.md), [Japanese](docs/chrome-web-store-ja.md).
+- Privacy policy: [Korean](PRIVACY.md), [English](PRIVACY_en.md), [Japanese](PRIVACY_ja.md).
 
 ## Local LLM Base URL
 
 For an OpenAI-compatible `chat/completions` server, enter the Base URL only up to the segment immediately before `/chat/completions` in the final request URL.
+For security, the host must be `localhost` or `127.0.0.1`.
 
 ```text
 Base URL: http://localhost:1234/v1
@@ -128,4 +134,6 @@ npm run check
 - Udemy API calls depend on the user's login cookies and course enrollment permission.
 - API keys are stored in `chrome.storage.local` as provider-specific AES-GCM ciphertext with decryption material distributed across three transformed fragments. The options page masks saved API keys.
 - This convenience-first design decrypts keys automatically without a master-password prompt. It makes ordinary plaintext secret collection harder, but is not a secure vault against targeted analysis of both the extension code and local storage.
+- Storage access is restricted to trusted extension contexts, and API keys are not exposed to content scripts.
+- Hosted providers are limited to their official HTTPS origins; Local LLM is limited to `localhost` or `127.0.0.1`, and redirect responses are not followed automatically.
 - Subtitle text may be sent to the translation provider selected by the user.

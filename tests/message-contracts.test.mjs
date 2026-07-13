@@ -27,6 +27,28 @@ test("background message validation accepts persisted provider selection", () =>
   }), { handled: true, ok: true });
 });
 
+test("background message validation accepts public settings reads and subtitle style patches", () => {
+  assert.deepEqual(validateBackgroundMessage({
+    type: "settings.getPublic"
+  }), { handled: true, ok: true });
+
+  assert.deepEqual(validateBackgroundMessage({
+    type: "settings.updateSubtitleStyle",
+    patch: { positionX: 42, positionY: 73, width: 640 }
+  }), { handled: true, ok: true });
+});
+
+test("background message validation rejects unsupported subtitle style patch fields", () => {
+  assert.deepEqual(validateBackgroundMessage({
+    type: "settings.updateSubtitleStyle",
+    patch: { webFontCss: "@import url(https://example.com/track.css)" }
+  }), {
+    handled: true,
+    ok: false,
+    error: "patch contains unsupported subtitle style fields."
+  });
+});
+
 test("background message validation rejects malformed subtitle cues", () => {
   const result = validateBackgroundMessage({
     type: "translation.translateDocument",

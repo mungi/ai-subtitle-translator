@@ -1,4 +1,5 @@
 import { buildProviderRequest, extractText, shouldRetryOpenRouterWithoutReasoning } from "./provider-request.js";
+import { assertProviderEndpoint } from "./provider-security.js";
 import { getCustomSystemPromptSettingKey, isCustomTranslationStyle, buildSystemPromptFromSettings } from "./defaults.js";
 import { getSettings } from "./storage.js";
 import { decodeXmlEntities, normalizeCue, validateCues } from "./subtitles.js";
@@ -713,7 +714,9 @@ async function translateGoogleText(text, document, settings, provider) {
     dt: "t",
     q: text
   });
-  const response = await fetch(`${provider.baseUrl}?${params.toString()}`);
+  const response = await fetch(`${provider.baseUrl}?${params.toString()}`, {
+    redirect: "error"
+  });
   const body = await response.json().catch(() => null);
 
   if (!response.ok) {
@@ -818,6 +821,7 @@ async function translateCuesWithDeepL(document, settings, provider, { onProgress
     const body = buildDeepLRequestBody(chunk.cues, document, settings);
     const response = await fetch(getDeepLEndpoint(provider), {
       method: "POST",
+      redirect: "error",
       headers: {
         Authorization: `DeepL-Auth-Key ${apiKey}`,
         "Content-Type": "application/x-www-form-urlencoded"
@@ -917,6 +921,7 @@ export async function translateSubtitleDocument(document, {
 } = {}) {
   const settings = await getSettings();
   const provider = settings.providers[providerId || settings.activeProvider];
+  assertProviderEndpoint(provider);
   const cacheKey = buildCacheKey(document, settings, provider);
 
   if (settings.cacheTranslations && !forceNoCache) {

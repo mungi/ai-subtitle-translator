@@ -3,6 +3,7 @@
   "name": "__MSG_extensionName__",
   "description": "__MSG_extensionDescription__",
   "default_locale": "en",
+  "minimum_chrome_version": "102",
   "version": "0.1.0",
   "action": {
     "default_popup": "popup/popup.html",
@@ -50,7 +51,9 @@
     "https://openrouter.ai/*",
     "https://integrate.api.nvidia.com/*",
     "http://localhost/*",
-    "http://127.0.0.1/*"
+    "http://127.0.0.1/*",
+    "https://localhost/*",
+    "https://127.0.0.1/*"
   ],
   "options_page": "options/options.html",
   "permissions": [

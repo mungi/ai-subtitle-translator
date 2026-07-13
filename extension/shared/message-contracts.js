@@ -3,6 +3,8 @@ import { validateCues } from "./subtitles.js";
 const BACKGROUND_MESSAGE_TYPES = new Set([
   "llm.listModels",
   "llm.testActiveProvider",
+  "settings.getPublic",
+  "settings.updateSubtitleStyle",
   "settings.setActiveProvider",
   "ast.openOptions",
   "captions.youtube.listTracks",
@@ -13,6 +15,30 @@ const BACKGROUND_MESSAGE_TYPES = new Set([
   "translation.clearCache"
 ]);
 
+const EXTENSION_PAGE_MESSAGE_TYPES = new Set([
+  "llm.listModels",
+  "llm.testActiveProvider",
+  "translation.clearCache"
+]);
+
+const CONTENT_SCRIPT_MESSAGE_TYPES = new Set([
+  "settings.getPublic",
+  "settings.updateSubtitleStyle",
+  "settings.setActiveProvider",
+  "ast.openOptions",
+  "captions.youtube.listTracks",
+  "captions.youtube.fetchTranscript",
+  "captions.udemy.listTracks",
+  "captions.udemy.fetchTranscript",
+  "translation.translateDocument"
+]);
+
+const SUBTITLE_STYLE_PATCH_LIMITS = Object.freeze({
+  positionX: [0, 100],
+  positionY: [0, 100],
+  width: [160, 1400]
+});
+
 function isNonEmptyValue(value) {
   return (typeof value === "string" || typeof value === "number")
     && String(value).trim().length > 0;
@@ -20,6 +46,56 @@ function isNonEmptyValue(value) {
 
 function isOptionalString(value) {
   return value === undefined || typeof value === "string";
+}
+
+function validateSubtitleStylePatch(patch) {
+  if (!patch || typeof patch !== "object" || Array.isArray(patch)) {
+    return "patch must be an object.";
+  }
+  const keys = Object.keys(patch);
+  if (keys.length === 0 || keys.some((key) => !Object.hasOwn(SUBTITLE_STYLE_PATCH_LIMITS, key))) {
+    return "patch contains unsupported subtitle style fields.";
+  }
+  for (const key of keys) {
+    const value = patch[key];
+    const [min, max] = SUBTITLE_STYLE_PATCH_LIMITS[key];
+    if (!Number.isFinite(value) || value < min || value > max) {
+      return `patch.${key} must be between ${min} and ${max}.`;
+    }
+  }
+  return "";
+}
+
+function isSupportedContentUrl(value) {
+  try {
+    const url = new URL(String(value || ""));
+    return url.protocol === "https:"
+      && (url.hostname === "www.youtube.com"
+        || url.hostname === "udemy.com"
+        || url.hostname.endsWith(".udemy.com"));
+  } catch {
+    return false;
+  }
+}
+
+export function validateMessageSender(message, sender = {}, extensionId = globalThis.chrome?.runtime?.id) {
+  if (!extensionId || sender.id !== extensionId) {
+    return { ok: false, error: "Message sender is not this extension." };
+  }
+
+  const senderUrl = String(sender.url || sender.tab?.url || "");
+  const isExtensionPage = senderUrl.startsWith(`chrome-extension://${extensionId}/`);
+  const isContentScript = Number.isInteger(sender.tab?.id)
+    && sender.tab.id >= 0
+    && isSupportedContentUrl(senderUrl);
+
+  if (EXTENSION_PAGE_MESSAGE_TYPES.has(message?.type) && !isExtensionPage) {
+    return { ok: false, error: "Message is restricted to extension pages." };
+  }
+  if (CONTENT_SCRIPT_MESSAGE_TYPES.has(message?.type) && !isContentScript) {
+    return { ok: false, error: "Message is restricted to supported content scripts." };
+  }
+  return { ok: true };
 }
 
 function validateSubtitleDocument(document) {
@@ -51,6 +127,9 @@ export function validateBackgroundMessage(message) {
       break;
     case "llm.testActiveProvider":
       if (!isOptionalString(message.providerId)) error = "providerId must be a string.";
+      break;
+    case "settings.updateSubtitleStyle":
+      error = validateSubtitleStylePatch(message.patch);
       break;
     case "settings.setActiveProvider":
       if (!isNonEmptyValue(message.providerId)) error = "providerId is required.";

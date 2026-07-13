@@ -52,8 +52,12 @@ Udemy requires captions for a course the user can access. YouTube requires capti
 
 ## Privacy And Data Handling
 
+Privacy policy: [Korean](../PRIVACY.md) · [English](../PRIVACY_en.md) · [Japanese](../PRIVACY_ja.md)
+
 - Subtitle text may be sent to the translation provider selected by the user.
 - API keys, settings, and translation cache are stored only in the user's browser.
 - API keys are stored as provider-specific ciphertext in browser storage and are not left as plaintext in settings data.
+- Storage access is restricted to trusted extension contexts, and API keys are not exposed to content scripts.
 - The extension does not store API keys on its own server or an external database.
 - API keys are sent directly to the selected provider only when needed for authentication.
+- Hosted providers are limited to their official HTTPS origins; Local LLM is limited to `localhost` or `127.0.0.1`, and redirect responses are not followed automatically.

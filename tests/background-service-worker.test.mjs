@@ -7,6 +7,11 @@ test("provider connection tests reserve output tokens for Gemini thinking models
       onMessage: {
         addListener: () => {}
       }
+    },
+    storage: {
+      local: {
+        setAccessLevel: async () => {}
+      }
     }
   };
 

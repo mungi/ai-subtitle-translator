@@ -356,6 +356,16 @@ function createYoutubeHarness(options = {}) {
       },
       sendMessage: async (message) => {
         sentMessages.push(message);
+        if (message.type === "settings.getPublic") {
+          return { ok: true, settings: storedSettings };
+        }
+        if (message.type === "settings.updateSubtitleStyle") {
+          storedSettings.subtitleStyle = {
+            ...(storedSettings.subtitleStyle || {}),
+            ...message.patch
+          };
+          return { ok: true, settings: storedSettings };
+        }
         if (message.type === "settings.setActiveProvider") {
           storedSettings.activeProvider = message.providerId;
           return { ok: true, result: { providerId: message.providerId } };
@@ -524,6 +534,19 @@ function createUdemyHarness(options = {}) {
       },
       sendMessage: async (message) => {
         sentMessages.push(message);
+        if (message.type === "settings.getPublic") {
+          if (options.storageGetError) {
+            throw new Error(options.storageGetError);
+          }
+          return { ok: true, settings: storedSettings };
+        }
+        if (message.type === "settings.updateSubtitleStyle") {
+          storedSettings.subtitleStyle = {
+            ...(storedSettings.subtitleStyle || {}),
+            ...message.patch
+          };
+          return { ok: true, settings: storedSettings };
+        }
         if (message.type === "settings.setActiveProvider") {
           storedSettings.activeProvider = message.providerId;
           return { ok: true, result: { providerId: message.providerId } };

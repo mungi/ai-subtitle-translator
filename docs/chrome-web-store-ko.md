@@ -52,8 +52,12 @@ Udemy에서는 수강 권한이 있는 강의의 자막이 필요하며, YouTube
 
 ## 개인정보 및 데이터 처리
 
+개인정보 처리방침: [한국어](../PRIVACY.md) · [English](../PRIVACY_en.md) · [日本語](../PRIVACY_ja.md)
+
 - 자막 텍스트는 사용자가 선택한 번역 provider로 전송될 수 있습니다.
 - API key와 설정, 번역 캐시는 사용자의 브라우저에만 저장됩니다.
 - API key는 브라우저 저장소에 provider별 암호문으로 저장되며 설정 데이터에는 평문 API key를 남기지 않습니다.
+- 저장소 접근은 trusted extension context로 제한하며 content script에는 API key를 전달하지 않습니다.
 - 이 확장은 자체 서버나 외부 데이터베이스에 API key를 저장하지 않습니다.
 - 번역 요청 시 API key는 인증을 위해 선택한 provider에 직접 전송됩니다.
+- Hosted provider는 공식 HTTPS origin만, Local LLM은 `localhost` 또는 `127.0.0.1`만 허용하며 redirect 응답을 자동 추적하지 않습니다.

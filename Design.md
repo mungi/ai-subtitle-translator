@@ -21,6 +21,8 @@ extension/
     udemy-captions.js
   shared/
     defaults.js
+    message-contracts.js
+    provider-security.js
     provider-request.js
     storage.js
     subtitles.js
@@ -75,6 +77,8 @@ type SubtitleDocument = {
 
 OpenAI, Anthropic, Gemini, OpenRouter, NVIDIA NIM, Local LLM은 옵션 화면에서 모델 목록을 불러올 수 있다. Local LLM API key는 선택 사항이다.
 
+Hosted provider의 Base URL은 각 provider의 공식 HTTPS origin으로 제한한다. Local LLM은 `localhost` 또는 `127.0.0.1`의 HTTP/HTTPS URL만 허용하며, URL 안의 사용자 정보와 fragment는 거부한다. 이 검사는 모델 조회와 실제 번역 요청 양쪽에 적용하고 HTTP redirect는 자동 추적하지 않는다.
+
 모델 목록 조회 후에는 실제 반환 목록에서 권장 모델을 자동 선택하고 저장한다. Google AI는 `gemini-3.1-flash-lite`, OpenAI는 `gpt-5.6-luna`, Anthropic은 `claude-haiku-4-5-20251001`, OpenRouter는 `deepseek/deepseek-v4-flash`, NVIDIA NIM은 `openai/gpt-oss-120b`를 최우선으로 선택하고 연결 테스트를 한 번 수행한다. Local LLM은 `google/gemma-4-e4b`를 최우선으로 선택하지만 자동 연결 테스트는 실행하지 않는다. 해당 ID가 없으면 Flash-Lite, Haiku, Qwen/Gemma 소형 instruct 계열을 우선하고, 없으면 사용 가능한 첫 text model로 fallback한다. audio, realtime, transcription, image, embedding 등 자막 번역에 맞지 않는 변형은 추천 대상에서 제외한다.
 
 ## 번역 스타일
@@ -97,7 +101,7 @@ OpenAI, Anthropic, Gemini, OpenRouter, NVIDIA NIM, Local LLM은 옵션 화면에
 
 ## 런타임 메시지 계약
 
-background service worker는 처리 대상 메시지의 필수 payload를 네트워크 호출 전에 검증한다. 번역 요청은 subtitle document의 platform, videoId, sourceLanguage와 cue 시간 범위를 검사하며 한 요청의 cue를 20,000개로 제한한다. 알 수 없는 메시지는 다른 listener가 처리할 수 있도록 응답하지 않는다.
+background service worker는 처리 대상 메시지의 필수 payload를 네트워크 호출 전에 검증한다. 번역 요청은 subtitle document의 platform, videoId, sourceLanguage와 cue 시간 범위를 검사하며 한 요청의 cue를 20,000개로 제한한다. 또한 options page 전용 메시지와 Udemy/YouTube content script 전용 메시지를 sender URL과 tab context로 구분한다. 알 수 없는 메시지는 다른 listener가 처리할 수 있도록 응답하지 않는다.
 
 ## 설정 백업과 복구
 
@@ -145,6 +149,7 @@ background service worker는 처리 대상 메시지의 필수 payload를 네트
 ## 보안/개인정보
 
 - 일반 설정은 `chrome.storage.local`의 `llmSettings`에 저장하되 provider의 `apiKey` 필드는 제거한다.
+- Chrome 102 이상을 요구하고 service worker 시작 시 `chrome.storage.local` 접근 수준을 `TRUSTED_CONTEXTS`로 제한한다. 초기화가 끝날 때까지 background 메시지 처리를 대기하고 실패하면 요청을 거부한다. content script는 storage를 직접 읽거나 쓰지 않고, API key를 제거한 공개 설정 조회와 위치·폭 변경만 background 메시지로 요청한다.
 - API key는 provider별 고유 nonce와 additional authenticated data를 사용하는 AES-GCM 암호문으로 별도 vault에 저장한다.
 - AES key 생성용 seed는 3개 XOR share로 나누고, share마다 다른 바이트 순열과 mask를 적용해 서로 다른 storage key에 분산 저장한다. 최종 AES key는 복원한 seed, 확장 runtime ID와 내부 context를 SHA-256으로 조합해 생성한다.
 - 기존 `llmSettings.providers.*.apiKey` 평문은 설정을 처음 읽을 때 암호화 vault로 자동 이전하고 원래 필드에서 제거한다.
@@ -154,6 +159,8 @@ background service worker는 처리 대상 메시지의 필수 payload를 네트
 - 옵션 화면의 저장된 API key 입력값은 앞 6자와 뒤 4자만 표시하고, 마스킹 값을 그대로 저장하면 기존 secret을 유지한다.
 - 자막 텍스트는 사용자가 선택한 provider로 전송될 수 있다.
 - Local LLM은 `localhost` 또는 `127.0.0.1` host permission으로 연결한다.
+- Hosted provider 요청은 공식 HTTPS origin allowlist를 통과해야 하며, Local LLM은 loopback host만 허용한다.
+- runtime message는 extension ID, extension page URL 또는 지원 사이트의 content-script tab context를 확인한 뒤 처리한다.
 
 ### API key 암호화의 보안 범위
 
@@ -161,4 +168,4 @@ background service worker는 처리 대상 메시지의 필수 payload를 네트
 
 복호화 로직과 모든 key share는 확장 프로그램 안에서 자동으로 접근할 수 있으므로, 확장 코드와 해당 확장의 전체 storage를 함께 획득해 분석하는 표적 공격자는 API key를 복원할 수 있다. 따라서 OS 보안 저장소나 사용자 마스터 암호 기반 암호화와 같은 수준으로 표현하지 않는다.
 
-추가 방어 단계로 `chrome.storage.local` 접근을 trusted extension context로 제한하고, content script에는 API key를 제외한 설정만 background 메시지로 전달할 수 있다. 현재 content script가 자막 스타일과 플랫폼 설정을 storage에서 직접 읽고 쓰므로 이 변경은 별도 리팩토링과 회귀 테스트가 필요하다.
+이 한계 안에서 content script의 storage 직접 접근 차단, 공개 설정 전용 background bridge, sender 검증, provider endpoint allowlist를 추가 방어선으로 적용한다.

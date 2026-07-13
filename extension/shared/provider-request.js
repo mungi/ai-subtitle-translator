@@ -1,3 +1,5 @@
+import { assertProviderEndpoint } from "./provider-security.js";
+
 function joinUrl(baseUrl, path) {
   return `${baseUrl.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
 }
@@ -137,6 +139,7 @@ function resolveProviderModel(provider) {
 }
 
 export function buildProviderRequest(provider, { systemPrompt, input, structuredOutput = true, maxTokens: maxTokensOverride }) {
+  assertProviderEndpoint(provider);
   const apiStyle = requireValue(provider.apiStyle, "API style");
   const model = resolveProviderModel(provider);
   const temperature = Number(provider.temperature ?? 0.2);
@@ -150,6 +153,7 @@ export function buildProviderRequest(provider, { systemPrompt, input, structured
         url: joinUrl(baseUrl, "responses"),
         init: {
           method: "POST",
+          redirect: "error",
           headers: {
             Authorization: `Bearer ${apiKey}`,
             "Content-Type": "application/json"
@@ -172,6 +176,7 @@ export function buildProviderRequest(provider, { systemPrompt, input, structured
         url: joinUrl(baseUrl, "v1/messages"),
         init: {
           method: "POST",
+          redirect: "error",
           headers: {
             "x-api-key": apiKey,
             "anthropic-version": provider.anthropicVersion || "2023-06-01",
@@ -197,6 +202,7 @@ export function buildProviderRequest(provider, { systemPrompt, input, structured
         url,
         init: {
           method: "POST",
+          redirect: "error",
           headers: {
             "Content-Type": "application/json"
           },
@@ -242,6 +248,7 @@ export function buildProviderRequest(provider, { systemPrompt, input, structured
         url: joinUrl(baseUrl, "chat/completions"),
         init: {
           method: "POST",
+          redirect: "error",
           headers,
           body: JSON.stringify({
             model,

@@ -156,6 +156,23 @@ export async function getSettings() {
   );
 }
 
+export async function getPublicSettings() {
+  return omitProviderSecrets(await getSettings());
+}
+
+export async function restrictLocalStorageAccess(storageArea = chrome.storage.local) {
+  await storageArea.setAccessLevel({ accessLevel: "TRUSTED_CONTEXTS" });
+}
+
+export async function updateSubtitleStyleSettings(patch) {
+  const settings = await getSettings();
+  settings.subtitleStyle = {
+    ...(settings.subtitleStyle || {}),
+    ...patch
+  };
+  return omitProviderSecrets(await saveSettings(settings));
+}
+
 export async function saveSettings(settings) {
   const normalized = normalizeSettings(settings);
   await writeEncryptedProviderSecrets(collectProviderSecrets(normalized));

@@ -37,7 +37,9 @@
 - [x] OpenAI/Anthropic/Gemini/OpenRouter/NVIDIA NIM 모델 목록 불러오기.
 - [x] Provider 연결 테스트.
 - [x] 저장된 API key 마스킹 표시와 기존 secret 유지 저장.
-- [x] Chrome Web Store 소개 문서 한글/영문 작성.
+- [x] storage trusted-context 제한과 secret 제외 content-script 설정 bridge.
+- [x] runtime message sender 구분, provider endpoint allowlist와 redirect 차단.
+- [x] Chrome Web Store 소개 문서와 개인정보 처리방침 한글/영문/일문 작성.
 - [x] 코드 분석과 개발자용 문서 색인 정리.
 
 ## 검증 완료
@@ -51,6 +53,7 @@
 - [x] 옵션 저장 후 provider 탭 유지.
 - [x] provider 탭 기준 연결 테스트.
 - [x] API key 마스킹 표시와 기존 secret 유지 테스트.
+- [x] 공개 설정 API key 제거, storage fail-closed, sender/endpoint/redirect 보안 경계 테스트.
 - [x] YouTube toolbar 버튼 클릭 시 현재 페이지 caption/transcript 데이터를 background 요청에 포함하는 테스트.
 
 ## 수동 QA 필요
@@ -62,4 +65,5 @@
 - [x] YouTube 자동 생성 자막 영상 테스트.
 - [x] OpenAI/Anthropic/Gemini/OpenRouter 실제 API key로 모델 목록 조회 테스트.
 - [x] Local LLM OpenAI 호환 서버 Base URL `http://localhost:1234/v1` 연결 테스트.
-- [ ] Chrome Web Store 제출 전 권한/개인정보 문구 최종 검토.
+- [x] Chrome Web Store 제출 전 권한/개인정보 문구 최종 검토.
+- [ ] Chrome Web Store Developer Dashboard에 공개 개인정보 처리방침 URL과 실제 데이터 처리 항목 입력.

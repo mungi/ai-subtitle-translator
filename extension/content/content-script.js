@@ -7,7 +7,6 @@ const UDEMY_TRANSCRIPT_PANEL_SELECTOR = '[data-purpose="transcript-panel"]';
 const UDEMY_TRANSCRIPT_CUE_SELECTOR = '[data-purpose="transcript-cue"], [data-purpose="transcript-cue-active"]';
 const UDEMY_TRANSCRIPT_CUE_TEXT_SELECTOR = '[data-purpose="cue-text"]';
 const UDEMY_TRANSCRIPT_TRANSLATION_CLASS = "ast-udemy-transcript-translation";
-const SETTINGS_KEY = "llmSettings";
 const WEB_FONT_STYLE_ID = "ast-web-font-style";
 const OVERLAY_VERTICAL_MARGIN_PX = 12;
 const OVERLAY_MIN_HEIGHT_PX = 42;
@@ -133,6 +132,14 @@ async function sendRuntimeMessage(message) {
     }
     throw error;
   }
+}
+
+async function getPublicSettings() {
+  const response = await sendRuntimeMessage({ type: "settings.getPublic" });
+  if (!response?.ok) {
+    throw new Error(response?.error || "Could not load extension settings.");
+  }
+  return response.settings || {};
 }
 
 function findToolbarTarget(platform, { allowFloatingToolbar = true } = {}) {
@@ -308,8 +315,7 @@ function ensureProviderMenu(platform) {
 }
 
 async function refreshAvailableProviders() {
-  const stored = await chrome.storage.local.get(SETTINGS_KEY);
-  const settings = stored[SETTINGS_KEY] || {};
+  const settings = await getPublicSettings();
   subtitleState.availableProviders = getAvailableProviders(settings);
   const activeProviderAvailable = subtitleState.availableProviders
     .some((provider) => provider.id === settings.activeProvider);
@@ -1112,19 +1118,12 @@ function applyOverlayStyle(overlay) {
 
 async function saveSubtitleStyle(stylePatch) {
   try {
-    const stored = await chrome.storage.local.get(SETTINGS_KEY);
-    const settings = stored[SETTINGS_KEY] || {};
-    const subtitleStyle = {
-      ...(settings.subtitleStyle || {}),
-      ...stylePatch
-    };
-    subtitleState.subtitleStyle = subtitleStyle;
-    await chrome.storage.local.set({
-      [SETTINGS_KEY]: {
-        ...settings,
-        subtitleStyle
-      }
+    const response = await sendRuntimeMessage({
+      type: "settings.updateSubtitleStyle",
+      patch: stylePatch
     });
+    if (!response?.ok) throw new Error(response?.error || "Could not save subtitle style.");
+    subtitleState.subtitleStyle = response.settings?.subtitleStyle || subtitleState.subtitleStyle;
   } catch (error) {
     if (isExtensionContextInvalidated(error)) {
       disposeContentScript();
@@ -1991,8 +1990,7 @@ function resolveTemporaryPriorityWindowSeconds(settings = {}) {
 
 async function getTranslationProviderIds() {
   try {
-    const stored = await chrome.storage.local.get(SETTINGS_KEY);
-    const settings = stored[SETTINGS_KEY] || {};
+    const settings = await getPublicSettings();
     const availableProviders = getAvailableProviders(settings);
     return {
       activeProviderId: resolveActiveTranslationProviderId(settings),
@@ -2016,8 +2014,8 @@ async function getTranslationProviderIds() {
 
 async function loadSubtitleStyle() {
   try {
-    const stored = await chrome.storage.local.get(SETTINGS_KEY);
-    subtitleState.subtitleStyle = stored[SETTINGS_KEY]?.subtitleStyle || null;
+    const settings = await getPublicSettings();
+    subtitleState.subtitleStyle = settings.subtitleStyle || null;
   } catch (error) {
     if (isExtensionContextInvalidated(error)) {
       disposeContentScript();
@@ -2305,6 +2303,19 @@ async function loadPlatformSubtitleOverlay(handler, options = {}) {
 }
 
 chrome.runtime.onMessage.addListener((message) => {
+  if (message?.type === "settings.changed") {
+    const settings = message.settings || {};
+    subtitleState.subtitleStyle = settings.subtitleStyle || subtitleState.subtitleStyle;
+    subtitleState.availableProviders = getAvailableProviders(settings);
+    if (subtitleState.availableProviders.some((provider) => provider.id === settings.activeProvider)) {
+      subtitleState.activeProviderId = settings.activeProvider;
+    }
+    subtitleState.defaultProviderId = resolveDefaultTranslationProviderId(settings);
+    subtitleState.temporaryPriorityWindowSeconds = resolveTemporaryPriorityWindowSeconds(settings);
+    applyOverlayStyle(findOverlay(subtitleState.currentVideo));
+    refreshOpenProviderMenu();
+    return false;
+  }
   if (message?.type !== "translation.progress") return false;
   if (!subtitleState.enabled || message.videoId !== subtitleState.currentVideoId) return false;
 
@@ -2334,21 +2345,6 @@ chrome.runtime.onMessage.addListener((message) => {
   }
   applyTranslatedCues(subtitleState.currentVideo, message.progress?.cues);
   return false;
-});
-
-chrome.storage.onChanged.addListener((changes, areaName) => {
-  if (areaName !== "local" || !changes[SETTINGS_KEY]?.newValue) return;
-  const settings = changes[SETTINGS_KEY].newValue;
-  subtitleState.subtitleStyle = settings.subtitleStyle || subtitleState.subtitleStyle;
-  subtitleState.availableProviders = getAvailableProviders(settings);
-  if (subtitleState.availableProviders.some((provider) => provider.id === settings.activeProvider)) {
-    subtitleState.activeProviderId = settings.activeProvider;
-  }
-  subtitleState.defaultProviderId = resolveDefaultTranslationProviderId(settings);
-  subtitleState.temporaryPriorityWindowSeconds = resolveTemporaryPriorityWindowSeconds(settings);
-  const overlay = findOverlay(subtitleState.currentVideo);
-  applyOverlayStyle(overlay);
-  refreshOpenProviderMenu();
 });
 
 async function togglePlatformSubtitles(handler) {
@@ -2427,9 +2423,9 @@ function watchPlatformChanges(handler) {
 async function isPlatformEnabled(platform) {
   if (subtitleState.disposed || !chrome?.runtime?.id) return false;
 
-  let stored;
   try {
-    stored = await chrome.storage.local.get(SETTINGS_KEY);
+    const settings = await getPublicSettings();
+    return settings.platforms?.[platform] !== false;
   } catch (error) {
     if (isExtensionContextInvalidated(error)) {
       disposeContentScript();
@@ -2438,8 +2434,6 @@ async function isPlatformEnabled(platform) {
     console.warn("[AST] Failed to read platform settings; enabling by default:", error.message);
     return true;
   }
-  const platforms = stored[SETTINGS_KEY]?.platforms || {};
-  return platforms[platform] !== false;
 }
 
 globalThis.addEventListener?.("resize", refreshActiveOverlayStyle);

@@ -1,6 +1,7 @@
-import { getSettings, saveSettings } from "../shared/storage.js";
-import { validateBackgroundMessage } from "../shared/message-contracts.js";
+import { getPublicSettings, getSettings, restrictLocalStorageAccess, saveSettings, updateSubtitleStyleSettings } from "../shared/storage.js";
+import { validateBackgroundMessage, validateMessageSender } from "../shared/message-contracts.js";
 import { ANTHROPIC_DIRECT_BROWSER_ACCESS_HEADER, buildProviderRequest, extractText, shouldRetryOpenRouterWithoutReasoning } from "../shared/provider-request.js";
+import { assertProviderEndpoint } from "../shared/provider-security.js";
 import { translateSubtitleDocument } from "../shared/translation.js";
 import { fetchYoutubeCaptionTracks, fetchYoutubeTranscript } from "../platforms/youtube-captions.js";
 import { fetchUdemyCaptionTracks, fetchUdemyTranscript } from "../platforms/udemy-captions.js";
@@ -57,6 +58,31 @@ const HTTP_STATUS_REASONS = {
   510: "Not Extended",
   511: "Network Authentication Required"
 };
+
+const storageAccessReady = restrictLocalStorageAccess();
+void storageAccessReady.catch((error) => {
+  console.error("[AST] Could not restrict extension storage access:", error);
+});
+
+async function broadcastPublicSettings() {
+  if (!chrome.tabs?.query) return;
+  const settings = await getPublicSettings();
+  const tabs = await chrome.tabs.query({
+    url: ["https://www.youtube.com/*", "https://*.udemy.com/course/*/learn/*"]
+  });
+  await Promise.all(tabs
+    .filter((tab) => Number.isInteger(tab.id))
+    .map((tab) => chrome.tabs.sendMessage(tab.id, {
+      type: "settings.changed",
+      settings
+    }).catch(() => {})));
+}
+
+chrome.storage?.onChanged?.addListener((changes, areaName) => {
+  if (areaName === "local" && changes.llmSettings?.newValue) {
+    broadcastPublicSettings().catch(() => {});
+  }
+});
 
 function joinUrl(baseUrl, path) {
   return `${String(baseUrl || "").replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
@@ -128,7 +154,10 @@ function normalizeOpenRouterModelList(items) {
 }
 
 async function fetchJson(url, init) {
-  const response = await fetch(url, init);
+  const response = await fetch(url, {
+    ...init,
+    redirect: "error"
+  });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
     const detail = body.error?.message || body.message || response.statusText;
@@ -141,6 +170,7 @@ export async function listProviderModels(provider) {
   if (!provider) {
     throw new Error("Provider is required.");
   }
+  assertProviderEndpoint(provider);
 
   switch (provider.id) {
     case "openai": {
@@ -300,11 +330,19 @@ export function buildYoutubeTranscriptErrorResponse(error) {
   return response;
 }
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  const validation = validateBackgroundMessage(message);
-  if (validation.handled && !validation.ok) {
-    sendResponse({ ok: false, error: `Invalid message: ${validation.error}` });
-    return false;
+function dispatchBackgroundMessage(message, sender, sendResponse) {
+  if (message?.type === "settings.getPublic") {
+    getPublicSettings()
+      .then((settings) => sendResponse({ ok: true, settings }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.type === "settings.updateSubtitleStyle") {
+    updateSubtitleStyleSettings(message.patch)
+      .then((settings) => sendResponse({ ok: true, settings }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
   }
 
   if (message?.type === "llm.listModels") {
@@ -386,7 +424,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       forceNoCache: Boolean(message.forceNoCache),
       initialStartTime: message.initialStartTime,
       onProgress: (progress) => {
-        if (sender.tab?.id) {
+        if (Number.isInteger(sender.tab?.id) && sender.tab.id >= 0) {
           chrome.tabs.sendMessage(sender.tab.id, {
             type: "translation.progress",
             videoId: message.document?.videoId,
@@ -410,4 +448,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   return false;
+}
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  const validation = validateBackgroundMessage(message);
+  if (!validation.handled) return false;
+  if (!validation.ok) {
+    sendResponse({ ok: false, error: `Invalid message: ${validation.error}` });
+    return false;
+  }
+
+  const senderValidation = validateMessageSender(message, sender, chrome.runtime.id);
+  if (!senderValidation.ok) {
+    sendResponse({ ok: false, error: `Invalid sender: ${senderValidation.error}` });
+    return false;
+  }
+
+  storageAccessReady
+    .then(() => dispatchBackgroundMessage(message, sender, sendResponse))
+    .catch((error) => sendResponse({
+      ok: false,
+      error: `Secure storage initialization failed: ${error.message}`
+    }));
+  return true;
 });
