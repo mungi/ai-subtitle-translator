@@ -1904,6 +1904,10 @@ function resolveRenderVideo(video) {
   return targetVideo;
 }
 
+function normalizeInitialStartTime(value) {
+  return Number.isFinite(value) && value >= 0 ? value : 0;
+}
+
 function renderCurrentOverlayCue(video) {
   const targetVideo = resolveRenderVideo(video);
   if (!targetVideo) return;
@@ -2060,7 +2064,7 @@ function startFinalTranslation(document, platform, sessionKey, video, providerId
   translateDocument(document, {
     providerId,
     mode: "final",
-    initialStartTime: resolveRenderVideo(video)?.currentTime || 0,
+    initialStartTime: normalizeInitialStartTime(resolveRenderVideo(video)?.currentTime),
     requestId
   }).then((translatedDocument) => {
     if (requestId !== subtitleState.activeFinalRequestId) return;

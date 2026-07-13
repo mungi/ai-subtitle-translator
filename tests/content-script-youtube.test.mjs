@@ -956,6 +956,50 @@ test("provider menu persists selection, starts at current time, and shows only i
   assert.equal(menu.children.some((item) => item.classList.values.has("pending")), false);
 });
 
+test("provider menu normalizes an infinite video time before the final translation request", async () => {
+  let finishTranslation;
+  const translationResponse = new Promise((resolve) => {
+    finishTranslation = resolve;
+  });
+  const harness = createYoutubeHarness({
+    settings: {
+      activeProvider: "googleTranslate",
+      providerTestStatus: { deepl: "success" }
+    },
+    sendMessage(message, { transcriptDocument }) {
+      if (message.type === "captions.youtube.fetchTranscript") {
+        return { ok: true, document: transcriptDocument };
+      }
+      if (message.type === "translation.translateDocument") return translationResponse;
+      return { ok: true };
+    }
+  });
+  harness.video.currentTime = Infinity;
+  const source = readFileSync("extension/content/content-script.js", "utf8");
+
+  vm.runInNewContext(source, harness.context, { filename: "extension/content/content-script.js" });
+  await flushPromises();
+
+  const button = harness.controls.querySelector("#ast-toolbar-button");
+  button.dispatchEvent({
+    type: "click",
+    stopPropagation: () => {},
+    preventDefault: () => {}
+  });
+  await flushPromises();
+  const menu = harness.context.document.getElementById("ast-provider-menu");
+  const deepLItem = menu.children.find((item) => item.dataset.providerId === "deepl");
+  deepLItem.dispatchEvent({ type: "click", stopPropagation: () => {} });
+  await flushPromises();
+  await flushPromises();
+
+  const translationMessage = harness.sentMessages.find((message) => message.type === "translation.translateDocument");
+  assert.equal(translationMessage.initialStartTime, 0);
+
+  finishTranslation({ ok: true, document: null });
+  await flushPromises();
+});
+
 test("YouTube toolbar button fetches transcript through the background worker", async () => {
   const { context, controls, sentMessages } = createYoutubeHarness();
   const source = readFileSync("extension/content/content-script.js", "utf8");
@@ -1333,7 +1377,8 @@ test("toolbar SVG uses CSS-driven colors for toggle and translation states", () 
   assert.match(source, /button\.setAttribute\("aria-haspopup", "menu"\)/);
   assert.match(source, /toggleProviderMenu\(platform\)/);
   assert.match(source, /type: "settings\.setActiveProvider"/);
-  assert.match(source, /initialStartTime: resolveRenderVideo\(video\)\?\.currentTime \|\| 0/);
+  assert.match(source, /function normalizeInitialStartTime\(value\)\s*\{\s*return Number\.isFinite\(value\) && value >= 0 \? value : 0;/);
+  assert.match(source, /initialStartTime: normalizeInitialStartTime\(resolveRenderVideo\(video\)\?\.currentTime\)/);
   assert.match(source, /message\.requestId && message\.requestId !== subtitleState\.activeFinalRequestId/);
   assert.match(contentCss, /\.ast-provider-menu-udemy\s*\{[\s\S]*background: #1c1d1f;/);
   assert.match(contentCss, /\.ast-provider-menu-youtube\s*\{[\s\S]*border-radius: 12px;[\s\S]*background: rgba\(28, 28, 28, 0\.9\);/);
