@@ -9,7 +9,7 @@ Chrome 102 or later is required.
 ## Key features
 
 - Collects subtitles from Udemy, YouTube, NVIDIA Academy, and Vimeo and displays the original or translated subtitles.
-- Lets you choose a source subtitle language provided by the current video from the AST menu.
+- Lets you choose a source subtitle language and translation style directly from the AST menu.
 - Supports Google Translate, DeepL, OpenAI, Anthropic, Google AI, OpenRouter, NVIDIA NIM, and Local LLM.
 - Uses the full subtitle context and current playback position for LLM translation, splitting long videos into manageable parts.
 - Provides Natural, Lecture, Technical, and custom translation styles.
@@ -29,7 +29,7 @@ Chrome 102 or later is required.
 
 1. Open a Udemy course, YouTube video, NVIDIA Academy course, or Vimeo video with subtitles.
 2. Select the AST icon in the video toolbar to enable subtitles.
-3. Choose a translation provider from the menu or open the settings page.
+3. Choose a source subtitle language, translation provider, and translation style from the menu, or open the settings page.
 
 When you select an LLM provider, the extension translates subtitles near the current playback position first, then processes the remainder. You can continue viewing the original or temporary translated subtitles while translation is in progress.
 
@@ -58,3 +58,13 @@ npm run check
 ```
 
 For design and implementation details, see [Design.md](Design.md), [CONTEXT.md](CONTEXT.md), and [TASKS.md](TASKS.md).
+
+## Release package
+
+Create the Chrome Web Store ZIP package while the release tag points at the current commit.
+
+```text
+./release.sh
+```
+
+The generated `release/ai-subtitle-translator-v<tag>.zip` file is used as the GitHub Release asset and Chrome Web Store package.

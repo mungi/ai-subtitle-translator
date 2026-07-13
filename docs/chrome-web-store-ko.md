@@ -12,7 +12,7 @@ AI Subtitle Translator는 Udemy 강의, YouTube 영상, NVIDIA Academy 강의, V
 
 Google Translate로 빠르게 자막을 확인하거나, OpenAI, Anthropic, Google AI 등 AI 번역 provider를 선택해 영상 전체 흐름을 고려한 번역을 볼 수 있습니다. AI 번역이 준비되는 동안에는 원문 또는 빠른 번역 자막이 먼저 표시됩니다.
 
-영상 컨트롤 바의 AST 아이콘을 눌러 메뉴를 열고 자막을 켜고 끌 수 있습니다. 다른 영상 컨트롤을 누르면 AST 메뉴는 자동으로 닫혀 플레이어 메뉴와 겹치지 않습니다. 자막 위치와 폭을 영상 위에서 조절하고, 옵션 페이지에서 언어, 번역 provider, 글꼴, 색상, 그림자, 외곽선, 배경을 원하는 대로 설정하세요.
+영상 컨트롤 바의 AST 아이콘을 눌러 메뉴를 열고 자막을 켜고 끌 수 있습니다. 메뉴에서 영상이 제공하는 원본 자막 언어와 번역 스타일도 바로 선택할 수 있습니다. 다른 영상 컨트롤을 누르면 AST 메뉴는 자동으로 닫혀 플레이어 메뉴와 겹치지 않습니다. 자막 위치와 폭을 영상 위에서 조절하고, 옵션 페이지에서 언어, 번역 provider, 글꼴, 색상, 그림자, 외곽선, 배경을 원하는 대로 설정하세요.
 
 ## 주요 기능
 
@@ -33,7 +33,7 @@ Google Translate로 빠르게 자막을 확인하거나, OpenAI, Anthropic, Goog
 
 - 지원 사이트: Udemy 강의 플레이어, YouTube 영상 페이지, NVIDIA Academy 강의, Vimeo 영상 페이지
 - 번역 Provider: Google Translate, DeepL, OpenAI, Anthropic, Google AI, OpenRouter, NVIDIA NIM, Local LLM
-- 영상의 AST 메뉴에서 자막 켜기/끄기, 번역 Provider 선택, 설정 열기
+- 영상의 AST 메뉴에서 자막 켜기/끄기, 원본 자막 언어·번역 Provider·번역 스타일 선택, 설정 열기
 
 Udemy에서는 수강 권한이 있는 강의의 자막이 필요하며, YouTube, NVIDIA Academy, Vimeo에서는 영상이 제공하는 자막이 필요합니다.
 
@@ -41,7 +41,7 @@ Udemy에서는 수강 권한이 있는 강의의 자막이 필요하며, YouTube
 
 1. 확장 프로그램을 설치하고 Options 페이지에서 목표 언어와 번역 provider를 설정합니다.
 2. API key가 필요한 provider를 사용할 경우, 해당 provider에서 발급한 API key를 입력합니다.
-3. Udemy 강의, YouTube 영상, NVIDIA Academy 강의 또는 Vimeo 영상을 열고 영상 컨트롤 바의 자막 번역 아이콘을 누릅니다.
+3. Udemy 강의, YouTube 영상, NVIDIA Academy 강의 또는 Vimeo 영상을 열고 영상 컨트롤 바의 자막 번역 아이콘을 누릅니다. 필요하면 메뉴에서 원본 자막 언어와 번역 스타일을 바꿉니다.
 4. 필요에 따라 Options 페이지에서 자막 스타일을 조절합니다.
 
 ## 처음 시작할 때 권장 설정

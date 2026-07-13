@@ -9,7 +9,7 @@ Chrome 102 이상이 필요합니다.
 ## 주요 기능
 
 - Udemy, YouTube, NVIDIA Academy, Vimeo의 자막을 수집하여 원문 또는 번역 자막으로 표시합니다.
-- 영상에서 제공하는 원본 자막 언어를 AST 메뉴에서 선택할 수 있습니다.
+- AST 메뉴에서 영상이 제공하는 원본 자막 언어와 번역 스타일을 바로 선택할 수 있습니다.
 - Google Translate, DeepL, OpenAI, Anthropic, Google AI, OpenRouter, NVIDIA NIM, Local LLM을 지원합니다.
 - LLM 번역 시 자막 전체 문맥과 재생 위치를 고려하며, 긴 영상은 나누어 처리합니다.
 - Natural, Lecture, Technical, 사용자 정의 번역 스타일을 제공합니다.
@@ -29,7 +29,7 @@ Chrome 102 이상이 필요합니다.
 
 1. 자막이 있는 Udemy 강의, YouTube 영상, NVIDIA Academy 강의 또는 Vimeo 영상을 엽니다.
 2. 영상 도구 모음의 AST 아이콘을 눌러 자막을 켭니다.
-3. 메뉴에서 번역 제공업체를 선택하거나 설정 화면을 엽니다.
+3. 메뉴에서 원본 자막 언어, 번역 제공업체, 번역 스타일을 선택하거나 설정 화면을 엽니다.
 
 LLM 제공업체를 선택하면 현재 재생 위치 부근의 자막을 우선 번역한 뒤 나머지 자막을 처리합니다. 번역 중에도 원문 또는 임시 번역 자막을 계속 볼 수 있습니다.
 
@@ -58,3 +58,13 @@ npm run check
 ```
 
 추가 설계와 구현 정보는 [Design.md](Design.md), [CONTEXT.md](CONTEXT.md), [TASKS.md](TASKS.md)에서 확인할 수 있습니다.
+
+## 릴리즈 패키지
+
+Chrome Web Store에 올릴 ZIP 패키지는 릴리즈 태그가 현재 커밋을 가리키는 상태에서 생성합니다.
+
+```text
+./release.sh
+```
+
+생성된 파일은 `release/ai-subtitle-translator-v<태그>.zip`이며, 이 파일을 GitHub 릴리즈 산출물과 Chrome Web Store 패키지로 사용합니다.

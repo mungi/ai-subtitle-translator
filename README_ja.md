@@ -9,7 +9,7 @@ Chrome 102 以降が必要です。
 ## 主な機能
 
 - Udemy、YouTube、NVIDIA Academy、Vimeo から字幕を取得し、原文または翻訳字幕を表示します。
-- 現在の動画で提供されている元字幕の言語を AST メニューから選択できます。
+- AST メニューから、現在の動画で提供されている元字幕の言語と翻訳スタイルを直接選択できます。
 - Google Translate、DeepL、OpenAI、Anthropic、Google AI、OpenRouter、NVIDIA NIM、Local LLM に対応しています。
 - LLM 翻訳では字幕全体の文脈と現在の再生位置を考慮し、長い動画は分割して処理します。
 - Natural、Lecture、Technical、カスタムの翻訳スタイルを提供します。
@@ -29,7 +29,7 @@ Chrome 102 以降が必要です。
 
 1. 字幕がある Udemy 講義、YouTube 動画、NVIDIA Academy 講義、または Vimeo 動画を開きます。
 2. 動画ツールバーの AST アイコンを選択して字幕を有効にします。
-3. メニューで翻訳プロバイダーを選択するか、設定画面を開きます。
+3. メニューで元字幕の言語、翻訳プロバイダー、翻訳スタイルを選択するか、設定画面を開きます。
 
 LLM プロバイダーを選択すると、現在の再生位置付近の字幕を優先して翻訳し、その後に残りの字幕を処理します。翻訳中も原文または一時翻訳の字幕を表示し続けることができます。
 
@@ -58,3 +58,13 @@ npm run check
 ```
 
 設計と実装の詳細は、[Design.md](Design.md)、[CONTEXT.md](CONTEXT.md)、[TASKS.md](TASKS.md)をご覧ください。
+
+## リリースパッケージ
+
+リリースタグが現在のコミットを指している状態で、Chrome Web Store 用 ZIP パッケージを作成します。
+
+```text
+./release.sh
+```
+
+生成される `release/ai-subtitle-translator-v<タグ>.zip` は、GitHub Release のアセットおよび Chrome Web Store のパッケージとして使用します。
