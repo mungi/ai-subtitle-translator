@@ -6,7 +6,7 @@
     <meta name="description" content="Udemy와 YouTube 자막을 원하는 언어로 번역해 영상 위에 표시하는 Chrome 확장 프로그램">
     <title>AI Subtitle Translator</title>
     <link rel="icon" href="assets/ast-icon.png?v=2" type="image/png">
-    <link rel="stylesheet" href="styles.css?v=2">
+    <link rel="stylesheet" href="styles.css?v=3">
   </head>
   <body>
     <header class="site-header">
@@ -18,6 +18,7 @@
         <a href="#features">기능</a>
         <a href="#how-it-works">사용 방법</a>
         <a href="#support">지원</a>
+        <a href="#privacy">개인정보</a>
       </nav>
     </header>
 
@@ -117,11 +118,35 @@
           <span>Local LLM</span>
         </div>
       </section>
+
+      <section class="privacy-section" id="privacy" aria-labelledby="privacy-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">PRIVACY &amp; SECURITY</p>
+            <h2 id="privacy-title">번역에 필요한 데이터만 사용합니다</h2>
+          </div>
+          <p class="section-summary">광고·추적·분석을 위한 개발자 서버를 운영하지 않습니다.</p>
+        </div>
+        <div class="privacy-grid">
+          <div class="privacy-copy">
+            <p>자막 텍스트와 번역 설정은 사용자가 선택한 번역 provider로 전송될 수 있습니다. API key와 설정, 번역 캐시는 사용자 브라우저에 저장되며 개발자 서버로 전송되지 않습니다.</p>
+            <p>API key는 암호화해 저장하고 content script에서 직접 읽을 수 없게 제한합니다. 다만 자동 복호화에 필요한 정보도 같은 브라우저 프로필에 있으므로 OS 보안 저장소와 같은 수준의 vault는 아닙니다.</p>
+          </div>
+          <div class="privacy-links" aria-label="개인정보 처리방침 언어 선택">
+            <a href="privacy.html"><span>한국어</span><strong>개인정보 처리방침</strong></a>
+            <a href="privacy-en.html" hreflang="en"><span>English</span><strong>Privacy Policy</strong></a>
+            <a href="privacy-ja.html" hreflang="ja"><span>日本語</span><strong>プライバシーポリシー</strong></a>
+          </div>
+        </div>
+      </section>
     </main>
 
     <footer>
       <span>AI Subtitle Translator</span>
-      <span>Udemy와 YouTube 자막을 원하는 언어로</span>
+      <div class="footer-links">
+        <a href="privacy.html">개인정보 처리방침</a>
+        <span>Udemy와 YouTube 자막을 원하는 언어로</span>
+      </div>
     </footer>
   </body>
 </html>

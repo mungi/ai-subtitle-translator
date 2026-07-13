@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="AI Subtitle Translator プライバシーポリシー">
+    <title>プライバシーポリシー | AI Subtitle Translator</title>
+    <link rel="canonical" href="https://mungi.github.io/ai-subtitle-translator/privacy-ja.html">
+    <link rel="icon" href="assets/ast-icon.png?v=2" type="image/png">
+    <link rel="stylesheet" href="styles.css?v=3">
+  </head>
+  <body class="policy-body">
+    <header class="policy-header">
+      <a class="brand" href="index.html" aria-label="AI Subtitle Translator ホーム">
+        <img class="brand-mark" src="assets/ast-icon.png?v=2" alt="">
+        <span>AI Subtitle Translator</span>
+      </a>
+      <nav class="language-nav" aria-label="言語選択">
+        <a href="privacy.html" hreflang="ko">한국어</a>
+        <a href="privacy-en.html" hreflang="en">English</a>
+        <a href="privacy-ja.html" aria-current="page">日本語</a>
+      </nav>
+    </header>
+
+    <main class="policy-page">
+      <aside class="policy-meta">
+        <p class="eyebrow">PRIVACY POLICY</p>
+        <p>施行日<br><strong>2026年7月13日</strong></p>
+        <a class="text-link" href="index.html">紹介ページに戻る <span aria-hidden="true">&rarr;</span></a>
+      </aside>
+      <article class="policy-document">
+        <header class="policy-title">
+          <p class="eyebrow">AI SUBTITLE TRANSLATOR</p>
+          <h1>プライバシーポリシー</h1>
+          <p>AI Subtitle Translator は、Udemy と YouTube の字幕をユーザーが選択した翻訳サービスで翻訳する Chrome 拡張機能です。開発者は独自の backend server を運用せず、広告、追跡、分析を目的としてユーザーデータを収集しません。</p>
+        </header>
+
+        <section aria-labelledby="data-ja">
+          <span class="policy-number">01</span>
+          <h2 id="data-ja">取り扱うデータ</h2>
+          <ul>
+            <li>Udemy と YouTube の字幕テキストおよび cue の時間情報</li>
+            <li>現在の動画または講義を識別する URL、video ID、course ID、lecture ID、字幕言語情報</li>
+            <li>ユーザーが入力した翻訳 provider の API key、endpoint、model、翻訳設定、字幕設定</li>
+            <li>翻訳結果のキャッシュと、ユーザーが作成する暗号化設定バックアップファイル</li>
+          </ul>
+        </section>
+
+        <section aria-labelledby="purpose-ja">
+          <span class="policy-number">02</span>
+          <h2 id="purpose-ja">利用目的</h2>
+          <p>これらのデータは、字幕の取得、翻訳リクエスト、翻訳結果の表示、ユーザー設定の保持、設定のバックアップと復元のためにのみ使用します。パーソナライズ広告、ユーザー profiling、データ販売には使用しません。</p>
+        </section>
+
+        <section aria-labelledby="storage-ja">
+          <span class="policy-number">03</span>
+          <h2 id="storage-ja">保存と保持期間</h2>
+          <ul>
+            <li>設定、翻訳キャッシュ、API key はユーザーのブラウザーの <code>chrome.storage.local</code> に保存します。</li>
+            <li>API key は provider ごとの AES-GCM 暗号文として保存し、一般設定には平文で残しません。復号に必要な断片も同じブラウザープロファイル内にあるため、OS の secure storage やユーザー master password を使用する vault と同等ではありません。</li>
+            <li>storage へのアクセスは trusted extension context に限定し、content script は API key または復号用断片へ直接アクセスできません。</li>
+            <li>設定バックアップはユーザーが入力したパスワードで AES-GCM 暗号化し、パスワードは保存しません。</li>
+            <li>翻訳キャッシュの削除と全設定の初期化が可能です。拡張機能を削除すると Chrome が extension-local storage を削除します。ダウンロード済みの <code>.astbackup</code> ファイルはユーザーが削除する必要があります。</li>
+          </ul>
+        </section>
+
+        <section aria-labelledby="transfer-ja">
+          <span class="policy-number">04</span>
+          <h2 id="transfer-ja">外部への送信</h2>
+          <ul>
+            <li>字幕テキストと翻訳設定は、ユーザーが選択した Google Translate、DeepL、OpenAI、Anthropic、Google AI、OpenRouter、NVIDIA NIM、または Local LLM endpoint に送信される場合があります。</li>
+            <li>API key は認証が必要な場合に選択した provider へ直接送信され、開発者の server には送信されません。</li>
+            <li>Udemy と YouTube の字幕取得リクエストには動画・講義識別子とユーザーの login cookie が含まれる場合があります。拡張機能は cookie 値を別途保存しません。</li>
+            <li>既定またはカスタム Web font を使用すると、Google Fonts、jsDelivr、またはユーザー提供 CSS で指定した font host へリクエストが送信される場合があります。</li>
+            <li>外部サービスによるデータ処理には各サービスのプライバシーポリシーと利用規約が適用されます。</li>
+          </ul>
+        </section>
+
+        <section aria-labelledby="permission-ja">
+          <span class="policy-number">05</span>
+          <h2 id="permission-ja">権限</h2>
+          <ul>
+            <li><code>storage</code>: 設定、暗号化された API key、翻訳キャッシュをローカルに保存します。</li>
+            <li>Host permissions: Udemy・YouTube の字幕取得、選択した翻訳 provider の呼び出し、ユーザーが設定した Local LLM への接続に使用します。</li>
+          </ul>
+        </section>
+
+        <section aria-labelledby="limited-ja">
+          <span class="policy-number">06</span>
+          <h2 id="limited-ja">Google API Limited Use</h2>
+          <p>Google API から受け取った情報の使用は、Limited Use 要件を含む <a href="https://developer.chrome.com/docs/webstore/program-policies/limited-use" target="_blank" rel="noreferrer">Chrome Web Store User Data Policy</a> に従います。</p>
+        </section>
+
+        <section aria-labelledby="security-ja">
+          <span class="policy-number">07</span>
+          <h2 id="security-ja">セキュリティ</h2>
+          <p>すべてのリモート provider リクエストは HTTPS を使用します。明示的な例外として、ユーザー自身のコンピューターで動作する Local LLM は <code>localhost</code> または <code>127.0.0.1</code> の HTTP endpoint を使用できます。hosted provider の Base URL は各 provider の公式 HTTPS origin に制限し、redirect 応答を自動追跡しません。</p>
+        </section>
+
+        <section aria-labelledby="contact-ja">
+          <span class="policy-number">08</span>
+          <h2 id="contact-ja">問い合わせと変更</h2>
+          <p>プライバシーに関する質問とセキュリティ報告は <a href="https://github.com/mungi/llm-subtitle-translator/issues" target="_blank" rel="noreferrer">GitHub Issues</a> を利用してください。重要な変更はこの文書の施行日とリポジトリの変更履歴に反映します。</p>
+        </section>
+      </article>
+    </main>
+
+    <footer class="policy-footer">
+      <a href="index.html">AI Subtitle Translator</a>
+      <span>Udemy と YouTube の字幕を希望する言語へ</span>
+    </footer>
+  </body>
+</html>
