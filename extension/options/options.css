@@ -78,6 +78,23 @@ button.ghost {
   padding: 24px;
 }
 
+.page-header-title {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  gap: 19px;
+}
+
+.settings-app-icon {
+  width: 88px;
+  height: 88px;
+  flex: 0 0 auto;
+  background: transparent;
+  box-shadow: none;
+  object-fit: contain;
+}
+
 .page-header h1,
 .settings-section h2 {
   margin: 0;
@@ -105,7 +122,7 @@ button.ghost {
   display: grid;
   justify-items: end;
   gap: 8px;
-  min-width: 280px;
+  min-width: 180px;
 }
 
 .section-actions {
@@ -127,6 +144,17 @@ button.ghost {
 
 .settings-section h2 {
   font-size: 17px;
+}
+
+.supported-sites-toggles {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-top: 16px;
+}
+
+.supported-sites-toggles .checkbox-field {
+  align-self: auto;
 }
 
 .section-description {
@@ -520,6 +548,10 @@ textarea:focus {
   padding: 22px;
 }
 
+#backupSeedConfirmationField[hidden] {
+  display: none !important;
+}
+
 .backup-password-form h3,
 .backup-password-description {
   margin: 0;
@@ -586,6 +618,12 @@ textarea:focus {
   .provider-form,
   .backup-restore-grid {
     grid-template-columns: 1fr;
+  }
+
+  .supported-sites-toggles {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
   }
 
   .backup-seed-guide,

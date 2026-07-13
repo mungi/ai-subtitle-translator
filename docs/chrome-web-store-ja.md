@@ -3,12 +3,12 @@
 ## ストア掲載の基本情報
 
 - 商品名: AI Subtitle Translator
-- 一言紹介: Udemy と YouTube の字幕を目的の言語に翻訳し、動画の上に表示する Chrome 拡張機能です。
-- 短い説明: AI による文脈を考慮した翻訳と高速な一時翻訳で、Udemy・YouTube の字幕をより自然に読めます。
+- 一言紹介: Udemy、YouTube、NVIDIA Academy、Vimeo の字幕を目的の言語に翻訳し、動画の上に表示する Chrome 拡張機能です。
+- 短い説明: AI による文脈を考慮した翻訳と高速な一時翻訳で、Udemy・YouTube・NVIDIA Academy・Vimeo の字幕をより自然に読めます。
 
 ## 詳細説明
 
-AI Subtitle Translator は、Udemy 講座と YouTube 動画の字幕を目的の言語に翻訳し、動画の上に直接表示します。
+AI Subtitle Translator は、Udemy 講座、YouTube 動画、NVIDIA Academy 講座、Vimeo 動画の字幕を目的の言語に翻訳し、動画の上に直接表示します。
 
 Google Translate で字幕をすばやく確認したり、OpenAI、Anthropic、Google AI などの AI プロバイダーを選んで動画全体の流れを考慮した翻訳を表示したりできます。AI 翻訳の準備中は、元の字幕または高速な一時翻訳が先に表示されます。
 
@@ -16,7 +16,8 @@ Google Translate で字幕をすばやく確認したり、OpenAI、Anthropic、
 
 ## 主な機能
 
-- Udemy 講座と YouTube 動画の字幕翻訳
+- Udemy 講座、YouTube 動画、NVIDIA Academy 講座、Vimeo 動画の字幕翻訳
+- 動画が提供する元字幕の言語選択
 - 動画の流れを考慮した AI 文脈翻訳
 - Google Translate による高速な一時翻訳
 - 動画上での字幕表示、移動、幅の調整
@@ -30,17 +31,17 @@ Google Translate で字幕をすばやく確認したり、OpenAI、Anthropic、
 
 ## 対応サイトと翻訳プロバイダー
 
-- 対応サイト: Udemy 講座プレーヤー、YouTube 動画ページ
+- 対応サイト: Udemy 講座プレーヤー、YouTube 動画ページ、NVIDIA Academy 講座、Vimeo 動画ページ
 - 翻訳プロバイダー: Google Translate、DeepL、OpenAI、Anthropic、Google AI、OpenRouter、NVIDIA NIM、Local LLM
 - 動画内の AST メニューから字幕のオン／オフ、翻訳プロバイダーの選択、設定画面を開く操作が可能
 
-Udemy ではユーザーが受講できる講座の字幕が必要です。YouTube では動画が提供する手動字幕または自動生成字幕が必要です。
+Udemy ではユーザーが受講できる講座の字幕が必要です。YouTube、NVIDIA Academy、Vimeo では動画が提供する字幕が必要です。
 
 ## 使い方
 
 1. 拡張機能をインストールし、Options ページで対象言語と翻訳プロバイダーを設定します。
 2. API キーが必要なプロバイダーを使う場合は、そのプロバイダーで作成した API キーを入力します。
-3. Udemy 講座または YouTube 動画を開き、動画コントロールの字幕翻訳アイコンをクリックします。
+3. Udemy 講座、YouTube 動画、NVIDIA Academy 講座、または Vimeo 動画を開き、動画コントロールの字幕翻訳アイコンをクリックします。
 4. 必要に応じて Options ページで字幕スタイルを調整します。
 
 ## 初めて使う場合の推奨設定

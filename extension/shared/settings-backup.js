@@ -34,7 +34,7 @@ function createBackupError(code, message) {
 
 export function validateBackupSeed(seed) {
   const value = String(seed || "");
-  if (value.length < 10) return { ok: false, error: "minLength" };
+  if (value.length < 8) return { ok: false, error: "minLength" };
   if (!/[A-Za-z]/.test(value)) return { ok: false, error: "letter" };
   if (!/[0-9]/.test(value)) return { ok: false, error: "number" };
   if (!/[!-/:-@[-`{-~]/.test(value)) return { ok: false, error: "special" };

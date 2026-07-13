@@ -1818,7 +1818,7 @@ test("final LLM progress switches subtitle background and toolbar icon to comple
     });
   }
 
-  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.3)");
+  assert.equal(overlay.style.background, "rgba(176, 176, 176, 0.3)");
   assert.equal(button.classList.values.has("temporary"), false);
   assert.equal(button.classList.values.has("complete"), true);
   assert.equal(button.classList.values.has("fallback"), false);
@@ -1905,7 +1905,7 @@ test("YouTube final translation shows pending colors until the final response co
   await flushPromises();
 
   assert.equal(overlay.textContent, "Final translated subtitle");
-  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.3)");
+  assert.equal(overlay.style.background, "rgba(176, 176, 176, 0.3)");
   assert.equal(button.classList.values.has("temporary"), false);
   assert.equal(button.classList.values.has("complete"), true);
 });
@@ -1955,7 +1955,7 @@ test("current YouTube cue final progress switches from pending to current-ready 
   assert.equal(button.classList.values.has("current"), true);
   assert.equal(button.classList.values.has("temporary"), false);
   assert.equal(button.classList.values.has("complete"), false);
-  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.3)");
+  assert.equal(overlay.style.background, "rgba(176, 176, 176, 0.3)");
   assert.equal(overlay.textContent, "First final subtitle");
 
   video.currentTime = 6;
@@ -1984,7 +1984,7 @@ test("current YouTube cue final progress switches from pending to current-ready 
   assert.equal(button.classList.values.has("current"), true);
   assert.equal(button.classList.values.has("temporary"), false);
   assert.equal(button.classList.values.has("complete"), false);
-  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.3)");
+  assert.equal(overlay.style.background, "rgba(176, 176, 176, 0.3)");
   assert.equal(overlay.textContent, "Second final subtitle");
 
   for (const listener of harness.runtimeMessageListeners) {
@@ -2005,7 +2005,7 @@ test("current YouTube cue final progress switches from pending to current-ready 
   assert.equal(button.classList.values.has("current"), false);
   assert.equal(button.classList.values.has("complete"), true);
   assert.equal(button.classList.values.has("temporary"), false);
-  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.3)");
+  assert.equal(overlay.style.background, "rgba(176, 176, 176, 0.3)");
 });
 
 test("out-of-order parallel final progress waits for every chunk before completing", async () => {
@@ -2184,7 +2184,7 @@ test("intermediate final LLM progress does not mark YouTube subtitles complete",
   assert.equal(button.classList.values.has("complete"), false);
   assert.equal(button.classList.values.has("current"), true);
   assert.equal(button.classList.values.has("temporary"), false);
-  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.3)");
+  assert.equal(overlay.style.background, "rgba(176, 176, 176, 0.3)");
   assert.equal(overlay.textContent, "First LLM chunk subtitle");
 });
 
@@ -2228,7 +2228,7 @@ test("final LLM cue coverage marks YouTube subtitles complete even before final 
 
   assert.equal(button.classList.values.has("complete"), false);
   assert.equal(button.classList.values.has("current"), true);
-  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.3)");
+  assert.equal(overlay.style.background, "rgba(176, 176, 176, 0.3)");
 
   for (const listener of harness.runtimeMessageListeners) {
     listener({
@@ -2247,7 +2247,7 @@ test("final LLM cue coverage marks YouTube subtitles complete even before final 
 
   assert.equal(button.classList.values.has("complete"), true);
   assert.equal(button.classList.values.has("temporary"), false);
-  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.3)");
+  assert.equal(overlay.style.background, "rgba(176, 176, 176, 0.3)");
   assert.equal(overlay.textContent, "First final subtitle");
 });
 
@@ -2279,7 +2279,7 @@ test("final LLM progress repaints the current YouTube overlay after DOM replacem
   assert.notEqual(currentOverlay, overlay);
   assert.equal(currentOverlay.parentElement, moviePlayer);
   assert.equal(currentOverlay.textContent, "LLM translated after replacement");
-  assert.equal(currentOverlay.style.background, "rgba(0, 0, 0, 0.3)");
+  assert.equal(currentOverlay.style.background, "rgba(176, 176, 176, 0.3)");
 });
 
 test("final LLM progress repaints the current Udemy video overlay after video replacement", async () => {
@@ -2321,7 +2321,7 @@ test("final LLM progress repaints the current Udemy video overlay after video re
   assert.ok(currentOverlay, "expected the replacement Udemy video parent to receive an overlay");
   assert.equal(replacement.astSubtitleCues[0].text, "Udemy LLM translated subtitle");
   assert.equal(currentOverlay.textContent, "Udemy LLM translated subtitle");
-  assert.equal(currentOverlay.style.background, "rgba(0, 0, 0, 0.3)");
+  assert.equal(currentOverlay.style.background, "rgba(176, 176, 176, 0.3)");
 });
 
 test("Udemy automatic refresh waits silently while lecture page data is temporarily missing", async () => {
@@ -2461,7 +2461,7 @@ test("late temporary progress does not overwrite current-ready YouTube LLM subti
 
   assert.equal(button.classList.values.has("current"), true);
   assert.equal(button.classList.values.has("temporary"), false);
-  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.3)");
+  assert.equal(overlay.style.background, "rgba(176, 176, 176, 0.3)");
   assert.equal(overlay.textContent, "First final subtitle");
 });
 
@@ -2560,7 +2560,7 @@ test("fallback final progress uses completed background and marks toolbar icon a
     });
   }
 
-  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.3)");
+  assert.equal(overlay.style.background, "rgba(176, 176, 176, 0.3)");
   assert.equal(button.classList.values.has("temporary"), false);
   assert.equal(button.classList.values.has("complete"), false);
   assert.equal(button.classList.values.has("fallback"), true);

@@ -7,3 +7,13 @@ const manifest = JSON.parse(readFileSync(new URL("../extension/manifest.json", i
 test("manifest grants NVIDIA NIM host permission", () => {
   assert.ok(manifest.host_permissions.includes("https://integrate.api.nvidia.com/*"));
 });
+
+test("manifest grants Vimeo page and player access", () => {
+  assert.ok(manifest.host_permissions.includes("https://vimeo.com/*"));
+  assert.ok(manifest.host_permissions.includes("https://www.vimeo.com/*"));
+  assert.ok(manifest.host_permissions.includes("https://player.vimeo.com/*"));
+  assert.ok(manifest.host_permissions.includes("https://captions.cloud.vimeo.com/*"));
+  assert.ok(manifest.content_scripts[0].matches.includes("https://vimeo.com/*"));
+  assert.ok(manifest.content_scripts[0].matches.includes("https://www.vimeo.com/*"));
+  assert.ok(manifest.content_scripts[0].matches.includes("https://player.vimeo.com/video/*"));
+});

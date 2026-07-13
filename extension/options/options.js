@@ -16,6 +16,7 @@ const STYLE_MESSAGE_KEYS = {
   custom: "styleCustom",
   custom2: "styleCustom2"
 };
+const AUTO_SAVE_DELAY_MS = 800;
 const MESSAGE_SUBSTITUTION_NAMES = {
   recommendedModelTesting: ["provider", "model"],
   modelsLoadedAndTested: ["provider", "model", "count"],
@@ -117,6 +118,10 @@ const deepLPlanOptions = [
 
 let settings;
 let selectedProviderId;
+let autoSaveTimer = null;
+let autoSaveChain = Promise.resolve();
+let settingsRevision = 0;
+let pendingAutoSave = null;
 
 const activeProviderSelect = document.getElementById("activeProvider");
 const targetLanguageSelect = document.getElementById("targetLanguage");
@@ -131,6 +136,8 @@ const providerForm = document.getElementById("providerForm");
 const testProviderButton = document.getElementById("testProvider");
 const statusLine = document.getElementById("statusLine");
 const backupSeedInput = document.getElementById("backupSeed");
+const backupSeedConfirmationField = document.getElementById("backupSeedConfirmationField");
+const backupSeedConfirmationInput = document.getElementById("backupSeedConfirmation");
 const backupPasswordDialog = document.getElementById("backupPasswordDialog");
 const backupPasswordForm = document.getElementById("backupPasswordForm");
 const backupPasswordDialogTitle = document.getElementById("backupPasswordDialogTitle");
@@ -139,7 +146,14 @@ const backupSettingsButton = document.getElementById("backupSettings");
 const restoreSettingsButton = document.getElementById("restoreSettings");
 const restoreSettingsFileInput = document.getElementById("restoreSettingsFile");
 const backupStatusLine = document.getElementById("backupStatusLine");
+const platformToggleInputs = {
+  udemy: document.getElementById("toggleUdemy"),
+  youtube: document.getElementById("toggleYoutube"),
+  nvidia: document.getElementById("toggleNvidia"),
+  vimeo: document.getElementById("toggleVimeo")
+};
 let backupPasswordResolver = null;
+let backupPasswordMode = "backup";
 const subtitleStylePreview = document.getElementById("subtitleStylePreview");
 const customWebFontField = document.getElementById("customWebFontField");
 const customWebFontGuide = document.getElementById("customWebFontGuide");
@@ -218,6 +232,13 @@ function getValidatedBackupSeed() {
     setBackupStatus(errorMessage, "error");
     return null;
   }
+  if (backupPasswordMode === "backup" && backupSeedConfirmationInput.value !== seed) {
+    const errorMessage = t("backupSeedMismatch");
+    backupSeedConfirmationInput.setCustomValidity(errorMessage);
+    backupSeedConfirmationInput.reportValidity();
+    setBackupStatus(errorMessage, "error");
+    return null;
+  }
   return seed;
 }
 
@@ -230,9 +251,15 @@ function settleBackupPassword(value) {
 
 function requestBackupPassword(mode) {
   if (backupPasswordResolver) settleBackupPassword(null);
+  backupPasswordMode = mode;
+  const requiresConfirmation = mode === "backup";
   backupPasswordDialogTitle.textContent = t(mode === "restore" ? "restorePasswordTitle" : "backupPasswordTitle");
+  backupSeedConfirmationField.hidden = !requiresConfirmation;
+  backupSeedConfirmationInput.disabled = !requiresConfirmation;
   backupSeedInput.value = "";
   backupSeedInput.setCustomValidity("");
+  backupSeedConfirmationInput.value = "";
+  backupSeedConfirmationInput.setCustomValidity("");
   return new Promise((resolve) => {
     backupPasswordResolver = resolve;
     backupPasswordDialog.showModal();
@@ -240,8 +267,15 @@ function requestBackupPassword(mode) {
   });
 }
 
+function getLocalBackupDate(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function downloadBackupFile(contents) {
-  const date = new Date().toISOString().slice(0, 10);
+  const date = getLocalBackupDate();
   const url = URL.createObjectURL(new Blob([contents], { type: "application/x-astbackup" }));
   const anchor = document.createElement("a");
   anchor.href = url;
@@ -259,8 +293,7 @@ async function backupCurrentSettings() {
   backupSettingsButton.disabled = true;
   restoreSettingsButton.disabled = true;
   try {
-    captureCurrentFormState();
-    settings = await saveSettings(settings);
+    await flushAutomaticSave();
     const backup = await createEncryptedSettingsBackup(settings, seed);
     downloadBackupFile(backup);
     setBackupStatus(t("backupComplete"), "success");
@@ -328,6 +361,7 @@ async function restoreSettingsFromFile(file) {
     restoreSettingsFileInput.value = "";
     return;
   }
+  await flushAutomaticSave();
   const seed = await requestBackupPassword("restore");
   if (!seed) {
     restoreSettingsFileInput.value = "";
@@ -672,7 +706,7 @@ function renderSubtitleStyleSettings() {
   subtitleStyleInputs.outlineEnabled.checked = style.outlineEnabled ?? true;
   subtitleStyleInputs.outlineColor.value = style.outlineColor || "#000000";
   subtitleStyleInputs.outlineWidth.value = style.outlineWidth ?? 3;
-  subtitleStyleInputs.backgroundColor.value = style.backgroundColor || "#000000";
+  subtitleStyleInputs.backgroundColor.value = style.backgroundColor || "#b0b0b0";
   subtitleStyleInputs.pendingBackgroundColor.value = style.pendingBackgroundColor || "#750000";
   subtitleStyleInputs.backgroundOpacity.value = style.backgroundOpacity ?? 0.3;
   updateCustomWebFontVisibility();
@@ -711,7 +745,7 @@ function renderProviderTabs() {
     button.classList.toggle("active", provider.id === selectedProviderId);
     button.classList.toggle("connection-success", getProviderTestStatus(provider.id) === "success");
     button.addEventListener("click", () => {
-      readProviderForm();
+      scheduleAutomaticSave({ immediate: true });
       selectedProviderId = provider.id;
       renderProviderTabs();
       renderProviderForm();
@@ -840,6 +874,7 @@ function renderField(provider, [key, labelKey, placeholder, type = "text"]) {
 }
 
 async function fetchModelsForSelectedProvider(button) {
+  await flushAutomaticSave();
   readProviderForm();
   const provider = settings.providers[selectedProviderId];
   const originalText = button.textContent;
@@ -1029,24 +1064,62 @@ function renderProviderGuide(providerId) {
   return note;
 }
 
-async function persistSettings({ activeProviderId = activeProviderSelect.value, showSavedStatus = true } = {}) {
-  const currentProviderTab = selectedProviderId;
-  readGeneralSettings();
-  settings.activeProvider = activeProviderId;
-  readSubtitleStyleSettings();
-  readProviderForm();
-  settings = await saveSettings(settings);
-  selectedProviderId = settings.providers[currentProviderTab] ? currentProviderTab : settings.activeProvider;
-  renderAll();
-  if (showSavedStatus) {
-    setStatus(t("saved"), "success");
-  }
-}
-
 function captureCurrentFormState() {
   readGeneralSettings();
   readSubtitleStyleSettings();
   readProviderForm();
+}
+
+function stageAutomaticSave() {
+  captureCurrentFormState();
+  settingsRevision += 1;
+  return {
+    revision: settingsRevision,
+    snapshot: clone(settings)
+  };
+}
+
+function persistStagedSettings({ revision, snapshot }) {
+  autoSaveChain = autoSaveChain.then(async () => {
+    try {
+      const savedSettings = await saveSettings(snapshot);
+      if (revision === settingsRevision) settings = savedSettings;
+      setStatus(t("saved"), "success");
+    } catch (error) {
+      setStatus(`${t("saveFailed")}: ${error.message}`, "error");
+    }
+  });
+  return autoSaveChain;
+}
+
+function scheduleAutomaticSave({ immediate = false } = {}) {
+  const staged = stageAutomaticSave();
+  if (autoSaveTimer) {
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = null;
+  }
+  pendingAutoSave = staged;
+  if (immediate) {
+    pendingAutoSave = null;
+    return persistStagedSettings(staged);
+  }
+  autoSaveTimer = setTimeout(() => {
+    autoSaveTimer = null;
+    const pending = pendingAutoSave;
+    pendingAutoSave = null;
+    if (pending) persistStagedSettings(pending);
+  }, AUTO_SAVE_DELAY_MS);
+  return autoSaveChain;
+}
+
+function flushAutomaticSave() {
+  if (autoSaveTimer) {
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = null;
+  }
+  const pending = pendingAutoSave;
+  pendingAutoSave = null;
+  return pending ? persistStagedSettings(pending) : autoSaveChain;
 }
 
 async function persistSectionReset() {
@@ -1058,6 +1131,7 @@ async function persistSectionReset() {
 }
 
 async function resetGeneralSettingsSection() {
+  await flushAutomaticSave();
   captureCurrentFormState();
   Object.assign(settings, {
     activeProvider: DEFAULT_SETTINGS.activeProvider,
@@ -1072,6 +1146,7 @@ async function resetGeneralSettingsSection() {
 }
 
 async function resetProviderSettingsSection() {
+  await flushAutomaticSave();
   captureCurrentFormState();
   settings.providers = clone(DEFAULT_SETTINGS.providers);
   settings.providerTestStatus = clone(DEFAULT_SETTINGS.providerTestStatus);
@@ -1079,12 +1154,14 @@ async function resetProviderSettingsSection() {
 }
 
 async function resetFallbackSettingsSection() {
+  await flushAutomaticSave();
   captureCurrentFormState();
   settings.fallback = clone(DEFAULT_SETTINGS.fallback);
   await persistSectionReset();
 }
 
 async function resetSubtitleStyleSettingsSection() {
+  await flushAutomaticSave();
   captureCurrentFormState();
   settings.subtitleStyle = clone(DEFAULT_SETTINGS.subtitleStyle);
   await persistSectionReset();
@@ -1092,7 +1169,7 @@ async function resetSubtitleStyleSettingsSection() {
 
 async function testProvider() {
   const providerId = selectedProviderId;
-  await persistSettings({ activeProviderId: providerId, showSavedStatus: false });
+  await flushAutomaticSave();
   setStatus(t("testing"));
 
   const response = await chrome.runtime.sendMessage({
@@ -1110,22 +1187,18 @@ async function testProvider() {
   setStatus(`${response.result.providerLabel} ${t("response")}: ${text}`, "success");
 }
 
-async function persistActiveProviderChange(providerId) {
-  readGeneralSettings();
-  readSubtitleStyleSettings();
-  readProviderForm();
-  settings.activeProvider = providerId;
-  settings = await saveSettings(settings);
-  selectedProviderId = settings.activeProvider;
-  renderAll();
-  setStatus(t("saved"), "success");
-}
-
 function renderAll() {
+  renderPlatformSettings();
   renderGeneralSettings();
   renderSubtitleStyleSettings();
   renderProviderTabs();
   renderProviderForm();
+}
+
+function renderPlatformSettings() {
+  for (const [platform, input] of Object.entries(platformToggleInputs)) {
+    input.checked = settings.platforms?.[platform] !== false;
+  }
 }
 
 async function init() {
@@ -1141,28 +1214,82 @@ async function init() {
   });
 
   activeProviderSelect.addEventListener("change", () => {
-    persistActiveProviderChange(activeProviderSelect.value)
-      .catch((error) => setStatus(`${t("saveFailed")}: ${error.message}`, "error"));
+    scheduleAutomaticSave({ immediate: true });
   });
-  targetLanguageSelect.addEventListener("change", updateSystemPromptTextarea);
-  translationStyleSelect.addEventListener("change", updateSystemPromptTextarea);
-  maxChunkDurationMinutesInput.addEventListener("input", updateChunkDurationValue);
-  systemPromptTextarea.addEventListener("input", () => {
-    const customStyleConfig = customStylePromptConfigs[translationStyleSelect.value];
-    if (customStyleConfig) {
-      settings[customStyleConfig.settingKey] = extractStyleSystemPrompt(systemPromptTextarea.value);
-    }
+  targetLanguageSelect.addEventListener("change", () => {
+    updateSystemPromptTextarea();
+    scheduleAutomaticSave({ immediate: true });
   });
-  providerForm.addEventListener("input", () => {
+  translationStyleSelect.addEventListener("change", () => {
+    updateSystemPromptTextarea();
+    scheduleAutomaticSave({ immediate: true });
+  });
+  maxChunkDurationMinutesInput.addEventListener("input", () => {
+    updateChunkDurationValue();
+    scheduleAutomaticSave();
+  });
+  maxChunkDurationMinutesInput.addEventListener("change", () => {
+    scheduleAutomaticSave({ immediate: true });
+  });
+  cacheTranslationsInput.addEventListener("change", () => {
+    scheduleAutomaticSave({ immediate: true });
+  });
+  fallbackProviderSelect.addEventListener("change", () => {
+    scheduleAutomaticSave({ immediate: true });
+  });
+  systemPromptTextarea.addEventListener("input", (event) => {
+    if (!event.isComposing) scheduleAutomaticSave();
+  });
+  systemPromptTextarea.addEventListener("compositionend", () => {
+    scheduleAutomaticSave();
+  });
+  systemPromptTextarea.addEventListener("blur", () => {
+    flushAutomaticSave();
+  });
+  providerForm.addEventListener("input", (event) => {
     clearSelectedProviderTestStatus();
+    readProviderForm();
     updateLocalLlmCheck();
+    if (!event.isComposing) scheduleAutomaticSave();
   });
   providerForm.addEventListener("change", () => {
     clearSelectedProviderTestStatus();
+    readProviderForm();
     updateLocalLlmCheck();
+    scheduleAutomaticSave({ immediate: true });
+  });
+  providerForm.addEventListener("compositionend", () => {
+    readProviderForm();
+    updateLocalLlmCheck();
+    scheduleAutomaticSave();
+  });
+  providerForm.addEventListener("focusout", () => {
+    flushAutomaticSave();
+  });
+  Object.entries(platformToggleInputs).forEach(([platform, input]) => {
+    input.addEventListener("change", () => {
+      settings.platforms = {
+        ...(settings.platforms || {}),
+        [platform]: input.checked
+      };
+      scheduleAutomaticSave({ immediate: true });
+    });
+  });
+  Object.values(subtitleStyleInputs).forEach((input) => {
+    input.addEventListener("input", (event) => {
+      if (!event.isComposing) scheduleAutomaticSave();
+    });
+    input.addEventListener("change", () => scheduleAutomaticSave({ immediate: true }));
+    input.addEventListener("compositionend", () => scheduleAutomaticSave());
+    input.addEventListener("focusout", () => flushAutomaticSave());
   });
   backupSeedInput.addEventListener("input", () => {
     backupSeedInput.setCustomValidity("");
+    backupSeedConfirmationInput.setCustomValidity("");
+    if (backupStatusLine.classList.contains("error")) setBackupStatus("");
+  });
+  backupSeedConfirmationInput.addEventListener("input", () => {
+    backupSeedConfirmationInput.setCustomValidity("");
     if (backupStatusLine.classList.contains("error")) setBackupStatus("");
   });
   backupPasswordForm.addEventListener("submit", (event) => {
@@ -1186,8 +1313,10 @@ async function init() {
       setBackupStatus(`${t("restoreFailed")}: ${getLocalizedBackupError(error)}`, "error");
     });
   });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") flushAutomaticSave();
+  });
 
-  document.getElementById("saveSettings").addEventListener("click", persistSettings);
   testProviderButton.addEventListener("click", () => {
     testProvider().catch(async (error) => {
       await persistProviderTestStatus(selectedProviderId, "idle");

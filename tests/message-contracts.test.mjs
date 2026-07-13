@@ -25,6 +25,10 @@ test("background message validation accepts persisted provider selection", () =>
     type: "settings.setActiveProvider",
     providerId: "deepl"
   }), { handled: true, ok: true });
+  assert.deepEqual(validateBackgroundMessage({
+    type: "settings.setTranslationStyle",
+    translationStyle: "technical"
+  }), { handled: true, ok: true });
 });
 
 test("background message validation accepts public settings reads and subtitle style patches", () => {
@@ -72,6 +76,25 @@ test("background message validation rejects incomplete platform requests", () =>
     handled: true,
     ok: false,
     error: "lectureId is required."
+  });
+
+  assert.deepEqual(validateBackgroundMessage({
+    type: "captions.vimeo.fetchTranscript",
+    videoId: "1191467672"
+  }), {
+    handled: true,
+    ok: false,
+    error: "trackUrl is required."
+  });
+  assert.deepEqual(validateBackgroundMessage({
+    type: "captions.vimeo.fetchTranscript",
+    videoId: "1191467672",
+    trackUrl: "https://captions.vimeo.com/captions/test.vtt",
+    platform: "other"
+  }), {
+    handled: true,
+    ok: false,
+    error: "platform must be nvidia or vimeo."
   });
 });
 

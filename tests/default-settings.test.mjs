@@ -3,8 +3,15 @@ import test from "node:test";
 import { DEFAULT_SETTINGS, PROVIDERS } from "../extension/shared/defaults.js";
 import { normalizeSettings } from "../extension/shared/storage.js";
 
-test("subtitle background color defaults to black", () => {
-  assert.equal(DEFAULT_SETTINGS.subtitleStyle.backgroundColor, "#000000");
+test("subtitle background color defaults to light gray", () => {
+  assert.equal(DEFAULT_SETTINGS.subtitleStyle.backgroundColor, "#b0b0b0");
+});
+
+test("NVIDIA Academy and Vimeo subtitle support are enabled by default", () => {
+  assert.equal(DEFAULT_SETTINGS.platforms.nvidia, true);
+  assert.equal(DEFAULT_SETTINGS.platforms.vimeo, true);
+  assert.equal(normalizeSettings({ platforms: { nvidia: false } }).platforms.nvidia, false);
+  assert.equal(normalizeSettings({ platforms: { vimeo: false } }).platforms.vimeo, false);
 });
 
 test("default translation style and subtitle appearance match the intended initial setup", () => {

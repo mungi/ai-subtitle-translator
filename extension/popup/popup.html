@@ -9,22 +9,22 @@
   </head>
   <body>
     <main>
-      <h1 data-i18n="popupHeading"></h1>
-      <dl>
-        <dt data-i18n="popupProvider"></dt>
-        <dd id="providerName">-</dd>
-        <dt data-i18n="popupTargetLanguage"></dt>
-        <dd id="targetLanguage">-</dd>
-      </dl>
-      <section class="platform-toggles" data-i18n-aria-label="popupPlatformToggles">
-        <label>
-          <input id="toggleUdemy" type="checkbox">
-          <span>Udemy</span>
-        </label>
-        <label>
-          <input id="toggleYoutube" type="checkbox">
-          <span>YouTube</span>
-        </label>
+      <header class="popup-header">
+        <img class="brand-mark" src="../icons/icon48.png" alt="">
+        <div>
+          <p class="eyebrow">AI Subtitle Translator</p>
+          <h1 id="popupHeading" data-i18n="popupHeading"></h1>
+        </div>
+      </header>
+      <section class="summary-card" aria-labelledby="popupHeading">
+        <dl class="settings-summary">
+          <dt data-i18n="popupProvider"></dt>
+          <dd id="providerName">-</dd>
+          <dt data-i18n="popupTargetLanguage"></dt>
+          <dd id="targetLanguage">-</dd>
+          <dt data-i18n="translationStyle"></dt>
+          <dd id="translationStyle">-</dd>
+        </dl>
       </section>
       <button id="openOptions" type="button" data-i18n="popupOpenSettings"></button>
       <p id="statusLine" class="status-line" role="status"></p>

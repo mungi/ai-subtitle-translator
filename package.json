@@ -10,5 +10,8 @@
   "devDependencies": {
     "terser": "^5.49.0",
     "yazl": "^3.3.1"
+  },
+  "dependencies": {
+    "@openai/codex": "^0.144.3"
   }
 }

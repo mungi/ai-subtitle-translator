@@ -28,13 +28,11 @@ function extractCssBlock(css, selector) {
   return match[1];
 }
 
-test("top actions place reset all immediately before save", () => {
+test("top actions only expose reset all when settings save automatically", () => {
   const headerActions = extractBlock(optionsHtml, '<div class="header-actions">');
   assert.doesNotMatch(headerActions, /id="testProvider"/);
-  assert.match(
-    headerActions,
-    /<button id="resetSettings" type="button" class="ghost" data-i18n="allReset"><\/button>\s*<button id="saveSettings"/
-  );
+  assert.match(headerActions, /<button id="resetSettings" type="button" class="ghost" data-i18n="allReset"><\/button>/);
+  assert.doesNotMatch(headerActions, /id="saveSettings"/);
   assert.equal(message("ko", "allReset"), "전체 초기화");
   assert.equal(message("en", "allReset"), "Reset all");
 });
@@ -98,7 +96,8 @@ test("chunk duration uses a two-to-fifteen minute slider with one-minute steps",
   assert.match(optionsHtml, /id="maxChunkDurationValue" for="maxChunkDurationMinutes">7<\/output>/);
   assert.equal(message("ko", "durationMinutes"), "$minutes$분");
   assert.match(optionsJs, /function getChunkDurationMinutes/);
-  assert.match(optionsJs, /maxChunkDurationMinutesInput\.addEventListener\("input", updateChunkDurationValue\)/);
+  assert.match(optionsJs, /maxChunkDurationMinutesInput\.addEventListener\("input", \(\) => \{\s*updateChunkDurationValue\(\);\s*scheduleAutomaticSave\(\);/);
+  assert.match(optionsJs, /maxChunkDurationMinutesInput\.addEventListener\("change", \(\) => \{\s*scheduleAutomaticSave\(\{ immediate: true \}\);/);
 });
 
 test("provider test result is shown in a separate container below provider settings actions", () => {
@@ -167,14 +166,17 @@ test("temporary translation section explains first-pass translation and gates De
   assert.match(optionsCss, /\.section-description\s*\{[\s\S]*white-space: pre-line;/);
 });
 
-test("active provider changes are persisted immediately", () => {
-  assert.match(optionsJs, /async function persistActiveProviderChange\(providerId\)/);
-  assert.match(optionsJs, /settings\.activeProvider = providerId;/);
-  assert.match(optionsJs, /settings = await saveSettings\(settings\);/);
+test("settings are saved automatically with delayed text input and immediate selections", () => {
+  assert.match(optionsJs, /const AUTO_SAVE_DELAY_MS = 800;/);
+  assert.match(optionsJs, /function scheduleAutomaticSave\(\{ immediate = false \} = \{\}\)/);
+  assert.match(optionsJs, /function flushAutomaticSave\(\)/);
   assert.match(
     optionsJs,
-    /activeProviderSelect\.addEventListener\("change", \(\) => \{\s*persistActiveProviderChange\(activeProviderSelect\.value\)/
+    /activeProviderSelect\.addEventListener\("change", \(\) => \{\s*scheduleAutomaticSave\(\{ immediate: true \}\);/
   );
+  assert.match(optionsJs, /systemPromptTextarea\.addEventListener\("input", \(event\) => \{\s*if \(!event\.isComposing\) scheduleAutomaticSave\(\);/);
+  assert.match(optionsJs, /systemPromptTextarea\.addEventListener\("blur", \(\) => \{\s*flushAutomaticSave\(\);/);
+  assert.doesNotMatch(optionsJs, /function persistActiveProviderChange/);
 });
 
 test("system prompt editor is a full-width general setting and custom-only editable", () => {
@@ -274,7 +276,9 @@ test("encrypted settings backup and restore controls are the final settings sect
   assert.match(optionsHtml, /data-i18n="backupSeedLabel"><\/span>/);
   assert.doesNotMatch(optionsHtml, />[^<]*Seed[^<]*</);
   assert.doesNotMatch(backupSection, /id="backupSeed"/);
-  assert.match(optionsHtml, /id="backupSeed" type="password" minlength="10"/);
+  assert.match(optionsHtml, /id="backupSeed" type="password" minlength="8"/);
+  assert.match(optionsHtml, /id="backupSeedConfirmationField" hidden/);
+  assert.match(optionsHtml, /id="backupSeedConfirmation" type="password" minlength="8"/);
   assert.match(optionsHtml, /data-i18n-placeholder="backupSeedPlaceholder"/);
   assert.match(optionsHtml, /id="backupSettings"[^>]*><\/button>/);
   assert.match(optionsHtml, /id="restoreSettings"[^>]*><\/button>/);
@@ -287,19 +291,49 @@ test("encrypted settings backup and restore controls are the final settings sect
   assert.match(optionsHtml, /id="confirmBackupPassword"[^>]*data-i18n="confirm"/);
 });
 
+test("supported site toggles are shown in one row below the settings header, not in the popup", () => {
+  const popupHtml = readFileSync(new URL("../extension/popup/popup.html", import.meta.url), "utf8");
+  const popupJs = readFileSync(new URL("../extension/popup/popup.js", import.meta.url), "utf8");
+  const headerEnd = optionsHtml.indexOf("</header>");
+  const supportedSitesIndex = optionsHtml.indexOf('class="settings-section supported-sites-section"');
+  const generalSettingsIndex = optionsHtml.indexOf('<section class="settings-section">', supportedSitesIndex);
+
+  assert.ok(supportedSitesIndex > headerEnd);
+  assert.ok(generalSettingsIndex > supportedSitesIndex);
+  assert.match(optionsHtml, /<h2 data-i18n="supportedSites"><\/h2>/);
+  assert.match(optionsHtml, /id="toggleUdemy" type="checkbox"/);
+  assert.match(optionsHtml, /id="toggleYoutube" type="checkbox"/);
+  assert.match(optionsHtml, /id="toggleNvidia" type="checkbox"/);
+  assert.match(optionsHtml, /id="toggleVimeo" type="checkbox"/);
+  assert.match(optionsCss, /\.supported-sites-toggles\s*\{[\s\S]*display: flex/);
+  assert.match(optionsJs, /Object\.entries\(platformToggleInputs\)\.forEach\(\(\[platform, input\]\) => \{/);
+  assert.match(optionsJs, /\[platform\]: input\.checked[\s\S]*scheduleAutomaticSave\(\{ immediate: true \}\)/);
+  assert.doesNotMatch(popupHtml, /toggle(?:Udemy|Youtube|Nvidia|Vimeo)/);
+  assert.doesNotMatch(popupJs, /savePlatformToggle/);
+  assert.equal(message("ko", "supportedSites"), "지원 사이트");
+});
+
 test("settings backup UI requests a popup password and encrypts backup files", () => {
   assert.match(optionsJs, /import \{ createEncryptedSettingsBackup, decryptSettingsBackup, settingsBackupInternals, validateBackupSeed \}/);
   assert.match(optionsJs, /function getValidatedBackupSeed\(\)/);
   assert.match(optionsJs, /function requestBackupPassword\(mode\)/);
+  assert.match(optionsJs, /backupSeedConfirmationField\.hidden = !requiresConfirmation/);
+  assert.match(optionsJs, /backupSeedConfirmationInput\.disabled = !requiresConfirmation/);
+  assert.match(optionsJs, /backupPasswordMode === "backup" && backupSeedConfirmationInput\.value !== seed/);
   assert.match(optionsJs, /backupPasswordDialog\.showModal\(\)/);
   assert.match(optionsJs, /const seed = await requestBackupPassword\("backup"\)/);
   assert.match(optionsJs, /const seed = await requestBackupPassword\("restore"\)/);
   assert.match(optionsJs, /backupPasswordForm\.addEventListener\("submit"/);
   assert.match(optionsJs, /cancelBackupPasswordButton\.addEventListener\("click"/);
   assert.match(optionsJs, /const validation = validateBackupSeed\(seed\);/);
-  assert.match(optionsJs, /captureCurrentFormState\(\);\s*settings = await saveSettings\(settings\);/);
+  assert.match(optionsJs, /await flushAutomaticSave\(\);\s*const backup = await createEncryptedSettingsBackup/);
   assert.match(optionsJs, /createEncryptedSettingsBackup\(settings, seed\)/);
   assert.match(optionsJs, /application\/x-astbackup/);
+  assert.match(optionsJs, /function getLocalBackupDate\(date = new Date\(\)\)/);
+  assert.match(optionsJs, /date\.getFullYear\(\)/);
+  assert.match(optionsJs, /date\.getMonth\(\) \+ 1/);
+  assert.match(optionsJs, /date\.getDate\(\)/);
+  assert.doesNotMatch(optionsJs, /new Date\(\)\.toISOString\(\)\.slice\(0, 10\)/);
   assert.match(optionsJs, /ai-subtitle-translator-settings-\$\{date\}\.astbackup/);
   assert.match(optionsJs, /if \(!\/\\\.astbackup\$\/i\.test\(file\.name\)\)/);
   assert.match(optionsJs, /globalThis\.showOpenFilePicker\(\{/);
@@ -316,12 +350,14 @@ test("settings backup UI requests a popup password and encrypts backup files", (
   assert.equal(message("en", "backupRestoreTitle"), "Back Up / Restore Current Settings");
   assert.equal(message("ja", "backupRestoreTitle"), "現在の設定をバックアップ／復元");
   assert.equal(message("ko", "backupSeedLabel"), "백업 비밀번호");
+  assert.equal(message("ko", "backupSeedConfirmLabel"), "백업 비밀번호 확인");
   assert.equal(message("en", "backupSeedLabel"), "Backup password");
   assert.equal(message("ja", "backupSeedLabel"), "バックアップパスワード");
   assert.match(optionsCss, /\.backup-restore-grid\s*\{[\s\S]*grid-template-columns:/);
   assert.match(optionsCss, /\.backup-status-line\.error\s*\{[\s\S]*var\(--danger\)/);
   assert.match(optionsCss, /\.backup-password-dialog\s*\{[\s\S]*box-shadow:/);
   assert.match(optionsCss, /\.backup-password-dialog::backdrop\s*\{/);
+  assert.match(optionsCss, /#backupSeedConfirmationField\[hidden\]\s*\{[\s\S]*display: none !important/);
 });
 
 test("settings restore can validate every configured API key and update provider status", () => {

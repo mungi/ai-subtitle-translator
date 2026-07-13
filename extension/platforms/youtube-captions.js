@@ -273,13 +273,14 @@ function matchesLanguage(track, languageCode) {
 
 function selectCaptionTrack(tracks, languageCode) {
   if (languageCode) {
-    return tracks.find((track) => matchesLanguage(track, languageCode) && isManualTrack(track))
+    const languageTrack = tracks.find((track) => matchesLanguage(track, languageCode) && isManualTrack(track))
       || tracks.find((track) => matchesLanguage(track, languageCode));
+    if (languageTrack) return languageTrack;
   }
 
+  if (tracks.length === 1) return tracks[0];
   return tracks.find((track) => isEnglishTrack(track) && isManualTrack(track))
     || tracks.find(isEnglishTrack)
-    || tracks.find(isManualTrack)
     || tracks[0];
 }
 
@@ -584,6 +585,7 @@ export async function fetchYoutubeTranscript({
   urlOrId,
   videoId,
   languageCode,
+  captionTrackUrl,
   captionTracks,
   transcriptParams,
   innertubeApiKey,
@@ -592,7 +594,8 @@ export async function fetchYoutubeTranscript({
   const resolvedVideoId = videoId || getYoutubeVideoId(urlOrId);
   const pageTracks = normalizeProvidedCaptionTracks(captionTracks, resolvedVideoId);
   const tracks = pageTracks.length > 0 ? pageTracks : await fetchYoutubeCaptionTracks(urlOrId || resolvedVideoId);
-  const selectedTrack = selectCaptionTrack(tracks, languageCode);
+  const selectedTrack = (captionTrackUrl && tracks.find((track) => track.baseUrl === captionTrackUrl))
+    || selectCaptionTrack(tracks, languageCode);
 
   if (!selectedTrack) {
     throw new Error(`No YouTube caption track found for language: ${languageCode}`);

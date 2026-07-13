@@ -1,10 +1,12 @@
 import { getPublicSettings, getSettings, restrictLocalStorageAccess, saveSettings, updateSubtitleStyleSettings } from "../shared/storage.js";
+import { TRANSLATION_STYLES } from "../shared/defaults.js";
 import { validateBackgroundMessage, validateMessageSender } from "../shared/message-contracts.js";
 import { ANTHROPIC_DIRECT_BROWSER_ACCESS_HEADER, buildProviderRequest, extractText, shouldRetryOpenRouterWithoutReasoning } from "../shared/provider-request.js";
 import { assertProviderEndpoint } from "../shared/provider-security.js";
 import { translateSubtitleDocument } from "../shared/translation.js";
 import { fetchYoutubeCaptionTracks, fetchYoutubeTranscript } from "../platforms/youtube-captions.js";
 import { fetchUdemyCaptionTracks, fetchUdemyTranscript } from "../platforms/udemy-captions.js";
+import { fetchVimeoTranscript } from "../platforms/vimeo-captions.js";
 
 const TEST_SYSTEM_PROMPT = "You are a concise API connection tester. Reply with only the word OK.";
 const TEST_INPUT = "Return OK if you can read this message.";
@@ -68,7 +70,11 @@ async function broadcastPublicSettings() {
   if (!chrome.tabs?.query) return;
   const settings = await getPublicSettings();
   const tabs = await chrome.tabs.query({
-    url: ["https://www.youtube.com/*", "https://*.udemy.com/course/*/learn/*"]
+    url: [
+      "https://www.youtube.com/*",
+      "https://*.udemy.com/course/*/learn/*",
+      "https://www.nvidia.com/*/training/academy/course-player/*"
+    ]
   });
   await Promise.all(tabs
     .filter((tab) => Number.isInteger(tab.id))
@@ -317,6 +323,16 @@ async function setActiveProvider(providerId) {
   return { providerId };
 }
 
+async function setTranslationStyle(translationStyle) {
+  if (!TRANSLATION_STYLES.some((style) => style.id === translationStyle)) {
+    throw new Error(`Unsupported translation style: ${translationStyle}`);
+  }
+  const settings = await getSettings();
+  settings.translationStyle = translationStyle;
+  await saveSettings(settings);
+  return { translationStyle };
+}
+
 export function buildYoutubeTranscriptErrorResponse(error) {
   const response = {
     ok: false,
@@ -366,6 +382,13 @@ function dispatchBackgroundMessage(message, sender, sendResponse) {
     return true;
   }
 
+  if (message?.type === "settings.setTranslationStyle") {
+    setTranslationStyle(message.translationStyle)
+      .then((result) => sendResponse({ ok: true, result }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
   if (message?.type === "ast.openOptions") {
     chrome.runtime.openOptionsPage();
     sendResponse({ ok: true });
@@ -384,6 +407,7 @@ function dispatchBackgroundMessage(message, sender, sendResponse) {
       urlOrId: message.urlOrId,
       videoId: message.videoId,
       languageCode: message.languageCode,
+      captionTrackUrl: message.captionTrackUrl,
       captionTracks: message.captionTracks,
       transcriptParams: message.transcriptParams,
       innertubeApiKey: message.innertubeApiKey,
@@ -411,11 +435,42 @@ function dispatchBackgroundMessage(message, sender, sendResponse) {
       lectureId: message.lectureId,
       hostname: message.hostname,
       languageCode: message.languageCode,
-      localeId: message.localeId
+      localeId: message.localeId,
+      trackUrl: message.trackUrl
     })
       .then((document) => sendResponse({ ok: true, document }))
       .catch((error) => sendResponse({ ok: false, error: error.message }));
     return true;
+  }
+
+  if (message?.type === "captions.vimeo.fetchTranscript") {
+    fetchVimeoTranscript({
+      videoId: message.videoId,
+      trackUrl: message.trackUrl,
+      sourceLanguage: message.sourceLanguage,
+      platform: message.platform
+    })
+      .then((document) => sendResponse({ ok: true, document }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.type === "platform.nvidia.isCoursePlayer") {
+    const isNvidiaCoursePlayer = /^https:\/\/www\.nvidia\.com\/[^?#]*\/training\/academy\/course-player\/?(?:[?#]|$)/i
+      .test(String(sender.tab?.url || ""));
+    sendResponse({ ok: true, isNvidiaCoursePlayer });
+    return false;
+  }
+
+  if (message?.type === "platform.vimeo.getContext") {
+    const tabUrl = String(sender.tab?.url || "");
+    const platform = /^https:\/\/www\.nvidia\.com\/[^?#]*\/training\/academy\/course-player\/?(?:[?#]|$)/i.test(tabUrl)
+      ? "nvidia"
+      : /^https:\/\/(?:www\.)?vimeo\.com\/|^https:\/\/player\.vimeo\.com\//i.test(tabUrl)
+        ? "vimeo"
+        : null;
+    sendResponse({ ok: true, platform });
+    return false;
   }
 
   if (message?.type === "translation.translateDocument") {

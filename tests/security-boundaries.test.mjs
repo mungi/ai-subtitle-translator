@@ -93,6 +93,23 @@ test("background message sender validation separates extension pages and content
     url: "https://www.youtube.com/watch?v=test",
     tab: { id: 1, url: "https://www.youtube.com/watch?v=test" }
   };
+  const nvidiaVimeoSender = {
+    id: "extension-id",
+    url: "https://player.vimeo.com/video/1191467672",
+    tab: {
+      id: 2,
+      url: "https://www.nvidia.com/en-us/training/academy/course-player/?id=course:16115386"
+    }
+  };
+  const vimeoSender = {
+    ...nvidiaVimeoSender,
+    tab: { id: 3, url: "https://vimeo.com/1191467672" }
+  };
+  const vimeoPageSender = {
+    id: "extension-id",
+    url: "https://vimeo.com/1191467672",
+    tab: { id: 4, url: "https://vimeo.com/1191467672" }
+  };
 
   assert.deepEqual(messageContracts.validateMessageSender(
     { type: "llm.listModels" }, extensionSender, "extension-id"
@@ -111,6 +128,21 @@ test("background message sender validation separates extension pages and content
   ), { ok: true });
   assert.deepEqual(messageContracts.validateMessageSender(
     { type: "translation.translateDocument" }, extensionSender, "extension-id"
+  ), { ok: false, error: "Message is restricted to supported content scripts." });
+  assert.deepEqual(messageContracts.validateMessageSender(
+    { type: "captions.vimeo.fetchTranscript" }, nvidiaVimeoSender, "extension-id"
+  ), { ok: true });
+  assert.deepEqual(messageContracts.validateMessageSender(
+    { type: "captions.vimeo.fetchTranscript" }, vimeoSender, "extension-id"
+  ), { ok: true });
+  assert.deepEqual(messageContracts.validateMessageSender(
+    { type: "captions.vimeo.fetchTranscript" }, vimeoPageSender, "extension-id"
+  ), { ok: true });
+  assert.deepEqual(messageContracts.validateMessageSender(
+    { type: "captions.vimeo.fetchTranscript" }, {
+      ...nvidiaVimeoSender,
+      tab: { ...nvidiaVimeoSender.tab, url: "https://example.com/embed/video" }
+    }, "extension-id"
   ), { ok: false, error: "Message is restricted to supported content scripts." });
 });
 

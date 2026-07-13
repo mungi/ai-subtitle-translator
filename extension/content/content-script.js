@@ -27,6 +27,13 @@ const PROVIDER_MENU_ORDER = [
   ["nvidiaNim", "NVIDIA NIM", "openai-chat"],
   ["local", "Local LLM", "openai-chat"]
 ];
+const TRANSLATION_STYLE_MESSAGE_KEYS = {
+  natural: "styleNatural",
+  lecture: "styleLecture",
+  technical: "styleTechnical",
+  custom: "styleCustom",
+  custom2: "styleCustom2"
+};
 const YOUTUBE_TRANSCRIPT_TEXT_PATTERN = /<text\b([^>]*)>([\s\S]*?)<\/text>/g;
 const YOUTUBE_XML_ATTRIBUTE_PATTERN = /(\w+)="([^"]*)"/g;
 const YOUTUBE_ANDROID_INNERTUBE_CONTEXT = {
@@ -53,7 +60,13 @@ const subtitleState = {
   currentVideo: null,
   currentDocument: null,
   activeProviderId: "",
+  translationStyle: "",
   defaultProviderId: "",
+  sourceCaptionTracks: [],
+  sourceCaptionSessionKey: "",
+  selectedSourceCaptionTrackId: "",
+  sourceCaptionMenuExpanded: false,
+  translationStyleMenuExpanded: false,
   temporaryPriorityWindowSeconds: DEFAULT_TEMPORARY_PRIORITY_WINDOW_SECONDS,
   availableProviders: [],
   translationGeneration: 0,
@@ -84,7 +97,13 @@ function detectPlatform() {
   const host = location.hostname;
   if (host.includes("youtube.com")) return "youtube";
   if (host.includes("udemy.com")) return "udemy";
+  if (host === "player.vimeo.com") return "vimeo";
+  if ((host === "vimeo.com" || host === "www.vimeo.com") && getVimeoVideoId()) return "vimeo";
   return null;
+}
+
+function isVimeoPlatform(platform) {
+  return platform === "nvidia" || platform === "vimeo";
 }
 
 function contentText(key, substitutions) {
@@ -153,7 +172,21 @@ function findToolbarTarget(platform, { allowFloatingToolbar = true } = {}) {
     return document.querySelector("#movie_player .ytp-right-controls");
   }
 
+  if (isVimeoPlatform(platform)) {
+    return findVimeoPlayerControls()
+      || (allowFloatingToolbar ? ensureFloatingToolbar() : null);
+  }
+
   return null;
+}
+
+function findVimeoPlayerControls() {
+  const preferencesButton = document.querySelector('.vp-controls [data-prefs-button]');
+  if (preferencesButton?.parentElement?.parentElement) {
+    return preferencesButton.parentElement.parentElement;
+  }
+  return document.querySelector('.vp-controls [data-control-bar="true"]')
+    || document.querySelector(".vp-controls");
 }
 
 function findUdemyPlayerControls() {
@@ -200,6 +233,11 @@ function getProviderMenuHost(platform) {
   if (platform === "youtube") {
     return document.querySelector("#movie_player");
   }
+  if (isVimeoPlatform(platform)) {
+    return document.querySelector(".vp-player-ui-overlays")
+      || document.querySelector(".vp-player")
+      || findOverlayHost(platform, findVideoElement(platform));
+  }
   return document.querySelector('[data-purpose="media-player-container"]')
     || findOverlayHost(platform, findVideoElement(platform));
 }
@@ -220,6 +258,101 @@ function createProviderMenuButton(className, label) {
   labelElement.textContent = label;
   button.append(labelElement);
   return button;
+}
+
+function getSourceCaptionTrackLabel(track) {
+  return track?.label || "";
+}
+
+function getTranslationStyleLabel(styleId) {
+  return contentText(TRANSLATION_STYLE_MESSAGE_KEYS[styleId] || "styleNatural");
+}
+
+function renderSourceCaptionMenu(menu, platform) {
+  const tracks = subtitleState.sourceCaptionTracks;
+  const sessionKey = platformHandlers[platform]?.getSessionKey();
+  const selectedTrack = getSelectedSourceCaptionTrack(platform, sessionKey);
+  if (!selectedTrack) return;
+
+  const submenu = document.createElement("div");
+  submenu.className = "ast-source-caption-submenu";
+  if (subtitleState.sourceCaptionMenuExpanded) submenu.classList.add("open");
+
+  const toggle = createProviderMenuButton(
+    "ast-provider-menu-item ast-source-caption-toggle",
+    `${contentText("contentSourceCaptions")}: ${getSourceCaptionTrackLabel(selectedTrack)}`
+  );
+  toggle.setAttribute("role", "menuitem");
+  toggle.setAttribute("aria-expanded", String(subtitleState.sourceCaptionMenuExpanded));
+  toggle.addEventListener("click", (event) => {
+    event.stopPropagation();
+    subtitleState.sourceCaptionMenuExpanded = !subtitleState.sourceCaptionMenuExpanded;
+    renderProviderMenu(platform);
+  });
+  submenu.append(toggle);
+
+  const list = document.createElement("div");
+  list.className = "ast-source-caption-list";
+  list.setAttribute("role", "group");
+  list.setAttribute("aria-label", contentText("contentSourceCaptions"));
+  for (const track of tracks) {
+    const item = createProviderMenuButton("ast-provider-menu-item ast-source-caption-item", getSourceCaptionTrackLabel(track));
+    const isSelected = track.id === selectedTrack.id;
+    item.setAttribute("role", "menuitemradio");
+    item.setAttribute("aria-checked", String(isSelected));
+    if (isSelected) item.classList.add("active");
+    item.addEventListener("click", (event) => {
+      event.stopPropagation();
+      selectSourceCaptionTrack(platform, track.id).catch((error) => {
+        showToast(contentText("contentCaptionsLoadFailed", [error.message]));
+      });
+    });
+    list.append(item);
+  }
+  submenu.append(list);
+  menu.append(submenu);
+}
+
+function renderTranslationStyleMenu(menu, platform) {
+  const selectedStyle = subtitleState.translationStyle || "custom";
+  const submenu = document.createElement("div");
+  submenu.className = "ast-translation-style-submenu";
+  if (subtitleState.translationStyleMenuExpanded) submenu.classList.add("open");
+
+  const toggle = createProviderMenuButton(
+    "ast-provider-menu-item ast-translation-style-toggle",
+    `${contentText("translationStyle")}: ${getTranslationStyleLabel(selectedStyle)}`
+  );
+  toggle.setAttribute("role", "menuitem");
+  toggle.setAttribute("aria-haspopup", "menu");
+  toggle.setAttribute("aria-expanded", String(subtitleState.translationStyleMenuExpanded));
+  toggle.addEventListener("click", (event) => {
+    event.stopPropagation();
+    subtitleState.translationStyleMenuExpanded = !subtitleState.translationStyleMenuExpanded;
+    renderProviderMenu(platform);
+  });
+  submenu.append(toggle);
+
+  const list = document.createElement("div");
+  list.className = "ast-translation-style-list";
+  list.setAttribute("role", "group");
+  list.setAttribute("aria-label", contentText("translationStyle"));
+  for (const styleId of Object.keys(TRANSLATION_STYLE_MESSAGE_KEYS)) {
+    const item = createProviderMenuButton("ast-provider-menu-item ast-translation-style-item", getTranslationStyleLabel(styleId));
+    const isSelected = styleId === selectedStyle;
+    item.setAttribute("role", "menuitemradio");
+    item.setAttribute("aria-checked", String(isSelected));
+    if (isSelected) item.classList.add("active");
+    item.addEventListener("click", (event) => {
+      event.stopPropagation();
+      selectTranslationStyle(platform, styleId).catch((error) => {
+        showToast(contentText("contentProviderFailed", [error.message]));
+      });
+    });
+    list.append(item);
+  }
+  submenu.append(list);
+  menu.append(submenu);
 }
 
 function renderProviderMenu(platform = detectPlatform()) {
@@ -274,6 +407,9 @@ function renderProviderMenu(platform = detectPlatform()) {
     menu.append(item);
   }
 
+  renderSourceCaptionMenu(menu, platform);
+  renderTranslationStyleMenu(menu, platform);
+
   const lastSeparator = document.createElement("div");
   lastSeparator.className = "ast-provider-menu-separator";
   lastSeparator.setAttribute("role", "separator");
@@ -306,6 +442,12 @@ function ensureProviderMenu(platform) {
     menu.setAttribute("role", "menu");
     menu.setAttribute("aria-label", contentText("contentMenuTitle"));
     menu.hidden = true;
+    menu.addEventListener("pointerdown", (event) => {
+      event.stopPropagation();
+    });
+    menu.addEventListener("mousedown", (event) => {
+      event.stopPropagation();
+    });
   } else {
     menu.className = `ast-provider-menu ast-provider-menu-${platform}`;
     menu.dataset.platform = platform;
@@ -320,9 +462,21 @@ async function refreshAvailableProviders() {
   const activeProviderAvailable = subtitleState.availableProviders
     .some((provider) => provider.id === settings.activeProvider);
   subtitleState.activeProviderId = activeProviderAvailable ? settings.activeProvider : "googleTranslate";
+  subtitleState.translationStyle = settings.translationStyle || "custom";
   subtitleState.defaultProviderId = resolveDefaultTranslationProviderId(settings);
   subtitleState.temporaryPriorityWindowSeconds = resolveTemporaryPriorityWindowSeconds(settings);
   return settings;
+}
+
+async function refreshSourceCaptionTracks(platform) {
+  const handler = platformHandlers[platform];
+  const sessionKey = handler?.getSessionKey();
+  if (!handler || !sessionKey || !handler.listCaptionTracks) return null;
+  if (subtitleState.sourceCaptionSessionKey === `${platform}:${sessionKey}` && subtitleState.sourceCaptionTracks.length > 0) {
+    return getSelectedSourceCaptionTrack(platform, sessionKey);
+  }
+  const tracks = await handler.listCaptionTracks();
+  return setSourceCaptionTracks(platform, sessionKey, tracks);
 }
 
 async function toggleProviderMenu(platform) {
@@ -333,7 +487,7 @@ async function toggleProviderMenu(platform) {
     return;
   }
   try {
-    await refreshAvailableProviders();
+    await Promise.all([refreshAvailableProviders(), refreshSourceCaptionTracks(platform)]);
   } catch (error) {
     console.warn("[AST] Failed to load provider menu:", error.message);
     subtitleState.availableProviders = getAvailableProviders();
@@ -343,6 +497,36 @@ async function toggleProviderMenu(platform) {
   renderProviderMenu(platform);
   menu.hidden = false;
   document.getElementById(BUTTON_ID)?.setAttribute("aria-expanded", "true");
+}
+
+async function selectSourceCaptionTrack(platform, trackId) {
+  const handler = platformHandlers[platform];
+  const sessionKey = handler?.getSessionKey();
+  const track = subtitleState.sourceCaptionTracks.find((item) => item.id === trackId);
+  if (!handler || !sessionKey || !track || subtitleState.loading) return;
+  if (track.id === subtitleState.selectedSourceCaptionTrackId) {
+    subtitleState.sourceCaptionMenuExpanded = false;
+    renderProviderMenu(platform);
+    return;
+  }
+
+  subtitleState.selectedSourceCaptionTrackId = track.id;
+  subtitleState.sourceCaptionMenuExpanded = false;
+  if (!subtitleState.enabled) {
+    renderProviderMenu(platform);
+    return;
+  }
+
+  subtitleState.loading = true;
+  setButtonState(true, true);
+  showOverlayMessage(handler.findVideo(), handler.loadingMessage);
+  try {
+    await loadPlatformSubtitleOverlay(handler);
+  } finally {
+    subtitleState.loading = false;
+    setButtonState(subtitleState.enabled, false);
+    refreshOpenProviderMenu();
+  }
 }
 
 function refreshOpenProviderMenu() {
@@ -359,12 +543,20 @@ function findVideoElement(platform) {
     return document.querySelector("#movie_player video, video");
   }
 
+  if (isVimeoPlatform(platform)) {
+    return document.querySelector("video");
+  }
+
   return null;
 }
 
 function findOverlayHost(platform, video) {
   if (platform === "youtube") {
     return document.querySelector("#movie_player") || video?.parentElement || null;
+  }
+
+  if (isVimeoPlatform(platform)) {
+    return document.querySelector(".vp-player-ui-overlays") || video?.parentElement || null;
   }
 
   return video?.parentElement || null;
@@ -392,6 +584,11 @@ function getYoutubeVideoId() {
 
   const pathMatch = location.pathname.match(/^\/(?:shorts|embed)\/([a-zA-Z0-9_-]{11})/);
   return pathMatch?.[1] || null;
+}
+
+function getVimeoVideoId() {
+  const match = location.pathname.match(/(?:^|\/)(\d+)(?:\/[a-zA-Z0-9_-]+)?\/?$/);
+  return match?.[1] || null;
 }
 
 function parseJsonObjectAfter(text, marker, startIndex = 0) {
@@ -482,6 +679,176 @@ function parseYoutubeConfigFromPage() {
   }
 
   return merged;
+}
+
+function parseVimeoPlayerConfigFromPage() {
+  const source = String(document.documentElement?.innerHTML || "");
+  return parseJsonObjectAfter(source, "window.playerConfig = ")
+    || parseJsonObjectAfter(source, "window.playerConfig=");
+}
+
+function normalizeVimeoTextTrackFromPage(track, videoId) {
+  if (!track?.url || !videoId) return null;
+
+  let trackUrl;
+  try {
+    trackUrl = new URL(track.url, location.href);
+  } catch {
+    return null;
+  }
+  if (trackUrl.protocol !== "https:" || !["captions.vimeo.com", "captions.cloud.vimeo.com"].includes(trackUrl.hostname)) return null;
+
+  const sourceLanguage = String(track.lang || track.language || "").trim();
+  return {
+    videoId: String(videoId),
+    sourceLanguage: sourceLanguage || "en",
+    label: String(track.label || track.name || sourceLanguage || "Unknown"),
+    isAutoGenerated: /(?:^|[-_])autogen(?:$|[-_])/i.test(sourceLanguage)
+      || /auto(?:matic)?/i.test(String(track.kind || track.type || "")),
+    trackUrl: trackUrl.href
+  };
+}
+
+function getVimeoTextTracksFromPage(videoId) {
+  return getVimeoTextTracksFromConfig(parseVimeoPlayerConfigFromPage(), videoId);
+}
+
+function getVimeoTextTracksFromDom(videoId) {
+  return [...document.querySelectorAll("video track[src]")]
+    .map((track) => normalizeVimeoTextTrackFromPage({
+      url: track.getAttribute("src"),
+      lang: track.getAttribute("srclang"),
+      label: track.getAttribute("label"),
+      kind: track.getAttribute("kind")
+    }, videoId))
+    .filter(Boolean);
+}
+
+function getVimeoTextTracksFromConfig(config, videoId) {
+  const rawTracks = config?.request?.text_tracks;
+  if (!Array.isArray(rawTracks)) return [];
+
+  return rawTracks
+    .map((track) => normalizeVimeoTextTrackFromPage(track, videoId))
+    .filter(Boolean);
+}
+
+function getVimeoPlayerConfigResourceUrl(videoId) {
+  const expectedPath = `/video/${encodeURIComponent(String(videoId))}/config`;
+  const resources = performance.getEntriesByType?.("resource") || [];
+  for (let index = resources.length - 1; index >= 0; index -= 1) {
+    try {
+      const url = new URL(resources[index]?.name || "");
+      if (url.origin === "https://player.vimeo.com" && url.pathname === expectedPath) return url.href;
+    } catch {
+      // Ignore resource entries that are not valid URLs.
+    }
+  }
+  return null;
+}
+
+function getVimeoTextTracksResourceUrl(videoId) {
+  const expectedPath = new RegExp(`^/videos/${String(videoId).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?::[^/]+)?/texttracks$`);
+  const resources = performance.getEntriesByType?.("resource") || [];
+  for (let index = resources.length - 1; index >= 0; index -= 1) {
+    try {
+      const url = new URL(resources[index]?.name || "");
+      if (url.origin === "https://api.vimeo.com" && expectedPath.test(url.pathname)) return url.href;
+    } catch {
+      // Ignore resource entries that are not valid URLs.
+    }
+  }
+  return null;
+}
+
+function getVimeoTextTracksFromApiResponse(response, videoId) {
+  const rawTracks = Array.isArray(response?.data) ? response.data : [];
+  return rawTracks
+    .map((track) => normalizeVimeoTextTrackFromPage({
+      url: track.link,
+      lang: track.language,
+      label: track.display_language || track.name || track.language,
+      kind: track.type
+    }, videoId))
+    .filter(Boolean);
+}
+
+async function getVimeoTextTracks(videoId) {
+  const domTracks = getVimeoTextTracksFromDom(videoId);
+  if (domTracks.length > 0) return domTracks;
+
+  const pageTracks = getVimeoTextTracksFromPage(videoId);
+  if (pageTracks.length > 0) return pageTracks;
+
+  const configUrl = getVimeoPlayerConfigResourceUrl(videoId);
+  if (configUrl) {
+    try {
+      const response = await fetch(configUrl, { credentials: "include" });
+      if (!response.ok) throw new Error(`Vimeo player config request failed (${response.status}).`);
+      const configTracks = getVimeoTextTracksFromConfig(await response.json(), videoId);
+      if (configTracks.length > 0) return configTracks;
+    } catch (error) {
+      console.warn("[AST] Failed to read Vimeo caption tracks from player config:", error.message);
+    }
+  }
+
+  const textTracksUrl = getVimeoTextTracksResourceUrl(videoId);
+  if (!textTracksUrl) return [];
+  try {
+    const response = await fetch(textTracksUrl, { credentials: "include" });
+    if (!response.ok) throw new Error(`Vimeo text tracks request failed (${response.status}).`);
+    return getVimeoTextTracksFromApiResponse(await response.json(), videoId);
+  } catch (error) {
+    console.warn("[AST] Failed to read Vimeo caption tracks from text tracks API:", error.message);
+    return [];
+  }
+}
+
+function isEnglishSourceCaptionTrack(track) {
+  const language = String(track?.languageCode || track?.localeId || track?.sourceLanguage || "").toLowerCase();
+  const label = String(track?.label || "").toLowerCase();
+  return language === "en" || language.startsWith("en-") || language.startsWith("en_") || label.includes("english");
+}
+
+function selectDefaultSourceCaptionTrack(tracks) {
+  const usableTracks = Array.isArray(tracks) ? tracks.filter(Boolean) : [];
+  if (usableTracks.length === 1) return usableTracks[0];
+  return usableTracks.find((track) => isEnglishSourceCaptionTrack(track) && !track.isAutoGenerated)
+    || usableTracks.find(isEnglishSourceCaptionTrack)
+    || usableTracks[0]
+    || null;
+}
+
+function setSourceCaptionTracks(platform, sessionKey, tracks) {
+  const normalizedTracks = Array.isArray(tracks) ? tracks.filter((track) => track?.id) : [];
+  const isNewSession = subtitleState.sourceCaptionSessionKey !== `${platform}:${sessionKey}`;
+  subtitleState.sourceCaptionTracks = normalizedTracks;
+  subtitleState.sourceCaptionSessionKey = `${platform}:${sessionKey}`;
+  if (isNewSession || !normalizedTracks.some((track) => track.id === subtitleState.selectedSourceCaptionTrackId)) {
+    subtitleState.selectedSourceCaptionTrackId = selectDefaultSourceCaptionTrack(normalizedTracks)?.id || "";
+  }
+  return getSelectedSourceCaptionTrack(platform, sessionKey);
+}
+
+function getSelectedSourceCaptionTrack(platform, sessionKey) {
+  if (subtitleState.sourceCaptionSessionKey !== `${platform}:${sessionKey}`) return null;
+  return subtitleState.sourceCaptionTracks
+    .find((track) => track.id === subtitleState.selectedSourceCaptionTrackId)
+    || selectDefaultSourceCaptionTrack(subtitleState.sourceCaptionTracks);
+}
+
+function createSourceCaptionTrack(track, { id, languageCode, localeId, trackUrl, captionTrackUrl } = {}) {
+  const resolvedId = id || track?.id || track?.url || track?.baseUrl || track?.trackUrl;
+  if (!resolvedId) return null;
+  return {
+    id: resolvedId,
+    label: String(track?.label || track?.name || languageCode || localeId || track?.sourceLanguage || "Unknown"),
+    languageCode: languageCode || track?.languageCode || track?.sourceLanguage || "",
+    localeId: localeId || track?.localeId || "",
+    isAutoGenerated: Boolean(track?.isAutoGenerated),
+    trackUrl: trackUrl || track?.url || track?.trackUrl || "",
+    captionTrackUrl: captionTrackUrl || track?.baseUrl || ""
+  };
 }
 
 function findYoutubeTranscriptParams(value) {
@@ -943,6 +1310,7 @@ async function fetchYoutubeTranscriptPanelDocumentOnPage(retry) {
 function getCurrentSessionKey(platform) {
   if (platform === "youtube") return getYoutubeVideoId();
   if (platform === "udemy") return getUdemyLectureId();
+  if (isVimeoPlatform(platform)) return getVimeoVideoId();
   return null;
 }
 
@@ -1036,7 +1404,7 @@ function getOverlayBackgroundColor(style) {
   if (subtitleState.translationPhase === "temporary") {
     return style.pendingBackgroundColor || "#750000";
   }
-  return style.backgroundColor || "#000000";
+  return style.backgroundColor || "#b0b0b0";
 }
 
 function applyWebFontCss(css) {
@@ -1843,6 +2211,9 @@ function createButton(platform) {
   if (platform === "youtube") {
     button.classList.add("ytp-button");
   }
+  if (isVimeoPlatform(platform)) {
+    button.classList.add("ast-vimeo-toolbar-button");
+  }
   button.innerHTML = CAPTION_SVG;
   button.addEventListener("click", (event) => {
     event.stopPropagation();
@@ -1873,13 +2244,19 @@ function ensureButton(platform, options = {}) {
   return true;
 }
 
+function shouldAllowFloatingToolbar(platform) {
+  if (platform === "udemy") return false;
+  if (!isVimeoPlatform(platform)) return true;
+  return location.hostname === "player.vimeo.com" || Boolean(document.querySelector("video"));
+}
+
 function watch(platform) {
-  const allowFloatingToolbar = platform !== "udemy";
+  const allowFloatingToolbar = shouldAllowFloatingToolbar(platform);
   const installed = ensureButton(platform, { allowFloatingToolbar });
-  if (platform !== "udemy" && installed) return;
+  if (platform !== "udemy" && !isVimeoPlatform(platform) && installed) return;
 
   const observer = new MutationObserver(() => {
-    ensureButton(platform, { allowFloatingToolbar: platform !== "udemy" });
+    ensureButton(platform, { allowFloatingToolbar: shouldAllowFloatingToolbar(platform) });
   });
   observer.observe(document.body, { childList: true, subtree: true });
 
@@ -2020,6 +2397,7 @@ async function loadSubtitleStyle() {
   try {
     const settings = await getPublicSettings();
     subtitleState.subtitleStyle = settings.subtitleStyle || null;
+    subtitleState.translationStyle = settings.translationStyle || "custom";
   } catch (error) {
     if (isExtensionContextInvalidated(error)) {
       disposeContentScript();
@@ -2145,12 +2523,64 @@ async function selectMenuProvider(platform, providerId) {
   );
 }
 
+async function selectTranslationStyle(platform, styleId) {
+  if (!Object.hasOwn(TRANSLATION_STYLE_MESSAGE_KEYS, styleId) || subtitleState.loading) return;
+
+  const response = await sendRuntimeMessage({
+    type: "settings.setTranslationStyle",
+    translationStyle: styleId
+  });
+  if (!response?.ok) {
+    showToast(contentText("contentProviderFailed", [response?.error || "Unknown error"]));
+    return;
+  }
+
+  subtitleState.translationStyle = response.result?.translationStyle || styleId;
+  subtitleState.translationStyleMenuExpanded = false;
+  const handler = platformHandlers[platform];
+  const reusableDocument = subtitleState.currentDocument
+    && subtitleState.currentPlatform === platform
+    && subtitleState.currentSessionKey === handler?.getSessionKey();
+  renderProviderMenu(platform);
+
+  if (subtitleState.enabled && reusableDocument) {
+    startProviderTranslation(
+      subtitleState.currentDocument,
+      platform,
+      subtitleState.currentSessionKey,
+      subtitleState.currentVideo,
+      subtitleState.activeProviderId,
+      subtitleState.defaultProviderId
+    );
+  }
+}
+
 const platformHandlers = {
   udemy: {
     platform: "udemy",
     loadingMessage: contentText("contentTranslationPreparing"),
     getSessionKey: getUdemyLectureId,
     findVideo: () => findVideoElement("udemy"),
+    async listCaptionTracks() {
+      const courseId = getUdemyCourseId();
+      const lectureId = getUdemyLectureId();
+      if (!courseId || !lectureId) return [];
+      const response = await sendRuntimeMessage({
+        type: "captions.udemy.listTracks",
+        courseId,
+        lectureId,
+        hostname: location.hostname
+      });
+      if (!response?.ok) throw new Error(response?.error || "Could not load Udemy caption tracks.");
+      return (response.tracks || [])
+        .map((track) => createSourceCaptionTrack(track, {
+          id: track.url,
+          languageCode: track.languageCode,
+          localeId: track.localeId,
+          trackUrl: track.url
+        }))
+        .filter(Boolean);
+    },
     buildTranscriptRequest({ quietMissingPageData = false } = {}) {
       const courseId = getUdemyCourseId();
       const lectureId = getUdemyLectureId();
@@ -2169,6 +2599,7 @@ const platformHandlers = {
         return null;
       }
 
+      const selectedTrack = getSelectedSourceCaptionTrack(this.platform, lectureId);
       return {
         sessionKey: lectureId,
         video,
@@ -2176,7 +2607,10 @@ const platformHandlers = {
           type: "captions.udemy.fetchTranscript",
           courseId,
           lectureId,
-          hostname: location.hostname
+          hostname: location.hostname,
+          languageCode: selectedTrack?.languageCode,
+          localeId: selectedTrack?.localeId,
+          trackUrl: selectedTrack?.trackUrl
         }
       };
     },
@@ -2189,6 +2623,26 @@ const platformHandlers = {
     loadingMessage: contentText("contentTranslationPreparing"),
     getSessionKey: getYoutubeVideoId,
     findVideo: () => findVideoElement("youtube"),
+    async listCaptionTracks() {
+      const videoId = getYoutubeVideoId();
+      if (!videoId) return [];
+      let tracks = getYoutubeCaptionTracksFromPage(videoId);
+      if (tracks.length === 0) {
+        const response = await sendRuntimeMessage({
+          type: "captions.youtube.listTracks",
+          urlOrId: location.href
+        });
+        if (!response?.ok) throw new Error(response?.error || "Could not load YouTube caption tracks.");
+        tracks = response.tracks || [];
+      }
+      return tracks
+        .map((track) => createSourceCaptionTrack(track, {
+          id: track.baseUrl || track.url,
+          languageCode: track.languageCode,
+          captionTrackUrl: track.baseUrl || track.url
+        }))
+        .filter(Boolean);
+    },
     buildTranscriptRequest() {
       const videoId = getYoutubeVideoId();
       const video = this.findVideo();
@@ -2203,6 +2657,7 @@ const platformHandlers = {
         return null;
       }
 
+      const selectedTrack = getSelectedSourceCaptionTrack(this.platform, videoId);
       return {
         sessionKey: videoId,
         video,
@@ -2210,6 +2665,8 @@ const platformHandlers = {
           type: "captions.youtube.fetchTranscript",
           urlOrId: location.href,
           videoId,
+          languageCode: selectedTrack?.languageCode,
+          captionTrackUrl: selectedTrack?.captionTrackUrl,
           captionTracks: getYoutubeCaptionTracksFromPage(videoId),
           ...getYoutubeTranscriptPanelDataFromPage()
         }
@@ -2229,13 +2686,104 @@ const platformHandlers = {
       if (!retry) return null;
       return fetchYoutubeTranscriptPanelDocumentOnPage(retry);
     }
+  },
+  nvidia: {
+    platform: "nvidia",
+    loadingMessage: contentText("contentTranslationPreparing"),
+    getSessionKey: getVimeoVideoId,
+    findVideo: () => findVideoElement("nvidia"),
+    async listCaptionTracks() {
+      const videoId = getVimeoVideoId();
+      return (await getVimeoTextTracks(videoId))
+        .map((track) => createSourceCaptionTrack(track, {
+          id: track.trackUrl,
+          languageCode: track.sourceLanguage,
+          trackUrl: track.trackUrl
+        }))
+        .filter(Boolean);
+    },
+    async buildTranscriptRequest() {
+      const videoId = getVimeoVideoId();
+      const video = this.findVideo();
+      const track = getSelectedSourceCaptionTrack(this.platform, videoId)
+        || setSourceCaptionTracks(this.platform, videoId, await this.listCaptionTracks());
+
+      if (!videoId || !video || !track) {
+        console.warn("[AST] Missing NVIDIA Academy Vimeo caption data:", {
+          videoId: videoId || null,
+          hasVideo: Boolean(video),
+          hasTrack: Boolean(track),
+          url: location.href
+        });
+        if (video) showOverlayMessage(video, contentText("contentMissingNvidia"), "error");
+        return null;
+      }
+
+      return {
+        sessionKey: videoId,
+        video,
+        message: {
+          type: "captions.vimeo.fetchTranscript",
+          videoId,
+          sourceLanguage: track.languageCode,
+          trackUrl: track.trackUrl,
+          platform: "nvidia"
+        }
+      };
+    }
+  },
+  vimeo: {
+    platform: "vimeo",
+    loadingMessage: contentText("contentTranslationPreparing"),
+    getSessionKey: getVimeoVideoId,
+    findVideo: () => findVideoElement("vimeo"),
+    async listCaptionTracks() {
+      const videoId = getVimeoVideoId();
+      return (await getVimeoTextTracks(videoId))
+        .map((track) => createSourceCaptionTrack(track, {
+          id: track.trackUrl,
+          languageCode: track.sourceLanguage,
+          trackUrl: track.trackUrl
+        }))
+        .filter(Boolean);
+    },
+    async buildTranscriptRequest() {
+      const videoId = getVimeoVideoId();
+      const video = this.findVideo();
+      const track = getSelectedSourceCaptionTrack(this.platform, videoId)
+        || setSourceCaptionTracks(this.platform, videoId, await this.listCaptionTracks());
+
+      if (!videoId || !video || !track) {
+        console.warn("[AST] Missing Vimeo caption data:", {
+          videoId: videoId || null,
+          hasVideo: Boolean(video),
+          hasTrack: Boolean(track),
+          url: location.href
+        });
+        if (video) showOverlayMessage(video, contentText("contentMissingVimeo"), "error");
+        return null;
+      }
+
+      return {
+        sessionKey: videoId,
+        video,
+        message: {
+          type: "captions.vimeo.fetchTranscript",
+          videoId,
+          sourceLanguage: track.languageCode,
+          trackUrl: track.trackUrl,
+          platform: "vimeo"
+        }
+      };
+    }
   }
 };
 
 async function loadPlatformSubtitleOverlay(handler, options = {}) {
   if (subtitleState.disposed) return false;
 
-  const request = handler.buildTranscriptRequest(options);
+  const pendingRequest = handler.buildTranscriptRequest(options);
+  const request = pendingRequest?.then ? await pendingRequest : pendingRequest;
   if (!request) return false;
 
   let response = await sendRuntimeMessage(request.message);
@@ -2310,6 +2858,7 @@ chrome.runtime.onMessage.addListener((message) => {
   if (message?.type === "settings.changed") {
     const settings = message.settings || {};
     subtitleState.subtitleStyle = settings.subtitleStyle || subtitleState.subtitleStyle;
+    subtitleState.translationStyle = settings.translationStyle || subtitleState.translationStyle;
     subtitleState.availableProviders = getAvailableProviders(settings);
     if (subtitleState.availableProviders.some((provider) => provider.id === settings.activeProvider)) {
       subtitleState.activeProviderId = settings.activeProvider;
@@ -2458,8 +3007,24 @@ document.addEventListener?.("keydown", (event) => {
   if (event.key === "Escape") closeProviderMenu();
 });
 
-const platform = detectPlatform();
-if (platform) {
+async function isNvidiaAcademyVimeoFrame() {
+  const response = await sendRuntimeMessage({ type: "platform.nvidia.isCoursePlayer" });
+  return Boolean(response?.ok && response.isNvidiaCoursePlayer);
+}
+
+async function getVimeoPlayerPlatform() {
+  const response = await sendRuntimeMessage({ type: "platform.vimeo.getContext" });
+  return response?.ok && isVimeoPlatform(response.platform) ? response.platform : null;
+}
+
+async function initializeContentScript() {
+  let platform = detectPlatform();
+  if (!platform) return;
+  if (platform === "vimeo") {
+    platform = await getVimeoPlayerPlatform();
+    if (!platform) return;
+  }
+
   Promise.all([isPlatformEnabled(platform), loadSubtitleStyle()]).then(([enabled]) => {
     if (!enabled) return;
     const handler = platformHandlers[platform];
@@ -2482,3 +3047,5 @@ if (platform) {
     console.warn("[AST] Failed to initialize content script:", error.message);
   });
 }
+
+void initializeContentScript();

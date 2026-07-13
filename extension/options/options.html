@@ -10,17 +10,43 @@
   <body>
     <main class="settings-shell">
       <header class="page-header">
-        <div>
-          <h1 data-i18n="title"></h1>
-          <p data-i18n="subtitle"></p>
+        <div class="page-header-title">
+          <img class="settings-app-icon" src="../icons/icon128.png" alt="">
+          <div>
+            <h1 data-i18n="title"></h1>
+            <p data-i18n="subtitle"></p>
+          </div>
         </div>
         <div class="header-panel">
           <div class="header-actions">
             <button id="resetSettings" type="button" class="ghost" data-i18n="allReset"></button>
-            <button id="saveSettings" type="button" class="primary" data-i18n="save"></button>
           </div>
         </div>
       </header>
+
+      <section class="settings-section supported-sites-section">
+        <div class="section-title-row">
+          <h2 data-i18n="supportedSites"></h2>
+        </div>
+        <div class="supported-sites-toggles" role="group" data-i18n-aria-label="supportedSites">
+          <label class="checkbox-field">
+            <input id="toggleUdemy" type="checkbox">
+            <span>Udemy</span>
+          </label>
+          <label class="checkbox-field">
+            <input id="toggleYoutube" type="checkbox">
+            <span>YouTube</span>
+          </label>
+          <label class="checkbox-field">
+            <input id="toggleNvidia" type="checkbox">
+            <span>NVIDIA Academy</span>
+          </label>
+          <label class="checkbox-field">
+            <input id="toggleVimeo" type="checkbox">
+            <span>Vimeo</span>
+          </label>
+        </div>
+      </section>
 
       <section class="settings-section">
         <div class="section-title-row">
@@ -212,7 +238,11 @@
           <p class="backup-password-description" data-i18n="backupPasswordDescription"></p>
           <label>
             <span data-i18n="backupSeedLabel"></span>
-            <input id="backupSeed" type="password" minlength="10" autocomplete="off" spellcheck="false" data-i18n-placeholder="backupSeedPlaceholder">
+            <input id="backupSeed" type="password" minlength="8" autocomplete="off" spellcheck="false" data-i18n-placeholder="backupSeedPlaceholder">
+          </label>
+          <label id="backupSeedConfirmationField" hidden>
+            <span data-i18n="backupSeedConfirmLabel"></span>
+            <input id="backupSeedConfirmation" type="password" minlength="8" autocomplete="off" spellcheck="false" data-i18n-placeholder="backupSeedPlaceholder">
           </label>
           <p class="backup-seed-guide" data-i18n="backupSeedGuide"></p>
           <div class="backup-password-actions">

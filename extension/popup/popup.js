@@ -1,7 +1,15 @@
-import { getSettings, saveSettings } from "../shared/storage.js";
+import { getSettings } from "../shared/storage.js";
 import { getExtensionUiLanguage, getMessage } from "../shared/i18n.js";
+import { getTargetLanguageLabel, TARGET_LANGUAGES } from "../shared/defaults.js";
 
 let settings;
+const STYLE_MESSAGE_KEYS = {
+  natural: "styleNatural",
+  lecture: "styleLecture",
+  technical: "styleTechnical",
+  custom: "styleCustom",
+  custom2: "styleCustom2"
+};
 
 function t(key, substitutions) {
   return getMessage(key, substitutions);
@@ -17,10 +25,17 @@ function applyLocaleText() {
   });
 }
 
-async function savePlatformToggle(platform, enabled) {
-  settings.platforms[platform] = enabled;
-  settings = await saveSettings(settings);
-  document.getElementById("statusLine").textContent = t("popupSaved");
+function formatTargetLanguage(code) {
+  const languageCode = String(code || "");
+  const language = TARGET_LANGUAGES.find((item) => item.code === languageCode);
+  const label = language
+    ? getTargetLanguageLabel(language, getExtensionUiLanguage())
+    : `${t("customLanguage")} (${languageCode})`;
+  return `${label} (${languageCode})`;
+}
+
+function formatTranslationStyle(style) {
+  return t(STYLE_MESSAGE_KEYS[style] || "styleNatural");
 }
 
 async function init() {
@@ -29,15 +44,8 @@ async function init() {
   const provider = settings.providers[settings.activeProvider];
 
   document.getElementById("providerName").textContent = provider.label;
-  document.getElementById("targetLanguage").textContent = settings.targetLanguage;
-  document.getElementById("toggleUdemy").checked = Boolean(settings.platforms.udemy);
-  document.getElementById("toggleYoutube").checked = Boolean(settings.platforms.youtube);
-  document.getElementById("toggleUdemy").addEventListener("change", (event) => {
-    savePlatformToggle("udemy", event.target.checked);
-  });
-  document.getElementById("toggleYoutube").addEventListener("change", (event) => {
-    savePlatformToggle("youtube", event.target.checked);
-  });
+  document.getElementById("targetLanguage").textContent = formatTargetLanguage(settings.targetLanguage);
+  document.getElementById("translationStyle").textContent = formatTranslationStyle(settings.translationStyle);
   document.getElementById("openOptions").addEventListener("click", () => {
     chrome.runtime.openOptionsPage();
   });

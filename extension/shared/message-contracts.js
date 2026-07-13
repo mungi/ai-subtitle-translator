@@ -6,11 +6,15 @@ const BACKGROUND_MESSAGE_TYPES = new Set([
   "settings.getPublic",
   "settings.updateSubtitleStyle",
   "settings.setActiveProvider",
+  "settings.setTranslationStyle",
   "ast.openOptions",
   "captions.youtube.listTracks",
   "captions.youtube.fetchTranscript",
   "captions.udemy.listTracks",
   "captions.udemy.fetchTranscript",
+  "captions.vimeo.fetchTranscript",
+  "platform.nvidia.isCoursePlayer",
+  "platform.vimeo.getContext",
   "translation.translateDocument",
   "translation.clearCache"
 ]);
@@ -25,11 +29,15 @@ const CONTENT_SCRIPT_MESSAGE_TYPES = new Set([
   "settings.getPublic",
   "settings.updateSubtitleStyle",
   "settings.setActiveProvider",
+  "settings.setTranslationStyle",
   "ast.openOptions",
   "captions.youtube.listTracks",
   "captions.youtube.fetchTranscript",
   "captions.udemy.listTracks",
   "captions.udemy.fetchTranscript",
+  "captions.vimeo.fetchTranscript",
+  "platform.nvidia.isCoursePlayer",
+  "platform.vimeo.getContext",
   "translation.translateDocument"
 ]);
 
@@ -66,13 +74,38 @@ function validateSubtitleStylePatch(patch) {
   return "";
 }
 
-function isSupportedContentUrl(value) {
+function isNvidiaAcademyCourseUrl(value) {
   try {
     const url = new URL(String(value || ""));
     return url.protocol === "https:"
-      && (url.hostname === "www.youtube.com"
-        || url.hostname === "udemy.com"
-        || url.hostname.endsWith(".udemy.com"));
+      && url.hostname === "www.nvidia.com"
+      && /\/training\/academy\/course-player\/?$/i.test(url.pathname);
+  } catch {
+    return false;
+  }
+}
+
+function isVimeoPageUrl(value) {
+  try {
+    const url = new URL(String(value || ""));
+    return url.protocol === "https:"
+      && ["vimeo.com", "www.vimeo.com", "player.vimeo.com"].includes(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
+function isSupportedContentUrl(value, tabUrl) {
+  try {
+    const url = new URL(String(value || ""));
+    if (url.protocol !== "https:") return false;
+    if (url.hostname === "www.youtube.com" || url.hostname === "udemy.com" || url.hostname.endsWith(".udemy.com")) {
+      return true;
+    }
+    if (isNvidiaAcademyCourseUrl(url.href)) return true;
+    if (isVimeoPageUrl(url.href) && isVimeoPageUrl(tabUrl)) return true;
+    return url.hostname === "player.vimeo.com"
+      && (isNvidiaAcademyCourseUrl(tabUrl) || isVimeoPageUrl(tabUrl));
   } catch {
     return false;
   }
@@ -87,7 +120,7 @@ export function validateMessageSender(message, sender = {}, extensionId = global
   const isExtensionPage = senderUrl.startsWith(`chrome-extension://${extensionId}/`);
   const isContentScript = Number.isInteger(sender.tab?.id)
     && sender.tab.id >= 0
-    && isSupportedContentUrl(senderUrl);
+    && isSupportedContentUrl(senderUrl, sender.tab?.url);
 
   if (EXTENSION_PAGE_MESSAGE_TYPES.has(message?.type) && !isExtensionPage) {
     return { ok: false, error: "Message is restricted to extension pages." };
@@ -134,6 +167,9 @@ export function validateBackgroundMessage(message) {
     case "settings.setActiveProvider":
       if (!isNonEmptyValue(message.providerId)) error = "providerId is required.";
       break;
+    case "settings.setTranslationStyle":
+      if (!isNonEmptyValue(message.translationStyle)) error = "translationStyle is required.";
+      break;
     case "captions.youtube.listTracks":
       if (!isNonEmptyValue(message.urlOrId)) error = "urlOrId is required.";
       break;
@@ -141,12 +177,22 @@ export function validateBackgroundMessage(message) {
       if (!isNonEmptyValue(message.videoId) && !isNonEmptyValue(message.urlOrId)) {
         error = "videoId or urlOrId is required.";
       }
+      else if (!isOptionalString(message.captionTrackUrl)) error = "captionTrackUrl must be a string.";
       break;
     case "captions.udemy.listTracks":
     case "captions.udemy.fetchTranscript":
       if (!isNonEmptyValue(message.courseId)) error = "courseId is required.";
       else if (!isNonEmptyValue(message.lectureId)) error = "lectureId is required.";
       else if (!isNonEmptyValue(message.hostname)) error = "hostname is required.";
+      else if (!isOptionalString(message.trackUrl)) error = "trackUrl must be a string.";
+      break;
+    case "captions.vimeo.fetchTranscript":
+      if (!isNonEmptyValue(message.videoId)) error = "videoId is required.";
+      else if (!isNonEmptyValue(message.trackUrl)) error = "trackUrl is required.";
+      else if (!isOptionalString(message.sourceLanguage)) error = "sourceLanguage must be a string.";
+      else if (message.platform !== undefined && !["nvidia", "vimeo"].includes(message.platform)) {
+        error = "platform must be nvidia or vimeo.";
+      }
       break;
     case "translation.translateDocument":
       error = validateSubtitleDocument(message.document);

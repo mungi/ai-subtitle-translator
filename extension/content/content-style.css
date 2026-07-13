@@ -97,6 +97,13 @@
   margin: 0;
 }
 
+.ast-vimeo-toolbar-button {
+  width: 32px;
+  height: 32px;
+  margin: 0 4px;
+  border-radius: 4px;
+}
+
 .ast-floating-toolbar {
   position: fixed;
   top: 72px;
@@ -123,7 +130,8 @@
   min-width: 256px;
   max-width: min(360px, calc(100% - 24px));
   color: #ffffff;
-  overflow: hidden;
+  overflow: visible;
+  pointer-events: auto;
   user-select: none;
 }
 
@@ -233,7 +241,57 @@
   border-top: 1px solid rgba(255, 255, 255, 0.28);
 }
 
+.ast-source-caption-submenu,
+.ast-translation-style-submenu {
+  position: relative;
+  margin-top: 4px;
+}
+
+.ast-source-caption-list,
+.ast-translation-style-list {
+  display: none;
+  position: absolute;
+  right: 100%;
+  bottom: 0;
+  z-index: 1;
+  box-sizing: border-box;
+  width: 256px;
+  max-width: min(300px, calc(100vw - 24px));
+  max-height: min(320px, calc(100vh - 24px));
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px;
+  border: 1px solid var(--ast-source-caption-menu-border, transparent);
+  border-radius: var(--ast-source-caption-menu-radius, 8px);
+  background: var(--ast-source-caption-menu-background, rgba(15, 23, 42, 0.94));
+  box-shadow: var(--ast-source-caption-menu-shadow, 0 8px 24px rgba(0, 0, 0, 0.35));
+}
+
+.ast-source-caption-submenu:hover .ast-source-caption-list,
+.ast-source-caption-submenu:focus-within .ast-source-caption-list,
+.ast-source-caption-submenu.open .ast-source-caption-list,
+.ast-translation-style-submenu:hover .ast-translation-style-list,
+.ast-translation-style-submenu:focus-within .ast-translation-style-list,
+.ast-translation-style-submenu.open .ast-translation-style-list {
+  display: block;
+}
+
+.ast-source-caption-item,
+.ast-translation-style-item {
+  width: 100%;
+  text-align: left;
+}
+
+.ast-source-caption-item.active,
+.ast-translation-style-item.active {
+  background: rgba(255, 255, 255, 0.16);
+}
+
 .ast-provider-menu-udemy {
+  --ast-source-caption-menu-background: #1c1d1f;
+  --ast-source-caption-menu-border: #6a6f73;
+  --ast-source-caption-menu-radius: 0;
+  --ast-source-caption-menu-shadow: 0 2px 8px rgba(0, 0, 0, 0.16), 0 4px 16px rgba(0, 0, 0, 0.24);
   right: 12px;
   bottom: 56px;
   padding: 8px 0;
@@ -262,6 +320,8 @@
 }
 
 .ast-provider-menu-youtube {
+  --ast-source-caption-menu-background: rgba(28, 28, 28, 0.9);
+  --ast-source-caption-menu-radius: 12px;
   right: 12px;
   bottom: 61px;
   padding: 8px;
@@ -284,6 +344,44 @@
   margin: 4px 8px;
 }
 
+.ast-provider-menu-youtube .ast-source-caption-list {
+  backdrop-filter: blur(16px);
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+}
+
+.ast-provider-menu-nvidia,
+.ast-provider-menu-vimeo {
+  --ast-source-caption-menu-background: rgba(15, 23, 42, 0.94);
+  right: 12px;
+  bottom: 56px;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.94);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  font-family: Arial, sans-serif;
+}
+
+.ast-provider-menu-nvidia .ast-provider-menu-item,
+.ast-provider-menu-vimeo .ast-provider-menu-item {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.ast-provider-menu-nvidia .ast-provider-menu-item:hover,
+.ast-provider-menu-nvidia .ast-provider-menu-item:focus-visible,
+.ast-provider-menu-vimeo .ast-provider-menu-item:hover,
+.ast-provider-menu-vimeo .ast-provider-menu-item:focus-visible {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.ast-provider-menu-nvidia .ast-provider-menu-separator,
+.ast-provider-menu-vimeo .ast-provider-menu-separator {
+  margin: 4px 8px;
+}
+
 @keyframes ast-provider-spin {
   to {
     transform: rotate(360deg);
@@ -294,7 +392,7 @@
   position: absolute;
   left: 50%;
   bottom: 14%;
-  z-index: 30;
+  z-index: 2147483645;
   box-sizing: border-box;
   width: min(86%, 720px);
   min-width: 160px;

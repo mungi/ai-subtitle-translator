@@ -28,8 +28,13 @@
     {
       "matches": [
         "https://*.udemy.com/course/*/learn/*",
-        "https://www.youtube.com/*"
+        "https://www.youtube.com/*",
+        "https://www.nvidia.com/*/training/academy/course-player/*",
+        "https://vimeo.com/*",
+        "https://www.vimeo.com/*",
+        "https://player.vimeo.com/video/*"
       ],
+      "all_frames": true,
       "js": [
         "content/content-script.js"
       ],
@@ -42,6 +47,12 @@
     "https://*.udemy.com/*",
     "https://*.udemycdn.com/*",
     "https://www.youtube.com/*",
+    "https://www.nvidia.com/*",
+    "https://vimeo.com/*",
+    "https://www.vimeo.com/*",
+    "https://player.vimeo.com/*",
+    "https://captions.vimeo.com/*",
+    "https://captions.cloud.vimeo.com/*",
     "https://api.openai.com/*",
     "https://api.anthropic.com/*",
     "https://generativelanguage.googleapis.com/*",

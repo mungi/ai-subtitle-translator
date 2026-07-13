@@ -383,7 +383,9 @@ export const DEFAULT_SETTINGS = {
   providerTestStatus: {},
   platforms: {
     udemy: true,
-    youtube: true
+    youtube: true,
+    nvidia: true,
+    vimeo: true
   },
   subtitleStyle: {
     positionX: 50,
@@ -402,7 +404,7 @@ export const DEFAULT_SETTINGS = {
     outlineEnabled: true,
     outlineColor: "#000000",
     outlineWidth: 3,
-    backgroundColor: "#000000",
+    backgroundColor: "#b0b0b0",
     pendingBackgroundColor: "#750000",
     backgroundOpacity: 0.3
   },

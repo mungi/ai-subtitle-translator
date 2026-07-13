@@ -17,9 +17,9 @@ const settings = {
   }
 };
 
-test("backup seed requires letters, numbers, special characters, and at least 10 characters", () => {
-  assert.deepEqual(validateBackupSeed("Abcdef1!xy"), { ok: true });
-  assert.deepEqual(validateBackupSeed("Ab1!short"), { ok: false, error: "minLength" });
+test("backup seed requires letters, numbers, special characters, and at least 8 characters", () => {
+  assert.deepEqual(validateBackupSeed("Abcdef1!"), { ok: true });
+  assert.deepEqual(validateBackupSeed("Ab1!sh"), { ok: false, error: "minLength" });
   assert.deepEqual(validateBackupSeed("123456789!"), { ok: false, error: "letter" });
   assert.deepEqual(validateBackupSeed("abcdefghij!"), { ok: false, error: "number" });
   assert.deepEqual(validateBackupSeed("abcdefgh12"), { ok: false, error: "special" });
