@@ -1,0 +1,572 @@
+{
+  "title": {
+    "message": "AI 字幕翻訳設定"
+  },
+  "subtitle": {
+    "message": "Udemy と YouTube の字幕を文脈全体に基づいて翻訳するプロバイダーを設定します。"
+  },
+  "testProvider": {
+    "message": "接続をテスト"
+  },
+  "save": {
+    "message": "保存"
+  },
+  "allReset": {
+    "message": "すべてリセット"
+  },
+  "generalSettings": {
+    "message": "翻訳設定"
+  },
+  "activeProvider": {
+    "message": "プロバイダー"
+  },
+  "targetLanguage": {
+    "message": "対象言語"
+  },
+  "translationStyle": {
+    "message": "翻訳スタイル"
+  },
+  "chunkDuration": {
+    "message": "チャンクの最大時間（分）"
+  },
+  "cacheTranslations": {
+    "message": "翻訳キャッシュを使用"
+  },
+  "providerSettings": {
+    "message": "プロバイダー設定"
+  },
+  "clearCache": {
+    "message": "キャッシュを削除"
+  },
+  "reset": {
+    "message": "リセット"
+  },
+  "fallbackTitle": {
+    "message": "一時翻訳"
+  },
+  "fallbackDescription": {
+    "message": "LLM 翻訳には時間がかかる場合があります。翻訳の完了まで先に表示する一時翻訳プロバイダーを選択してください。\nDeepL は API キーを入力して接続テストに成功すると選択できます。"
+  },
+  "fallbackProvider": {
+    "message": "一時翻訳プロバイダー"
+  },
+  "subtitleStyle": {
+    "message": "字幕スタイル"
+  },
+  "previewText": {
+    "message": "字幕スタイルのプレビュー - 編集可能"
+  },
+  "fontGroup": {
+    "message": "フォント"
+  },
+  "shadowGroup": {
+    "message": "影"
+  },
+  "outlineGroup": {
+    "message": "アウトライン"
+  },
+  "backgroundGroup": {
+    "message": "背景"
+  },
+  "fontSize": {
+    "message": "フォントサイズ"
+  },
+  "fontFamily": {
+    "message": "フォントファミリー"
+  },
+  "customWebFontCss": {
+    "message": "カスタム Web フォント CSS"
+  },
+  "customWebFontGuide": {
+    "message": "Noonnu でフォントを選び、\"Web フォントとして使用\"の内容をコピーして下のテキストボックスに貼り付けてください。"
+  },
+  "textColor": {
+    "message": "文字色"
+  },
+  "shadowEnabled": {
+    "message": "影を使用"
+  },
+  "shadowColor": {
+    "message": "影の色"
+  },
+  "shadowBlur": {
+    "message": "影のぼかし"
+  },
+  "shadowDistance": {
+    "message": "影の距離"
+  },
+  "outlineEnabled": {
+    "message": "アウトラインを使用"
+  },
+  "outlineColor": {
+    "message": "アウトラインの色"
+  },
+  "outlineWidth": {
+    "message": "アウトラインの太さ"
+  },
+  "backgroundColor": {
+    "message": "背景色"
+  },
+  "pendingBackgroundColor": {
+    "message": "一時翻訳中の背景色"
+  },
+  "backgroundOpacity": {
+    "message": "背景の不透明度"
+  },
+  "localCheckTitle": {
+    "message": "ローカル LLM の確認方法"
+  },
+  "openRouterNitro": {
+    "message": "Nitro を使用（高速なプロバイダーを優先）"
+  },
+  "saved": {
+    "message": "設定を保存しました。"
+  },
+  "saveFailed": {
+    "message": "設定を保存できませんでした"
+  },
+  "testing": {
+    "message": "選択したプロバイダーにテストリクエストを送信しています..."
+  },
+  "loadingModels": {
+    "message": "モデル一覧を読み込んでいます..."
+  },
+  "modelsLoaded": {
+    "message": "モデル一覧を読み込みました。"
+  },
+  "recommendedModelTesting": {
+    "message": "$provider$: 推奨モデル $model$ を選択しました。接続をテストしています...",
+    "placeholders": {
+      "provider": {
+        "content": "$1",
+        "example": "provider"
+      },
+      "model": {
+        "content": "$2",
+        "example": "model"
+      }
+    }
+  },
+  "modelsLoadedAndTested": {
+    "message": "$provider$: $model$ を選択し、接続テストに成功しました（$count$モデル）",
+    "placeholders": {
+      "provider": {
+        "content": "$1",
+        "example": "provider"
+      },
+      "model": {
+        "content": "$2",
+        "example": "model"
+      },
+      "count": {
+        "content": "$3",
+        "example": "count"
+      }
+    }
+  },
+  "modelsLoadedTestFailed": {
+    "message": "$provider$: $model$ を選択しましたが、接続テストに失敗しました - $error$",
+    "placeholders": {
+      "provider": {
+        "content": "$1",
+        "example": "provider"
+      },
+      "model": {
+        "content": "$2",
+        "example": "model"
+      },
+      "error": {
+        "content": "$3",
+        "example": "error"
+      }
+    }
+  },
+  "localModelSelected": {
+    "message": "$provider$: $model$ を選択しました（$count$モデル、接続テストは未実行）",
+    "placeholders": {
+      "provider": {
+        "content": "$1",
+        "example": "provider"
+      },
+      "model": {
+        "content": "$2",
+        "example": "model"
+      },
+      "count": {
+        "content": "$3",
+        "example": "count"
+      }
+    }
+  },
+  "modelsLoadFailed": {
+    "message": "モデル一覧を読み込めませんでした"
+  },
+  "fetchModels": {
+    "message": "モデルを取得"
+  },
+  "testFailed": {
+    "message": "テストに失敗しました"
+  },
+  "response": {
+    "message": "応答"
+  },
+  "resetDone": {
+    "message": "すべての設定をリセットしました。"
+  },
+  "sectionResetDone": {
+    "message": "このセクションの設定をリセットしました。"
+  },
+  "cacheCleared": {
+    "message": "翻訳キャッシュを削除しました。"
+  },
+  "cacheClearFailed": {
+    "message": "翻訳キャッシュを削除できませんでした"
+  },
+  "loadFailed": {
+    "message": "設定を読み込めませんでした"
+  },
+  "customLanguage": {
+    "message": "カスタム言語"
+  },
+  "providerTestRequired": {
+    "message": "接続テストに成功したプロバイダーはありません。"
+  },
+  "activeProviderGuide": {
+    "message": "Google Translate は常に使用できます。その他のプロバイダーは接続テストに成功すると選択できます。"
+  },
+  "backupRestoreTitle": {
+    "message": "現在の設定をバックアップ／復元"
+  },
+  "backupRestoreDescription": {
+    "message": "API キーを含む現在の設定を暗号化ファイルとしてバックアップまたは復元します。バックアップパスワードは保存されないため、安全に保管してください。"
+  },
+  "backupSeedLabel": {
+    "message": "バックアップパスワード"
+  },
+  "backupPasswordDialogTitle": {
+    "message": "設定バックアップパスワード"
+  },
+  "backupSeedPlaceholder": {
+    "message": "英字・数字・特殊文字を含む10文字以上"
+  },
+  "backupSeedGuide": {
+    "message": "英字、数字、特殊文字をそれぞれ1文字以上含む10文字以上のパスワードを入力してください。パスワードの途中では通常のスペースを使用できます。"
+  },
+  "backupSettings": {
+    "message": "設定をバックアップ"
+  },
+  "restoreSettings": {
+    "message": "設定を復元"
+  },
+  "backupCreating": {
+    "message": "設定を暗号化してバックアップファイルを作成しています..."
+  },
+  "backupComplete": {
+    "message": "暗号化された設定バックアップを保存しました。"
+  },
+  "restoreReading": {
+    "message": "バックアップを復号して設定を復元しています..."
+  },
+  "restoreComplete": {
+    "message": "バックアップ設定を復元しました。"
+  },
+  "restoreTestKeysConfirm": {
+    "message": "復元した設定の API キー接続を今すぐ確認しますか？\nプロバイダーごとに最小限の接続リクエストを1回送信します。"
+  },
+  "restoreTestingKey": {
+    "message": "API キー接続を確認中 ($current$/$total$): $provider$",
+    "placeholders": {
+      "current": {
+        "content": "$1",
+        "example": "current"
+      },
+      "total": {
+        "content": "$2",
+        "example": "total"
+      },
+      "provider": {
+        "content": "$3",
+        "example": "provider"
+      }
+    }
+  },
+  "restoreKeyTestComplete": {
+    "message": "設定の復元と API キー接続確認が完了しました: $success$/$total$ 成功、$failed$ 失敗",
+    "placeholders": {
+      "success": {
+        "content": "$1",
+        "example": "success"
+      },
+      "total": {
+        "content": "$2",
+        "example": "total"
+      },
+      "failed": {
+        "content": "$3",
+        "example": "failed"
+      }
+    }
+  },
+  "restoreKeyTestSuccessItem": {
+    "message": "✓ $provider$: 成功",
+    "placeholders": {
+      "provider": {
+        "content": "$1",
+        "example": "provider"
+      }
+    }
+  },
+  "restoreKeyTestFailureItem": {
+    "message": "✕ $provider$: 失敗 - $error$",
+    "placeholders": {
+      "provider": {
+        "content": "$1",
+        "example": "provider"
+      },
+      "error": {
+        "content": "$2",
+        "example": "error"
+      }
+    }
+  },
+  "restoreNoKeysToTest": {
+    "message": "設定を復元しました。確認する API キーはありません。"
+  },
+  "backupFailed": {
+    "message": "設定のバックアップに失敗しました"
+  },
+  "restoreFailed": {
+    "message": "設定の復元に失敗しました"
+  },
+  "restoreConfirm": {
+    "message": "現在の設定をバックアップファイルの内容に置き換えますか？"
+  },
+  "backupFileTooLarge": {
+    "message": "バックアップファイルは5MB以下である必要があります。"
+  },
+  "backupInvalidJson": {
+    "message": "有効なバックアップ JSON ファイルではありません。"
+  },
+  "backupUnsupportedFormat": {
+    "message": "このバックアップ形式はサポートされていません。"
+  },
+  "backupDecryptFailed": {
+    "message": "バックアップパスワードが一致しないか、バックアップファイルが破損しています。"
+  },
+  "backupInvalidSettings": {
+    "message": "バックアップ内の設定データが無効です。"
+  },
+  "backupSeedMinLength": {
+    "message": "バックアップパスワードは10文字以上で入力してください。"
+  },
+  "backupSeedLetter": {
+    "message": "バックアップパスワードに英字を1文字以上含めてください。"
+  },
+  "backupSeedNumber": {
+    "message": "バックアップパスワードに数字を1文字以上含めてください。"
+  },
+  "backupSeedSpecial": {
+    "message": "バックアップパスワードに特殊文字を1文字以上含めてください。"
+  },
+  "backupSeedWhitespace": {
+    "message": "バックアップパスワードの先頭・末尾のスペース、タブ、改行は使用できません。"
+  },
+  "backupPasswordTitle": {
+    "message": "設定バックアップパスワード"
+  },
+  "restorePasswordTitle": {
+    "message": "設定復元パスワード"
+  },
+  "backupPasswordDescription": {
+    "message": "バックアップパスワードは保存されません。バックアップファイルの復元時に同じパスワードが必要です。"
+  },
+  "cancel": {
+    "message": "キャンセル"
+  },
+  "confirm": {
+    "message": "続行"
+  },
+  "extensionName": {
+    "message": "AI Subtitle Translator"
+  },
+  "extensionDescription": {
+    "message": "文脈全体を活用する LLM プロバイダーで Udemy と YouTube の字幕を翻訳します。"
+  },
+  "optionsPageTitle": {
+    "message": "AI 字幕翻訳設定"
+  },
+  "systemPromptAriaLabel": {
+    "message": "システムプロンプト"
+  },
+  "styleNatural": {
+    "message": "自然 - 文脈に沿った自然な翻訳"
+  },
+  "styleLecture": {
+    "message": "講義 - 講義・チュートリアル向けの説明的な翻訳"
+  },
+  "styleTechnical": {
+    "message": "技術 - 専門用語の一貫性を維持"
+  },
+  "styleCustom": {
+    "message": "Custom 1 - カスタム翻訳スタイル 1"
+  },
+  "styleCustom2": {
+    "message": "Custom 2 - カスタム翻訳スタイル 2"
+  },
+  "popupTitle": {
+    "message": "AI Subtitle Translator"
+  },
+  "popupHeading": {
+    "message": "字幕翻訳"
+  },
+  "popupProvider": {
+    "message": "プロバイダー"
+  },
+  "popupTargetLanguage": {
+    "message": "対象言語"
+  },
+  "popupPlatformToggles": {
+    "message": "プラットフォームを有効化"
+  },
+  "popupOpenSettings": {
+    "message": "設定を開く"
+  },
+  "popupSaved": {
+    "message": "保存しました。"
+  },
+  "popupLoadFailed": {
+    "message": "読み込みに失敗しました: $error$",
+    "placeholders": {
+      "error": {
+        "content": "$1",
+        "example": "error"
+      }
+    }
+  },
+  "contentMenuTitle": {
+    "message": "AST 翻訳メニュー"
+  },
+  "contentToggleSubtitles": {
+    "message": "AI 字幕翻訳"
+  },
+  "contentOpenSettings": {
+    "message": "設定を開く"
+  },
+  "contentProviderFailed": {
+    "message": "プロバイダーを変更できませんでした: $error$",
+    "placeholders": {
+      "error": {
+        "content": "$1",
+        "example": "error"
+      }
+    }
+  },
+  "contentTranslationPreparing": {
+    "message": "翻訳字幕を準備中"
+  },
+  "contentQuotaFallback": {
+    "message": "API クォータを超過したため、Google Translate に切り替えます。"
+  },
+  "contentMissingUdemy": {
+    "message": "Udemy 講義の情報を見つけられませんでした。"
+  },
+  "contentMissingYoutube": {
+    "message": "YouTube 動画の情報を見つけられませんでした。"
+  },
+  "contentCaptionsLoadFailed": {
+    "message": "字幕を読み込めませんでした: $error$",
+    "placeholders": {
+      "error": {
+        "content": "$1",
+        "example": "error"
+      }
+    }
+  },
+  "customWebFontSettings": {
+    "message": "[カスタム Web フォント設定]"
+  },
+  "durationMinutes": {
+    "message": "$minutes$分",
+    "placeholders": {
+      "minutes": {
+        "content": "$1",
+        "example": "minutes"
+      }
+    }
+  },
+  "localLlmBaseUrlComment": {
+    "message": "# Base URL には /chat/completions の直前までを入力します。"
+  },
+  "localLlmRequestUrl": {
+    "message": "# 現在のリクエスト URL: $url$",
+    "placeholders": {
+      "url": {
+        "content": "$1",
+        "example": "url"
+      }
+    }
+  },
+  "fieldBaseUrl": {
+    "message": "Base URL"
+  },
+  "fieldApiKey": {
+    "message": "API キー"
+  },
+  "fieldApiKeyOptional": {
+    "message": "API キー（任意）"
+  },
+  "fieldPlan": {
+    "message": "プラン"
+  },
+  "fieldModel": {
+    "message": "モデル"
+  },
+  "fieldTemperature": {
+    "message": "Temperature"
+  },
+  "fieldMaxOutputTokens": {
+    "message": "最大出力トークン"
+  },
+  "fieldAnthropicVersion": {
+    "message": "Anthropic バージョン"
+  },
+  "fieldHttpReferer": {
+    "message": "HTTP Referer"
+  },
+  "fieldXTitle": {
+    "message": "X-Title"
+  },
+  "modelExample": {
+    "message": "例: $model$",
+    "placeholders": {
+      "model": {
+        "content": "$1",
+        "example": "model"
+      }
+    }
+  },
+  "providerGuideGoogleTranslate": {
+    "message": "標準の翻訳エンジンです。API キーを使わずに Google Translate エンドポイントを使用します。"
+  },
+  "providerGuideDeepl": {
+    "message": "DeepL API プロバイダーです。DeepL アカウントの API keys ページで API キーを確認し、Free または Pro プランに合ったエンドポイントを設定してください。Free プランには月間文字数の使用上限があります。"
+  },
+  "providerGuideOpenai": {
+    "message": "OpenAI Responses API を使用します。OpenAI Platform の API keys ページで API キーを作成し、アカウントで利用できるモデル名を入力してください。使用制限と料金はアカウント、モデル、ティアによって異なる場合があります。"
+  },
+  "providerGuideAnthropic": {
+    "message": "Anthropic Messages API を使用します。Claude Platform の keys ページで API キーを作成してください。リクエストには anthropic-version ヘッダーが含まれます。使用制限と料金はアカウント、モデル、ティアによって異なる場合があります。"
+  },
+  "providerGuideGoogle": {
+    "message": "Google AI Gemini の generateContent API を使用します。Google AI Studio で API キーを作成でき、キーは URL クエリパラメーターとして送信されます。レート制限と料金はプロジェクト、モデル、ティアによって異なる場合があります。"
+  },
+  "providerGuideOpenrouter": {
+    "message": "OpenRouter の OpenAI 互換 chat/completions API を使用します。OpenRouter keys ページで API キーを作成してください。無料プランと無料モデル API にはレート制限があります。"
+  },
+  "providerGuideNvidiaNim": {
+    "message": "NVIDIA NIM の OpenAI 互換 chat/completions API を使用します。NVIDIA API keys ページで API キーを作成してください。NVIDIA API Catalog は開発・プロトタイピング用の無料エンドポイントを提供していますが、モデルやアカウントごとの使用制限が適用される場合があります。"
+  },
+  "providerGuideLocal": {
+    "message": "OpenAI 互換の chat/completions 形式を使用します。Base URL には、/chat/completions の直前までを入力してください。例: http://localhost:1234/v1"
+  }
+}
