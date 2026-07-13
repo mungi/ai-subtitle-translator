@@ -67,6 +67,20 @@ h3 { margin-bottom: 10px; font-size: 21px; line-height: 1.25; }
 .feature-grid article { min-height: 255px; padding: 28px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .feature-number { display: inline-block; margin-bottom: 48px; color: var(--accent); font-size: 14px; font-weight: 800; }
 .feature-grid p, .support p { color: var(--muted); }
+.icon-state-guide { display: grid; grid-template-columns: minmax(220px, .8fr) minmax(0, 1.2fr); gap: 32px; margin-top: 28px; padding: 28px; border: 1px solid var(--line); background: #f7f9fb; }
+.icon-state-guide h3 { margin-bottom: 12px; }
+.icon-state-guide p:not(.eyebrow) { margin-bottom: 0; color: var(--muted); }
+.icon-state-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 20px; padding: 0; margin: 0; list-style: none; }
+.icon-state-list li { display: grid; grid-template-columns: 12px auto; column-gap: 10px; align-items: center; color: var(--muted); font-size: 13px; }
+.icon-state-list strong { color: var(--ink); font-size: 14px; }
+.icon-state-list span:last-child { grid-column: 2; }
+.icon-state-dot { width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 0 0 1px rgba(23, 32, 42, .16); }
+.icon-state-dot.off { background: #ffffff; }
+.icon-state-dot.active { background: #0ea5e9; }
+.icon-state-dot.temporary { background: #facc15; }
+.icon-state-dot.current { background: #34d399; }
+.icon-state-dot.complete { background: #8b5cf6; }
+.icon-state-dot.fallback { background: #fb7185; }
 
 .workflow { background: #12202c; color: #f7f9fb; }
 .workflow .eyebrow { color: #7dd3c7; }
@@ -102,7 +116,7 @@ footer { display: flex; justify-content: space-between; gap: 24px; padding-top: 
   .hero-content { align-self: start; padding: 58px 0 48px; }
   .hero-copy { font-size: 16px; }
   .feature-section, .workflow, .starter-guide, .support { padding-top: 68px; padding-bottom: 68px; }
-  .feature-grid, .steps, .guide-grid, .support { grid-template-columns: 1fr; }
+  .feature-grid, .steps, .guide-grid, .support, .icon-state-guide, .icon-state-list { grid-template-columns: 1fr; }
   .feature-grid article { min-height: 0; }
   .feature-number { margin-bottom: 22px; }
   .support { gap: 24px; }

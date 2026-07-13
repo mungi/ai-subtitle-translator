@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Udemy와 YouTube 자막을 원하는 언어로 번역해 영상 위에 표시하는 Chrome 확장 프로그램" data-i18n-content="metaDescription">
+    <meta name="description" content="Udemy, YouTube, NVIDIA Academy, Vimeo 자막을 원하는 언어로 번역해 영상 위에 표시하는 Chrome 확장 프로그램" data-i18n-content="metaDescription">
     <title>AI Subtitle Translator</title>
     <link rel="icon" href="assets/ast-icon.png?v=2" type="image/png">
     <link rel="stylesheet" href="styles.css?v=2">
@@ -35,7 +35,7 @@
       <section class="hero" aria-labelledby="hero-title">
         <img class="hero-image" src="assets/subtitle-video-hero.png" alt="강의 영상 위에 한국어와 영어 자막이 표시된 노트북" data-i18n-alt="heroImageAlt">
         <div class="hero-content">
-          <p class="eyebrow">FOR UDEMY &amp; YOUTUBE</p>
+          <p class="eyebrow" data-i18n="heroEyebrow">FOR UDEMY, YOUTUBE, NVIDIA ACADEMY &amp; VIMEO</p>
           <h1 id="hero-title">AI Subtitle Translator</h1>
           <p class="hero-copy" data-i18n="heroCopy">AI provider를 선택하면 LLM이 영상 전체의 흐름을 반영해 자막을 번역합니다. 사용자 프롬프트로 원하는 말투와 번역 스타일도 직접 지정하세요.</p>
           <div class="hero-actions">
@@ -55,7 +55,7 @@
           <article>
             <span class="feature-number">01</span>
             <h3 data-i18n="featureOneTitle">영상 위에서 바로</h3>
-            <p data-i18n="featureOneCopy">Udemy와 YouTube 플레이어 위에 번역 자막을 표시합니다. 컨트롤 바의 아이콘으로 언제든 켜고 끌 수 있습니다.</p>
+            <p data-i18n="featureOneCopy">Udemy, YouTube, NVIDIA Academy, Vimeo 플레이어 위에 자막을 표시합니다. AST 메뉴에서 자막을 켜고 끄고, 원본 자막 언어와 번역 스타일을 바로 선택할 수 있습니다.</p>
           </article>
           <article>
             <span class="feature-number">02</span>
@@ -68,6 +68,21 @@
             <p data-i18n="featureThreeCopy">사용자 프롬프트로 강의체, 친근한 말투, 기술 문서 스타일처럼 원하는 번역 톤과 일타 강사 스타일 처럼 표현 방식에 대한 프롬프트를 직접 설정할 수 있습니다.</p>
           </article>
         </div>
+        <aside class="icon-state-guide" aria-labelledby="icon-state-title">
+          <div>
+            <p class="eyebrow" data-i18n="iconStateEyebrow">ICON STATUS</p>
+            <h3 id="icon-state-title" data-i18n="iconStateTitle">AST 아이콘 상태</h3>
+            <p data-i18n="iconStateCopy">아이콘 색상으로 현재 번역 상태를 바로 확인할 수 있습니다. 자막 또는 번역 요청을 준비하는 동안에는 현재 색상으로 미세하게 깜빡입니다.</p>
+          </div>
+          <ul class="icon-state-list">
+            <li><span class="icon-state-dot off" aria-hidden="true"></span><strong data-i18n="iconStateOff">흰색 · 기본</strong><span data-i18n="iconStateOffCopy">AST가 꺼져 있거나 원문 자막 상태</span></li>
+            <li><span class="icon-state-dot active" aria-hidden="true"></span><strong data-i18n="iconStateActive">파란색 · 활성</strong><span data-i18n="iconStateActiveCopy">번역 자막을 준비하거나 표시하는 기본 활성 상태</span></li>
+            <li><span class="icon-state-dot temporary" aria-hidden="true"></span><strong data-i18n="iconStateTemporary">노란색 · 임시 번역</strong><span data-i18n="iconStateTemporaryCopy">LLM 최종 번역을 기다리는 동안 임시 번역 표시</span></li>
+            <li><span class="icon-state-dot current" aria-hidden="true"></span><strong data-i18n="iconStateCurrent">초록색 · 현재 cue 완료</strong><span data-i18n="iconStateCurrentCopy">현재 재생 cue의 최종 번역 준비 완료</span></li>
+            <li><span class="icon-state-dot complete" aria-hidden="true"></span><strong data-i18n="iconStateComplete">보라색 · 전체 완료</strong><span data-i18n="iconStateCompleteCopy">전체 자막의 최종 번역 완료</span></li>
+            <li><span class="icon-state-dot fallback" aria-hidden="true"></span><strong data-i18n="iconStateFallback">분홍색 · 대체 번역</strong><span data-i18n="iconStateFallbackCopy">쿼터 초과 등으로 Google Translate 대체 번역 사용 중</span></li>
+          </ul>
+        </aside>
       </section>
 
       <section class="workflow" id="how-it-works" aria-labelledby="workflow-title">
@@ -78,7 +93,7 @@
         <ol class="steps">
           <li><strong>1</strong><span data-i18n="stepOne">확장 프로그램을 설치합니다.</span></li>
           <li><strong>2</strong><span data-i18n="stepTwo">Options에서 목표 언어와 번역 provider를 설정합니다.</span></li>
-          <li><strong>3</strong><span data-i18n="stepThree">Udemy 강의 또는 YouTube 영상을 엽니다.</span></li>
+          <li><strong>3</strong><span data-i18n="stepThree">Udemy 강의, YouTube 영상, NVIDIA Academy 강의 또는 Vimeo 영상을 엽니다.</span></li>
           <li><strong>4</strong><span data-i18n="stepFour">영상 컨트롤 바의 자막 번역 아이콘을 누릅니다.</span></li>
         </ol>
       </section>
@@ -114,7 +129,7 @@
         <div>
           <p class="eyebrow" data-i18n="supportEyebrow">SUPPORTED</p>
           <h2 id="support-title" data-i18n="supportTitle">학습 영상에 집중하세요</h2>
-          <p data-i18n="supportCopy">Udemy 강의 플레이어와 YouTube 영상 페이지를 지원합니다. 영상에 제공되는 수동 자막 또는 자동 생성 자막이 필요합니다.</p>
+          <p data-i18n="supportCopy">Udemy 강의 플레이어, YouTube 영상 페이지, NVIDIA Academy 강의, Vimeo 영상을 지원합니다. 영상에서 제공하는 수동 또는 자동 생성 자막이 필요합니다.</p>
         </div>
         <div class="provider-list" aria-label="지원 번역 provider" data-i18n-aria-label="providerList">
           <span>Google Translate</span>
@@ -131,7 +146,7 @@
 
     <footer>
       <span>AI Subtitle Translator</span>
-      <span data-i18n="footerCopy">Udemy와 YouTube 자막을 원하는 언어로</span>
+      <span data-i18n="footerCopy">Udemy, YouTube, NVIDIA Academy, Vimeo 자막을 원하는 언어로</span>
     </footer>
     <script src="script.js?v=1"></script>
   </body>
