@@ -704,6 +704,23 @@ test("toolbar button opens a platform-styled provider menu before toggling AST",
       }
     }
   });
+  context.document.documentElement.innerHTML = `
+    <script>
+      var ytInitialPlayerResponse = ${JSON.stringify({
+        captions: {
+          playerCaptionsTracklistRenderer: {
+            captionTracks: [
+              {
+                baseUrl: "https://www.youtube.com/api/timedtext?v=abc123def45&lang=en",
+                languageCode: "en",
+                name: { simpleText: "English" }
+              }
+            ]
+          }
+        }
+      })};
+    </script>
+  `;
   const source = readFileSync("extension/content/content-script.js", "utf8");
 
   vm.runInNewContext(source, context, { filename: "extension/content/content-script.js" });
@@ -728,6 +745,10 @@ test("toolbar button opens a platform-styled provider menu before toggling AST",
     menu.children.filter((item) => item.dataset.providerId).map((item) => item.dataset.providerId),
     ["googleTranslate", "deepl", "openai"]
   );
+  const sourceCaptionSubmenu = menu.children.find((item) => item.className === "ast-source-caption-submenu");
+  assert.ok(sourceCaptionSubmenu, "expected the source caption submenu to be rendered");
+  const sourceCaptionIndex = menu.children.indexOf(sourceCaptionSubmenu);
+  assert.equal(menu.children.at(sourceCaptionIndex - 1).className, "ast-provider-menu-separator");
   assert.equal(menu.children.at(-1).children[0].textContent, "설정 열기");
   assert.equal(sentMessages.some((message) => message.type.includes("fetchTranscript")), false);
   menu.children.at(-1).dispatchEvent({ type: "click", stopPropagation: () => {} });

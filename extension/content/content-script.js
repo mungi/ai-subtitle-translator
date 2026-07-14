@@ -274,6 +274,11 @@ function renderSourceCaptionMenu(menu, platform) {
   const selectedTrack = getSelectedSourceCaptionTrack(platform, sessionKey);
   if (!selectedTrack) return;
 
+  const separator = document.createElement("div");
+  separator.className = "ast-provider-menu-separator";
+  separator.setAttribute("role", "separator");
+  menu.append(separator);
+
   const submenu = document.createElement("div");
   submenu.className = "ast-source-caption-submenu";
   if (subtitleState.sourceCaptionMenuExpanded) submenu.classList.add("open");
