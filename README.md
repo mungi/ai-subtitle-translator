@@ -61,10 +61,10 @@ npm run check
 
 ## 릴리즈 패키지
 
-Chrome Web Store에 올릴 ZIP 패키지는 릴리즈 태그가 현재 커밋을 가리키는 상태에서 생성합니다.
+Chrome Web Store에 올릴 ZIP 패키지는 릴리즈 태그가 현재 커밋을 가리키는 상태에서 생성합니다. 스크립트는 ZIP을 만들고 GitHub Release를 생성하거나 갱신한 뒤 ZIP을 첨부합니다.
 
 ```text
 ./release.sh
 ```
 
-생성된 파일은 `release/ai-subtitle-translator-v<태그>.zip`이며, 이 파일을 GitHub 릴리즈 산출물과 Chrome Web Store 패키지로 사용합니다.
+생성된 파일은 `release/ai-subtitle-translator-v<태그>.zip`이며, GitHub Release asset과 Chrome Web Store 패키지로 사용합니다.

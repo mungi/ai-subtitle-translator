@@ -61,7 +61,7 @@ npm run check
 
 ## リリースパッケージ
 
-リリースタグが現在のコミットを指している状態で、Chrome Web Store 用 ZIP パッケージを作成します。
+リリースタグが現在のコミットを指している状態で、Chrome Web Store 用 ZIP パッケージを作成します。スクリプトは ZIP を作成し、GitHub Release を作成または更新して ZIP を添付します。
 
 ```text
 ./release.sh

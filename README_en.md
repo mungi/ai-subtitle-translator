@@ -61,7 +61,7 @@ For design and implementation details, see [Design.md](Design.md), [CONTEXT.md](
 
 ## Release package
 
-Create the Chrome Web Store ZIP package while the release tag points at the current commit.
+Create the Chrome Web Store ZIP package while the release tag points at the current commit. The script creates the ZIP, creates or updates the GitHub Release, and attaches the ZIP.
 
 ```text
 ./release.sh
