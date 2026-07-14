@@ -35,7 +35,7 @@ function formatTargetLanguage(code) {
 }
 
 function formatTranslationStyle(style) {
-  return t(STYLE_MESSAGE_KEYS[style] || "styleNatural");
+  return t(STYLE_MESSAGE_KEYS[style] || "styleNatural").split(/\s+-\s+/, 1)[0];
 }
 
 async function init() {

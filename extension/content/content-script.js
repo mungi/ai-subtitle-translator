@@ -265,7 +265,7 @@ function getSourceCaptionTrackLabel(track) {
 }
 
 function getTranslationStyleLabel(styleId) {
-  return contentText(TRANSLATION_STYLE_MESSAGE_KEYS[styleId] || "styleNatural");
+  return contentText(TRANSLATION_STYLE_MESSAGE_KEYS[styleId] || "styleNatural").split(/\s+-\s+/, 1)[0];
 }
 
 function renderSourceCaptionMenu(menu, platform) {

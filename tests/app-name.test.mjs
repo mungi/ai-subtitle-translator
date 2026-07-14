@@ -30,6 +30,7 @@ test("extension app name uses AI Subtitle Translator", () => {
   assert.match(popupHtml, /<title data-i18n="popupTitle"><\/title>/);
   assert.match(popupJs, /function formatTargetLanguage\(code\)/);
   assert.match(popupJs, /function formatTranslationStyle\(style\)/);
+  assert.match(popupJs, /return t\(STYLE_MESSAGE_KEYS\[style\] \|\| "styleNatural"\)\.split\(\/\\s\+-\\s\+\/, 1\)\[0\];/);
   assert.match(popupJs, /getTargetLanguageLabel\(language, getExtensionUiLanguage\(\)\)/);
   assert.match(popupJs, /formatTargetLanguage\(settings\.targetLanguage\)/);
   assert.match(popupHtml, /<dd id="translationStyle">-<\/dd>/);

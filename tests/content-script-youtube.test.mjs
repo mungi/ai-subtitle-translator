@@ -749,6 +749,13 @@ test("toolbar button opens a platform-styled provider menu before toggling AST",
   assert.ok(sourceCaptionSubmenu, "expected the source caption submenu to be rendered");
   const sourceCaptionIndex = menu.children.indexOf(sourceCaptionSubmenu);
   assert.equal(menu.children.at(sourceCaptionIndex - 1).className, "ast-provider-menu-separator");
+  const styleSubmenu = menu.children.find((item) => item.className === "ast-translation-style-submenu");
+  assert.ok(styleSubmenu, "expected the translation style submenu to be rendered");
+  assert.equal(styleSubmenu.children[0].children[0].textContent, "번역 스타일: Custom 1");
+  assert.deepEqual(
+    styleSubmenu.children[1].children.map((item) => item.children[0].textContent),
+    ["Natural", "Lecture", "Technical", "Custom 1", "Custom 2"]
+  );
   assert.equal(menu.children.at(-1).children[0].textContent, "설정 열기");
   assert.equal(sentMessages.some((message) => message.type.includes("fetchTranscript")), false);
   menu.children.at(-1).dispatchEvent({ type: "click", stopPropagation: () => {} });
