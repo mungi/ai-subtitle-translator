@@ -756,11 +756,44 @@ test("toolbar button opens a platform-styled provider menu before toggling AST",
     styleSubmenu.children[1].children.map((item) => item.children[0].textContent),
     ["Natural", "Lecture", "Technical", "Custom 1", "Custom 2"]
   );
+  sourceCaptionSubmenu.children[0].dispatchEvent({
+    type: "click",
+    stopPropagation: () => {},
+    preventDefault: () => {}
+  });
+  assert.equal(
+    menu.children.find((item) => item.className === "ast-source-caption-submenu"),
+    sourceCaptionSubmenu,
+    "expected source caption menu clicks not to lock the submenu open"
+  );
+  assert.equal(sourceCaptionSubmenu.classList.values.has("open"), false);
+  styleSubmenu.children[0].dispatchEvent({
+    type: "click",
+    stopPropagation: () => {},
+    preventDefault: () => {}
+  });
+  assert.equal(
+    menu.children.find((item) => item.className === "ast-translation-style-submenu"),
+    styleSubmenu,
+    "expected translation style menu clicks not to lock the submenu open"
+  );
+  assert.equal(styleSubmenu.classList.values.has("open"), false);
   assert.equal(menu.children.at(-1).children[0].textContent, "설정 열기");
   assert.equal(sentMessages.some((message) => message.type.includes("fetchTranscript")), false);
   menu.children.at(-1).dispatchEvent({ type: "click", stopPropagation: () => {} });
   await flushPromises();
   assert.ok(sentMessages.some((message) => message.type === "ast.openOptions"));
+});
+
+test("AST source and translation style submenus only open on hover", () => {
+  const contentScript = readFileSync("extension/content/content-script.js", "utf8");
+  const contentCss = readFileSync("extension/content/content-style.css", "utf8");
+
+  assert.match(contentCss, /\.ast-source-caption-submenu:hover \.ast-source-caption-list,/);
+  assert.match(contentCss, /\.ast-translation-style-submenu:hover \.ast-translation-style-list \{/);
+  assert.doesNotMatch(contentCss, /ast-source-caption-submenu:focus-within|ast-translation-style-submenu:focus-within/);
+  assert.doesNotMatch(contentCss, /ast-source-caption-submenu\.open|ast-translation-style-submenu\.open/);
+  assert.doesNotMatch(contentScript, /sourceCaptionMenuExpanded|translationStyleMenuExpanded/);
 });
 
 test("another player toolbar button closes the AST menu during event capture", async () => {

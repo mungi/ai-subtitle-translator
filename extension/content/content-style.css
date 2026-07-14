@@ -268,11 +268,7 @@
 }
 
 .ast-source-caption-submenu:hover .ast-source-caption-list,
-.ast-source-caption-submenu:focus-within .ast-source-caption-list,
-.ast-source-caption-submenu.open .ast-source-caption-list,
-.ast-translation-style-submenu:hover .ast-translation-style-list,
-.ast-translation-style-submenu:focus-within .ast-translation-style-list,
-.ast-translation-style-submenu.open .ast-translation-style-list {
+.ast-translation-style-submenu:hover .ast-translation-style-list {
   display: block;
 }
 

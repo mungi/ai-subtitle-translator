@@ -65,8 +65,6 @@ const subtitleState = {
   sourceCaptionTracks: [],
   sourceCaptionSessionKey: "",
   selectedSourceCaptionTrackId: "",
-  sourceCaptionMenuExpanded: false,
-  translationStyleMenuExpanded: false,
   temporaryPriorityWindowSeconds: DEFAULT_TEMPORARY_PRIORITY_WINDOW_SECONDS,
   availableProviders: [],
   translationGeneration: 0,
@@ -281,19 +279,12 @@ function renderSourceCaptionMenu(menu, platform) {
 
   const submenu = document.createElement("div");
   submenu.className = "ast-source-caption-submenu";
-  if (subtitleState.sourceCaptionMenuExpanded) submenu.classList.add("open");
 
   const toggle = createProviderMenuButton(
     "ast-provider-menu-item ast-source-caption-toggle",
     `${contentText("contentSourceCaptions")}: ${getSourceCaptionTrackLabel(selectedTrack)}`
   );
   toggle.setAttribute("role", "menuitem");
-  toggle.setAttribute("aria-expanded", String(subtitleState.sourceCaptionMenuExpanded));
-  toggle.addEventListener("click", (event) => {
-    event.stopPropagation();
-    subtitleState.sourceCaptionMenuExpanded = !subtitleState.sourceCaptionMenuExpanded;
-    renderProviderMenu(platform);
-  });
   submenu.append(toggle);
 
   const list = document.createElement("div");
@@ -322,7 +313,6 @@ function renderTranslationStyleMenu(menu, platform) {
   const selectedStyle = subtitleState.translationStyle || "custom";
   const submenu = document.createElement("div");
   submenu.className = "ast-translation-style-submenu";
-  if (subtitleState.translationStyleMenuExpanded) submenu.classList.add("open");
 
   const toggle = createProviderMenuButton(
     "ast-provider-menu-item ast-translation-style-toggle",
@@ -330,12 +320,6 @@ function renderTranslationStyleMenu(menu, platform) {
   );
   toggle.setAttribute("role", "menuitem");
   toggle.setAttribute("aria-haspopup", "menu");
-  toggle.setAttribute("aria-expanded", String(subtitleState.translationStyleMenuExpanded));
-  toggle.addEventListener("click", (event) => {
-    event.stopPropagation();
-    subtitleState.translationStyleMenuExpanded = !subtitleState.translationStyleMenuExpanded;
-    renderProviderMenu(platform);
-  });
   submenu.append(toggle);
 
   const list = document.createElement("div");
@@ -510,13 +494,11 @@ async function selectSourceCaptionTrack(platform, trackId) {
   const track = subtitleState.sourceCaptionTracks.find((item) => item.id === trackId);
   if (!handler || !sessionKey || !track || subtitleState.loading) return;
   if (track.id === subtitleState.selectedSourceCaptionTrackId) {
-    subtitleState.sourceCaptionMenuExpanded = false;
     renderProviderMenu(platform);
     return;
   }
 
   subtitleState.selectedSourceCaptionTrackId = track.id;
-  subtitleState.sourceCaptionMenuExpanded = false;
   if (!subtitleState.enabled) {
     renderProviderMenu(platform);
     return;
@@ -2541,7 +2523,6 @@ async function selectTranslationStyle(platform, styleId) {
   }
 
   subtitleState.translationStyle = response.result?.translationStyle || styleId;
-  subtitleState.translationStyleMenuExpanded = false;
   const handler = platformHandlers[platform];
   const reusableDocument = subtitleState.currentDocument
     && subtitleState.currentPlatform === platform
