@@ -537,6 +537,23 @@ test("LLM completes the priority chunk first and keeps two later chunks in paral
   }
 });
 
+test("LLM rate limit controller backs off exponentially and stops on the fourth 429", async () => {
+  const delays = [];
+  const controller = translationInternals.createLlmRequestController({
+    waitForRateLimit: async (delayMs) => delays.push(delayMs)
+  });
+  const error = Object.assign(new Error("HTTP 429: Rate limit exceeded"), { status: 429 });
+
+  await controller.recordRateLimitError(error);
+  await controller.recordRateLimitError(error);
+  await controller.recordRateLimitError(error);
+  assert.deepEqual(delays, [1000, 2000, 4000]);
+  await assert.rejects(Promise.resolve(controller.recordRateLimitError(error)), /HTTP 429/);
+
+  assert.equal(controller.concurrentRequestLimit, 1);
+  assert.equal(controller.rateLimitErrorCount, 4);
+});
+
 test("LLM serializes later requests after a 429 and retries the affected chunk", async () => {
   const originalChrome = globalThis.chrome;
   const originalFetch = globalThis.fetch;
@@ -944,9 +961,10 @@ test("provider connection mode reports DeepL quota errors without Google fallbac
   }
 });
 
-test("LLM falls back to Google Translate after five 429 responses", async () => {
+test("LLM falls back to Google Translate after four 429 responses", async () => {
   const originalChrome = globalThis.chrome;
   const originalFetch = globalThis.fetch;
+  const originalSetTimeout = globalThis.setTimeout;
   const requestHosts = [];
 
   globalThis.chrome = {
@@ -1015,12 +1033,15 @@ test("LLM falls back to Google Translate after five 429 responses", async () => 
       json: async () => [[["구글 번역"]]]
     };
   };
+  globalThis.setTimeout = (callback) => {
+    queueMicrotask(callback);
+    return 0;
+  };
 
   try {
     const translated = await translateSubtitleDocument(sourceDocument);
 
     assert.deepEqual(requestHosts, [
-      "generativelanguage.googleapis.com",
       "generativelanguage.googleapis.com",
       "generativelanguage.googleapis.com",
       "generativelanguage.googleapis.com",
@@ -1034,6 +1055,7 @@ test("LLM falls back to Google Translate after five 429 responses", async () => 
   } finally {
     globalThis.chrome = originalChrome;
     globalThis.fetch = originalFetch;
+    globalThis.setTimeout = originalSetTimeout;
   }
 });
 

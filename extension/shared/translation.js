@@ -21,7 +21,8 @@ const QUOTA_EXCEEDED_FALLBACK_REASON = "quota_exceeded";
 const CONTEXT_CUE_COUNT = 8;
 const INITIAL_LLM_CHUNK_MAX_DURATION_SECONDS = 60;
 const INITIAL_LLM_CHUNK_MAX_CHARS = 1500;
-const LLM_RATE_LIMIT_FALLBACK_THRESHOLD = 5;
+const LLM_RATE_LIMIT_FALLBACK_THRESHOLD = 4;
+const LLM_RATE_LIMIT_RETRY_BASE_DELAY_MS = 1000;
 
 function buildTranslationInput(document, { contextBefore = [] } = {}) {
   return JSON.stringify({
@@ -463,7 +464,8 @@ async function fetchProviderJson(provider, payload) {
 
 function createLlmRequestController({
   maxConcurrentRequests = LLM_PARALLEL_CHUNK_LIMIT,
-  rateLimitFallbackThreshold = LLM_RATE_LIMIT_FALLBACK_THRESHOLD
+  rateLimitFallbackThreshold = LLM_RATE_LIMIT_FALLBACK_THRESHOLD,
+  waitForRateLimit = (delayMs) => new Promise((resolve) => setTimeout(resolve, delayMs))
 } = {}) {
   let concurrentRequestLimit = Math.max(1, Number(maxConcurrentRequests) || 1);
   let activeRequestCount = 0;
@@ -511,7 +513,7 @@ function createLlmRequestController({
         releaseWaitingRequests();
       }
     },
-    recordRateLimitError(error) {
+    async recordRateLimitError(error) {
       concurrentRequestLimit = 1;
       rateLimitErrorCount += 1;
 
@@ -520,6 +522,8 @@ function createLlmRequestController({
         rejectWaitingRequests(error);
         throw error;
       }
+
+      await waitForRateLimit(LLM_RATE_LIMIT_RETRY_BASE_DELAY_MS * (2 ** (rateLimitErrorCount - 1)));
     },
     get concurrentRequestLimit() {
       return concurrentRequestLimit;
@@ -580,7 +584,7 @@ async function translateLlmChunkWithRetry(provider, settings, chunk, contextBefo
   } catch (error) {
     if (isQuotaExceededError(error)) {
       if (!isRateLimitError(error) || !requestController) throw error;
-      requestController.recordRateLimitError(error);
+      await requestController.recordRateLimitError(error);
       return translateLlmChunkWithRetry(provider, settings, chunk, contextBefore, requestController);
     }
     if (chunk.cues.length <= MIN_LLM_RETRY_CUES_PER_CHUNK) {
