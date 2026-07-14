@@ -114,7 +114,7 @@
     "message": "背景の不透明度"
   },
   "localCheckTitle": {
-    "message": "ローカル LLM の確認方法"
+    "message": "Custom LLM の確認方法"
   },
   "openRouterNitro": {
     "message": "Nitro を使用（高速なプロバイダーを優先）"
@@ -527,6 +527,9 @@
       }
     }
   },
+  "customLlmPermissionDenied": {
+    "message": "Custom LLM サーバーへのアクセス権限が必要です。権限リクエストを許可してから、もう一度試してください。"
+  },
   "fieldBaseUrl": {
     "message": "Base URL"
   },
@@ -588,6 +591,6 @@
     "message": "NVIDIA NIM の OpenAI 互換 chat/completions API を使用します。NVIDIA API keys ページで API キーを作成してください。NVIDIA API Catalog は開発・プロトタイピング用の無料エンドポイントを提供していますが、モデルやアカウントごとの使用制限が適用される場合があります。"
   },
   "providerGuideLocal": {
-    "message": "OpenAI 互換の chat/completions 形式を使用します。Base URL には、/chat/completions の直前までを入力してください。例: http://localhost:1234/v1"
+    "message": "OpenAI 互換の chat/completions 形式を使用します。localhost と 127.0.0.1 は HTTP または HTTPS を使用でき、カスタムサーバーは HTTPS のみ使用できます。カスタム HTTPS サーバーは、モデル取得または接続テスト時にそのドメインへのアクセス権限を許可してから使用してください。字幕テキストと、入力した場合は API キーがこのサーバーへ直接送信されます。Base URL には、/chat/completions の直前までを入力してください。例: http://localhost:1234/v1"
   }
 }

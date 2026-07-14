@@ -27,7 +27,7 @@ AI Subtitle Translator は、Udemy と YouTube の字幕をユーザーが選択
 
 ## 外部への送信
 
-- 字幕テキストと翻訳設定は、ユーザーが選択した Google Translate、DeepL、OpenAI、Anthropic、Google AI、OpenRouter、NVIDIA NIM、または Local LLM endpoint に送信される場合があります。
+- 字幕テキストと翻訳設定は、ユーザーが選択した Google Translate、DeepL、OpenAI、Anthropic、Google AI、OpenRouter、NVIDIA NIM、または Custom LLM endpoint に送信される場合があります。
 - API key は認証が必要な場合に選択した provider へ直接送信され、開発者の server には送信されません。
 - Udemy と YouTube の字幕取得リクエストには動画・講義識別子とユーザーの login cookie が含まれる場合があります。拡張機能は cookie 値を別途保存しません。
 - 既定またはカスタム Web font を使用すると、Google Fonts、jsDelivr、またはユーザー提供 CSS で指定した font host へリクエストが送信される場合があります。
@@ -36,7 +36,7 @@ AI Subtitle Translator は、Udemy と YouTube の字幕をユーザーが選択
 ## 権限
 
 - `storage`: 設定、暗号化された API key、翻訳キャッシュをローカルに保存します。
-- Host permissions: Udemy・YouTube の字幕取得、選択した翻訳 provider の呼び出し、ユーザーが設定した Local LLM への接続に使用します。
+- Host permissions: Udemy・YouTube の字幕取得、選択した翻訳 provider の呼び出し、`localhost`/`127.0.0.1` の Custom LLM への接続に使用します。カスタム HTTPS Custom LLM domain には、モデル取得または接続テスト時にユーザーが許可した場合のみアクセスします。
 
 ## Google API Limited Use
 
@@ -44,7 +44,7 @@ Google API から受け取った情報の使用は、Limited Use 要件を含む
 
 ## セキュリティ
 
-すべてのリモート provider リクエストは HTTPS を使用します。明示的な例外として、ユーザー自身のコンピューターで動作する Local LLM は `localhost` または `127.0.0.1` の HTTP endpoint を使用できます。hosted provider の Base URL は各 provider の公式 HTTPS origin に制限し、redirect 応答を自動追跡しません。
+すべてのリモート provider リクエストは HTTPS を使用します。Custom LLM はローカル LLM とユーザーが運用するカスタムサーバーの両方に対応します。ユーザー自身のコンピューターで動作するローカル LLM は `localhost` または `127.0.0.1` の HTTP endpoint を使用でき、カスタムサーバーには HTTPS とユーザーによる runtime domain アクセスの許可が必要です。hosted provider の Base URL は各 provider の公式 HTTPS origin に制限し、redirect 応答を自動追跡しません。
 
 ## 問い合わせと変更
 

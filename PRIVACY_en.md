@@ -27,7 +27,7 @@ This data is used only to retrieve subtitles, request translations, display tran
 
 ## External transmission
 
-- Subtitle text and translation settings may be sent to the user-selected Google Translate, DeepL, OpenAI, Anthropic, Google AI, OpenRouter, NVIDIA NIM, or Local LLM endpoint.
+- Subtitle text and translation settings may be sent to the user-selected Google Translate, DeepL, OpenAI, Anthropic, Google AI, OpenRouter, NVIDIA NIM, or Custom LLM endpoint.
 - API keys are sent directly to the selected provider when authentication is required. They are not sent to a developer-operated server.
 - Requests to retrieve Udemy and YouTube subtitles may include video or lecture identifiers and the user's login cookies. The extension does not separately store cookie values.
 - When a default or custom web font is used, font requests may be sent to Google Fonts, jsDelivr, or a font host specified in user-provided CSS.
@@ -36,7 +36,7 @@ This data is used only to retrieve subtitles, request translations, display tran
 ## Permissions
 
 - `storage`: Stores settings, encrypted API keys, and translation cache entries locally.
-- Host permissions: Retrieve Udemy and YouTube subtitles, contact the selected translation provider, and connect to a user-configured Local LLM.
+- Host permissions: Retrieve Udemy and YouTube subtitles, contact the selected translation provider, and connect to Custom LLM on `localhost` or `127.0.0.1`. A custom HTTPS Custom LLM domain is accessed only after the user approves it while fetching models or testing the connection.
 
 ## Google API Limited Use
 
@@ -44,7 +44,7 @@ The use of information received from Google APIs will adhere to the [Chrome Web 
 
 ## Security
 
-All remote provider requests use HTTPS. As an explicit exception, a Local LLM running on the user's own computer may use an HTTP endpoint on `localhost` or `127.0.0.1`. Base URLs for hosted providers are restricted to each provider's official HTTPS origin, and redirect responses are not followed automatically.
+All remote provider requests use HTTPS. Custom LLM supports both a local LLM and a user-operated custom server. A local LLM running on the user's own computer may use an HTTP endpoint on `localhost` or `127.0.0.1`; a custom server requires HTTPS and the user's runtime approval for its domain. Base URLs for hosted providers are restricted to each provider's official HTTPS origin, and redirect responses are not followed automatically.
 
 ## Contact and changes
 

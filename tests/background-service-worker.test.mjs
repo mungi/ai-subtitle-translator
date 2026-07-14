@@ -121,7 +121,7 @@ test("NVIDIA NIM model listing uses the OpenAI-compatible models endpoint", asyn
   }
 });
 
-test("Local LLM model listing uses its OpenAI-compatible models endpoint without requiring an API key", async () => {
+test("Custom LLM model listing uses its OpenAI-compatible models endpoint without requiring an API key", async () => {
   globalThis.chrome = {
     runtime: {
       onMessage: {
@@ -146,7 +146,7 @@ test("Local LLM model listing uses its OpenAI-compatible models endpoint without
   try {
     assert.deepEqual(await listProviderModels({
       id: "local",
-      label: "Local LLM",
+      label: "Custom LLM",
       baseUrl: "http://localhost:1234/v1",
       apiKey: ""
     }), [{ id: "qwen/qwen3-8b", label: "qwen/qwen3-8b" }]);

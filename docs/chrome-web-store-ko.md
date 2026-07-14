@@ -32,7 +32,7 @@ Google Translate로 빠르게 자막을 확인하거나, OpenAI, Anthropic, Goog
 ## 지원 사이트와 번역 Provider
 
 - 지원 사이트: Udemy 강의 플레이어, YouTube 영상 페이지, NVIDIA Academy 강의, Vimeo 영상 페이지
-- 번역 Provider: Google Translate, DeepL, OpenAI, Anthropic, Google AI, OpenRouter, NVIDIA NIM, Local LLM
+- 번역 Provider: Google Translate, DeepL, OpenAI, Anthropic, Google AI, OpenRouter, NVIDIA NIM, Custom LLM
 - 영상의 AST 메뉴에서 자막 켜기/끄기, 원본 자막 언어·번역 Provider·번역 스타일 선택, 설정 열기
 
 Udemy에서는 수강 권한이 있는 강의의 자막이 필요하며, YouTube, NVIDIA Academy, Vimeo에서는 영상이 제공하는 자막이 필요합니다.
@@ -61,4 +61,4 @@ Udemy에서는 수강 권한이 있는 강의의 자막이 필요하며, YouTube
 - 저장소 접근은 trusted extension context로 제한하며 content script에는 API key를 전달하지 않습니다.
 - 이 확장은 자체 서버나 외부 데이터베이스에 API key를 저장하지 않습니다.
 - 번역 요청 시 API key는 인증을 위해 선택한 provider에 직접 전송됩니다.
-- Hosted provider는 공식 HTTPS origin만, Local LLM은 `localhost` 또는 `127.0.0.1`만 허용하며 redirect 응답을 자동 추적하지 않습니다.
+- Hosted provider는 공식 HTTPS origin만 허용합니다. Custom LLM은 `localhost`/`127.0.0.1`의 HTTP 또는 HTTPS와, 사용자가 모델 가져오기 또는 연결 테스트 때 접근 권한을 승인한 사용자 지정 HTTPS origin을 사용할 수 있으며 redirect 응답을 자동 추적하지 않습니다.

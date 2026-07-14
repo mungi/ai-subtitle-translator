@@ -6,6 +6,7 @@ import { getOrderedProviders, PROVIDER_TAB_SEPARATOR_AFTER_ID } from "../shared/
 import { maskSecretValue, resolveSecretFieldValue } from "../shared/secret-fields.js";
 import { createEncryptedSettingsBackup, decryptSettingsBackup, settingsBackupInternals, validateBackupSeed } from "../shared/settings-backup.js";
 import { getExtensionUiLanguage, getMessage } from "../shared/i18n.js";
+import { getCustomLlmPermissionOrigin } from "../shared/provider-security.js";
 import { getBrowserTargetLanguage, getSettings, resetSettings, saveSettings } from "../shared/storage.js";
 
 const uiLanguage = getExtensionUiLanguage();
@@ -464,8 +465,11 @@ function updateProviderTestStatus(providerId, state = "idle") {
   }
 }
 
-async function persistProviderTestStatus(providerId, state = "idle") {
+async function persistProviderTestStatus(providerId, state = "idle", { activate = false } = {}) {
   updateProviderTestStatus(providerId, state);
+  if (activate && state === "success") {
+    settings.activeProvider = providerId;
+  }
   settings = await saveSettings(settings);
   renderGeneralSettings();
   renderProviderTabs();
@@ -874,15 +878,19 @@ function renderField(provider, [key, labelKey, placeholder, type = "text"]) {
 }
 
 async function fetchModelsForSelectedProvider(button) {
-  await flushAutomaticSave();
-  readProviderForm();
-  const provider = settings.providers[selectedProviderId];
+  const permissionRequest = requestCustomLlmEndpointPermission(
+    readProviderDraft(settings.providers[selectedProviderId])
+  );
   const originalText = button.textContent;
   button.disabled = true;
   button.textContent = t("loadingModels");
   setStatus(t("loadingModels"));
 
   try {
+    await permissionRequest;
+    await flushAutomaticSave();
+    readProviderForm();
+    const provider = settings.providers[selectedProviderId];
     const response = await chrome.runtime.sendMessage({
       type: "llm.listModels",
       provider
@@ -1010,7 +1018,7 @@ function buildLocalLlmCheckText(provider) {
     `    "model": "${model}",`,
     "    \"messages\": [",
     "      { \"role\": \"system\", \"content\": \"Reply with only OK.\" },",
-    "      { \"role\": \"user\", \"content\": \"Return OK if this Local LLM endpoint works.\" }",
+    "      { \"role\": \"user\", \"content\": \"Return OK if this Custom LLM endpoint works.\" }",
     "    ]",
     "  }'"
   ].join("\n");
@@ -1036,6 +1044,22 @@ function renderLocalLlmCheck(provider) {
 
   wrapper.append(title, preview);
   return wrapper;
+}
+
+function requestCustomLlmEndpointPermission(provider) {
+  try {
+    const permissionOrigin = getCustomLlmPermissionOrigin(provider);
+    if (!permissionOrigin || !chrome.permissions?.request) {
+      return Promise.resolve();
+    }
+    return chrome.permissions.request({ origins: [permissionOrigin] }).then((granted) => {
+      if (!granted) {
+        throw new Error(t("customLlmPermissionDenied"));
+      }
+    });
+  } catch (error) {
+    return Promise.reject(error);
+  }
 }
 
 function renderProviderGuide(providerId) {
@@ -1169,6 +1193,10 @@ async function resetSubtitleStyleSettingsSection() {
 
 async function testProvider() {
   const providerId = selectedProviderId;
+  const permissionRequest = requestCustomLlmEndpointPermission(
+    readProviderDraft(settings.providers[providerId])
+  );
+  await permissionRequest;
   await flushAutomaticSave();
   setStatus(t("testing"));
 
@@ -1183,7 +1211,7 @@ async function testProvider() {
   }
 
   const text = response.result.text || "(empty response)";
-  await persistProviderTestStatus(providerId, "success");
+  await persistProviderTestStatus(providerId, "success", { activate: true });
   setStatus(`${response.result.providerLabel} ${t("response")}: ${text}`, "success");
 }
 

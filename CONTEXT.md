@@ -21,16 +21,16 @@
 - 영어 source track 우선 선택.
 - Google Translate cue 번역을 즉시 표시.
 - LLM/DeepL provider 번역 완료 시 최종 자막으로 교체.
-- DeepL, OpenAI, Anthropic, Gemini, OpenRouter, NVIDIA NIM, Local LLM provider 설정.
-- OpenAI/Anthropic/Gemini/OpenRouter/NVIDIA NIM/Local LLM 모델 목록 불러오기.
-- 모델 목록 조회 후 권장 모델 자동 선택. 온라인 provider는 연결 테스트까지 수행하고 Local LLM은 모델 선택까지만 수행.
+- DeepL, OpenAI, Anthropic, Gemini, OpenRouter, NVIDIA NIM, Custom LLM provider 설정.
+- OpenAI/Anthropic/Gemini/OpenRouter/NVIDIA NIM/Custom LLM 모델 목록 불러오기.
+- 모델 목록 조회 후 권장 모델 자동 선택. 온라인 provider는 연결 테스트까지 수행하고 Custom LLM은 모델 선택까지만 수행.
 - Natural, Lecture, Technical, Custom 번역 스타일과 사용자 system prompt.
-- Local LLM은 OpenAI-compatible `chat/completions`만 지원.
+- Custom LLM은 로컬 LLM과 사용자 지정 OpenAI-compatible `chat/completions` 서버를 지원.
 - 자막 스타일 설정과 드래그/resize 오버레이.
 - API key AES-GCM 암호화 저장, 분산 key share 난독화, 기존 평문 자동 마이그레이션.
 - 저장된 API key 마스킹 표시와 기존 secret 유지 저장.
 - `chrome.storage.local` trusted-context 제한과 API key를 제외한 content-script 설정 bridge.
-- runtime message sender 분리, hosted provider 공식 HTTPS origin/Local LLM loopback allowlist, cross-origin redirect 차단.
+- runtime message sender 분리, hosted provider 공식 HTTPS origin/Custom LLM loopback 또는 사용자 승인 HTTPS origin allowlist, cross-origin redirect 차단.
 - 사용자 백업 비밀번호 기반 AES-GCM 설정 백업/복구.
 - 한국어·영어·일본어 개인정보 처리방침과 Chrome Web Store 문서 연결.
 - Chrome Web Store용 아이콘과 소개문.

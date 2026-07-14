@@ -16,7 +16,7 @@
 - [x] Google Gemini provider 구현.
 - [x] OpenRouter provider 구현.
 - [x] NVIDIA NIM provider 구현.
-- [x] Local LLM OpenAI-compatible provider 구현.
+- [x] Local LLM을 포함하는 Custom LLM OpenAI-compatible provider 구현.
 - [x] LLM 전체 subtitle JSON prompt와 chunk 번역.
 - [x] JSON 응답 파싱과 loose recovery.
 - [x] 번역 캐시와 캐시 삭제.
@@ -64,6 +64,6 @@
 - [x] YouTube 일반 자막 영상 테스트.
 - [x] YouTube 자동 생성 자막 영상 테스트.
 - [x] OpenAI/Anthropic/Gemini/OpenRouter 실제 API key로 모델 목록 조회 테스트.
-- [x] Local LLM OpenAI 호환 서버 Base URL `http://localhost:1234/v1` 연결 테스트.
+- [x] Custom LLM의 로컬 OpenAI 호환 서버 Base URL `http://localhost:1234/v1` 연결 테스트.
 - [x] Chrome Web Store 제출 전 권한/개인정보 문구 최종 검토.
 - [ ] Chrome Web Store Developer Dashboard에 공개 개인정보 처리방침 URL과 실제 데이터 처리 항목 입력.

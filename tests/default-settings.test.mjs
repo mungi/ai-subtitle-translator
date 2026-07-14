@@ -147,6 +147,10 @@ test("Google provider is labeled Google AI in settings UI", () => {
   assert.equal(PROVIDERS.google.label, "Google AI");
 });
 
+test("OpenAI-compatible provider is labeled Custom LLM in settings UI", () => {
+  assert.equal(PROVIDERS.local.label, "Custom LLM");
+});
+
 test("hosted LLM providers default to the configured recommended models", () => {
   assert.equal(PROVIDERS.google.model, "gemini-3.1-flash-lite");
   assert.equal(PROVIDERS.openai.model, "gpt-5.6-luna");

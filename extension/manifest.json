@@ -66,6 +66,9 @@
     "https://localhost/*",
     "https://127.0.0.1/*"
   ],
+  "optional_host_permissions": [
+    "https://*/*"
+  ],
   "options_page": "options/options.html",
   "permissions": [
     "storage"

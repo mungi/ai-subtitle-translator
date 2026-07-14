@@ -70,7 +70,7 @@ export const PROVIDERS = {
   },
   local: {
     id: "local",
-    label: "Local LLM",
+    label: "Custom LLM",
     apiStyle: "openai-chat",
     baseUrl: "http://localhost:1234/v1",
     apiKey: "",

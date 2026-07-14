@@ -69,6 +69,14 @@ test("NVIDIA NIM guide omits Base URL setup guidance", () => {
   }
 });
 
+test("Custom LLM guide explains local and custom HTTPS endpoints", () => {
+  const guide = getGuide("local", "ko");
+
+  assert.match(guide.text, /localhost/);
+  assert.match(guide.text, /HTTPS/);
+  assert.match(guide.text, /권한/);
+});
+
 test("DeepL guide exposes official docs, usage limits, and pricing links", () => {
   const guide = assertGuideLinks("deepl", "ko", [
     "https://www.deepl.com/your-account/keys",

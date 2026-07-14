@@ -31,7 +31,7 @@ test("provider display order places default translators before AI providers", ()
       "Anthropic",
       "OpenRouter",
       "NVIDIA NIM",
-      "Local LLM"
+      "Custom LLM"
     ]
   );
 });

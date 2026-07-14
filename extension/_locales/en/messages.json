@@ -114,7 +114,7 @@
     "message": "Background opacity"
   },
   "localCheckTitle": {
-    "message": "How to check Local LLM"
+    "message": "How to check Custom LLM"
   },
   "openRouterNitro": {
     "message": "Use Nitro (prefer faster providers)"
@@ -527,6 +527,9 @@
       }
     }
   },
+  "customLlmPermissionDenied": {
+    "message": "Custom LLM server access permission is required. Allow the permission request and try again."
+  },
   "fieldBaseUrl": {
     "message": "Base URL"
   },
@@ -588,6 +591,6 @@
     "message": "Uses NVIDIA NIM's OpenAI-compatible chat/completions API. Create an API key in the NVIDIA API keys page. NVIDIA API Catalog provides free endpoints for development/prototyping, with model/account usage limits that can apply."
   },
   "providerGuideLocal": {
-    "message": "Uses the OpenAI-compatible chat/completions format. In Base URL, enter only the part before /chat/completions. Example: http://localhost:1234/v1"
+    "message": "Uses the OpenAI-compatible chat/completions format. localhost and 127.0.0.1 can use HTTP or HTTPS; custom servers must use HTTPS. For a custom HTTPS server, approve access to that domain when you fetch models or test the connection. Subtitle text and the API key, if entered, are sent directly to this server. In Base URL, enter only the part before /chat/completions. Example: http://localhost:1234/v1"
   }
 }

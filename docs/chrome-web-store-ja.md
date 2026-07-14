@@ -32,7 +32,7 @@ Google Translate で字幕をすばやく確認したり、OpenAI、Anthropic、
 ## 対応サイトと翻訳プロバイダー
 
 - 対応サイト: Udemy 講座プレーヤー、YouTube 動画ページ、NVIDIA Academy 講座、Vimeo 動画ページ
-- 翻訳プロバイダー: Google Translate、DeepL、OpenAI、Anthropic、Google AI、OpenRouter、NVIDIA NIM、Local LLM
+- 翻訳プロバイダー: Google Translate、DeepL、OpenAI、Anthropic、Google AI、OpenRouter、NVIDIA NIM、Custom LLM
 - 動画内の AST メニューから字幕のオン／オフ、元字幕の言語・翻訳プロバイダー・翻訳スタイルの選択、設定画面を開く操作が可能
 
 Udemy ではユーザーが受講できる講座の字幕が必要です。YouTube、NVIDIA Academy、Vimeo では動画が提供する字幕が必要です。
@@ -61,4 +61,4 @@ Udemy ではユーザーが受講できる講座の字幕が必要です。YouTu
 - storage へのアクセスは trusted extension context に限定し、API key を content script へ公開しません。
 - この拡張機能は、独自サーバーや外部データベースに API キーを保存しません。
 - API キーは、認証が必要な場合にのみ選択したプロバイダーへ直接送信されます。
-- Hosted provider は公式 HTTPS origin、Local LLM は `localhost` または `127.0.0.1` に限定し、redirect 応答を自動追跡しません。
+- Hosted provider は公式 HTTPS origin のみに制限します。Custom LLM は `localhost`/`127.0.0.1` の HTTP または HTTPS と、モデル取得または接続テスト時にユーザーがアクセスを許可したカスタム HTTPS origin を使用でき、redirect 応答を自動追跡しません。

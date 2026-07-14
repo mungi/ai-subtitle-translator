@@ -10,7 +10,7 @@ Chrome 102 이상이 필요합니다.
 
 - Udemy, YouTube, NVIDIA Academy, Vimeo의 자막을 수집하여 원문 또는 번역 자막으로 표시합니다.
 - AST 메뉴에서 영상이 제공하는 원본 자막 언어와 번역 스타일을 바로 선택할 수 있습니다.
-- Google Translate, DeepL, OpenAI, Anthropic, Google AI, OpenRouter, NVIDIA NIM, Local LLM을 지원합니다.
+- Google Translate, DeepL, OpenAI, Anthropic, Google AI, OpenRouter, NVIDIA NIM, Custom LLM을 지원합니다.
 - LLM 번역 시 자막 전체 문맥과 재생 위치를 고려하며, 긴 영상은 나누어 처리합니다.
 - Natural, Lecture, Technical, 사용자 정의 번역 스타일을 제공합니다.
 - 자막 위치, 크기, 글꼴, 색상, 그림자, 외곽선, 배경을 조정할 수 있습니다.
@@ -33,9 +33,9 @@ Chrome 102 이상이 필요합니다.
 
 LLM 제공업체를 선택하면 현재 재생 위치 부근의 자막을 우선 번역한 뒤 나머지 자막을 처리합니다. 번역 중에도 원문 또는 임시 번역 자막을 계속 볼 수 있습니다.
 
-## Local LLM 설정
+## Custom LLM 설정
 
-OpenAI 호환 `chat/completions` 서버를 사용하는 경우, 최종 요청 주소에서 `/chat/completions` 앞부분까지만 Base URL에 입력합니다. 보안을 위해 `localhost`와 `127.0.0.1` 주소만 허용합니다.
+Custom LLM은 로컬 LLM과 사용자가 운영하는 OpenAI 호환 `chat/completions` 서버를 함께 지원합니다. 최종 요청 주소에서 `/chat/completions` 앞부분까지만 Base URL에 입력합니다. `localhost`와 `127.0.0.1`은 HTTP 또는 HTTPS를 사용할 수 있고, 외부 사용자 지정 서버는 HTTPS만 허용합니다. 외부 서버는 모델 가져오기 또는 연결 테스트를 할 때 해당 도메인 접근 권한을 승인한 뒤 사용할 수 있습니다. 자막 텍스트와 API Key(입력한 경우)는 이 서버로 직접 전송됩니다.
 
 ```text
 Base URL: http://localhost:1234/v1

@@ -11,7 +11,7 @@ const settings = {
     openai: { id: "openai", label: "OpenAI", apiKey: "openai-key" },
     anthropic: { id: "anthropic", label: "Anthropic", apiKey: "anthropic-key" },
     google: { id: "google", label: "Google AI", apiKey: "google-key" },
-    local: { id: "local", label: "Local LLM", apiKey: "" }
+    local: { id: "local", label: "Custom LLM", apiKey: "" }
   },
   providerTestStatus: {
     googleTranslate: "success",

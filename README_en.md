@@ -10,7 +10,7 @@ Chrome 102 or later is required.
 
 - Collects subtitles from Udemy, YouTube, NVIDIA Academy, and Vimeo and displays the original or translated subtitles.
 - Lets you choose a source subtitle language and translation style directly from the AST menu.
-- Supports Google Translate, DeepL, OpenAI, Anthropic, Google AI, OpenRouter, NVIDIA NIM, and Local LLM.
+- Supports Google Translate, DeepL, OpenAI, Anthropic, Google AI, OpenRouter, NVIDIA NIM, and Custom LLM.
 - Uses the full subtitle context and current playback position for LLM translation, splitting long videos into manageable parts.
 - Provides Natural, Lecture, Technical, and custom translation styles.
 - Lets you adjust subtitle position, size, font, color, shadow, outline, and background.
@@ -33,9 +33,9 @@ Chrome 102 or later is required.
 
 When you select an LLM provider, the extension translates subtitles near the current playback position first, then processes the remainder. You can continue viewing the original or temporary translated subtitles while translation is in progress.
 
-## Local LLM setup
+## Custom LLM setup
 
-For an OpenAI-compatible `chat/completions` server, enter only the part of the final request URL before `/chat/completions` as the Base URL. For security, only `localhost` and `127.0.0.1` are allowed.
+Custom LLM supports both local LLMs and user-operated OpenAI-compatible `chat/completions` servers. Enter only the part of the final request URL before `/chat/completions` as the Base URL. `localhost` and `127.0.0.1` can use HTTP or HTTPS; external custom servers must use HTTPS. To use an external server, approve access to its domain when you fetch models or test the connection. Subtitle text and the API key, if entered, are sent directly to that server.
 
 ```text
 Base URL: http://localhost:1234/v1

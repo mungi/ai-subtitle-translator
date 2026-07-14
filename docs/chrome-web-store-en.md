@@ -32,7 +32,7 @@ Open the AST menu from the AST icon in the video controls to turn subtitles on o
 ## Supported Sites And Providers
 
 - Supported sites: Udemy course player, YouTube video pages, NVIDIA Academy courses, and Vimeo video pages
-- Translation providers: Google Translate, DeepL, OpenAI, Anthropic, Google AI, OpenRouter, NVIDIA NIM, and Local LLM
+- Translation providers: Google Translate, DeepL, OpenAI, Anthropic, Google AI, OpenRouter, NVIDIA NIM, and Custom LLM
 - Turn AST on or off, choose a source subtitle language, translation provider, or translation style, and open settings from the in-player AST menu
 
 Udemy requires captions for a course the user can access. YouTube, NVIDIA Academy, and Vimeo require captions provided by the video.
@@ -61,4 +61,4 @@ Privacy policy: [Korean](../PRIVACY.md) · [English](../PRIVACY_en.md) · [Japan
 - Storage access is restricted to trusted extension contexts, and API keys are not exposed to content scripts.
 - The extension does not store API keys on its own server or an external database.
 - API keys are sent directly to the selected provider only when needed for authentication.
-- Hosted providers are limited to their official HTTPS origins; Local LLM is limited to `localhost` or `127.0.0.1`, and redirect responses are not followed automatically.
+- Hosted providers are limited to their official HTTPS origins. Custom LLM can use HTTP or HTTPS on `localhost` or `127.0.0.1`, plus a user-selected custom HTTPS origin after the user approves access while fetching models or testing the connection; redirect responses are not followed automatically.

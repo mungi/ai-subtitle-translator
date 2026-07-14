@@ -8,6 +8,10 @@ test("manifest grants NVIDIA NIM host permission", () => {
   assert.ok(manifest.host_permissions.includes("https://integrate.api.nvidia.com/*"));
 });
 
+test("manifest requests custom HTTPS LLM host access only at runtime", () => {
+  assert.deepEqual(manifest.optional_host_permissions, ["https://*/*"]);
+});
+
 test("manifest grants Vimeo page and player access", () => {
   assert.ok(manifest.host_permissions.includes("https://vimeo.com/*"));
   assert.ok(manifest.host_permissions.includes("https://www.vimeo.com/*"));

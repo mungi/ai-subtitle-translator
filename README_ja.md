@@ -10,7 +10,7 @@ Chrome 102 以降が必要です。
 
 - Udemy、YouTube、NVIDIA Academy、Vimeo から字幕を取得し、原文または翻訳字幕を表示します。
 - AST メニューから、現在の動画で提供されている元字幕の言語と翻訳スタイルを直接選択できます。
-- Google Translate、DeepL、OpenAI、Anthropic、Google AI、OpenRouter、NVIDIA NIM、Local LLM に対応しています。
+- Google Translate、DeepL、OpenAI、Anthropic、Google AI、OpenRouter、NVIDIA NIM、Custom LLM に対応しています。
 - LLM 翻訳では字幕全体の文脈と現在の再生位置を考慮し、長い動画は分割して処理します。
 - Natural、Lecture、Technical、カスタムの翻訳スタイルを提供します。
 - 字幕の位置、サイズ、フォント、色、影、縁取り、背景を調整できます。
@@ -33,9 +33,9 @@ Chrome 102 以降が必要です。
 
 LLM プロバイダーを選択すると、現在の再生位置付近の字幕を優先して翻訳し、その後に残りの字幕を処理します。翻訳中も原文または一時翻訳の字幕を表示し続けることができます。
 
-## Local LLM の設定
+## Custom LLM の設定
 
-OpenAI 互換の `chat/completions` サーバーでは、最終リクエスト URL の `/chat/completions` より前の部分だけを Base URL に入力します。セキュリティのため、`localhost` と `127.0.0.1` のみを許可します。
+Custom LLM は、ローカル LLM とユーザーが運用する OpenAI 互換 `chat/completions` サーバーの両方に対応します。最終リクエスト URL の `/chat/completions` より前の部分だけを Base URL に入力します。`localhost` と `127.0.0.1` は HTTP または HTTPS を使用でき、外部のカスタムサーバーは HTTPS のみ使用できます。外部サーバーを使用するには、モデル取得または接続テスト時にそのドメインへのアクセスを許可してください。字幕テキストと、入力した場合は API キーがそのサーバーへ直接送信されます。
 
 ```text
 Base URL: http://localhost:1234/v1

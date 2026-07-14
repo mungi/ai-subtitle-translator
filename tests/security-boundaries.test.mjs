@@ -172,7 +172,7 @@ test("LLM provider requests reject cross-origin redirects", () => {
   }
 });
 
-test("Local LLM requests allow loopback origins and reject remote origins", () => {
+test("Custom LLM requests allow loopback and user-supplied HTTPS origins", () => {
   assert.doesNotThrow(() => buildProviderRequest({
     id: "local",
     apiStyle: "openai-chat",
@@ -184,16 +184,29 @@ test("Local LLM requests allow loopback origins and reject remote origins", () =
     input: "Hello"
   }));
 
+  assert.doesNotThrow(() => buildProviderRequest({
+    id: "local",
+    apiStyle: "openai-chat",
+    baseUrl: "https://llm.example.com/v1",
+    apiKey: "custom-key",
+    model: "custom-model"
+  }, {
+    systemPrompt: "Translate",
+    input: "Hello"
+  }));
+});
+
+test("Custom LLM requests reject user-supplied HTTP origins", () => {
   assert.throws(() => buildProviderRequest({
     id: "local",
     apiStyle: "openai-chat",
-    baseUrl: "https://example.com/v1",
+    baseUrl: "http://llm.example.com/v1",
     apiKey: "",
     model: "local-model"
   }, {
     systemPrompt: "Translate",
     input: "Hello"
-  }), /Local LLM Base URL must use localhost or 127\.0\.0\.1/);
+  }), /Custom LLM Base URL must use HTTPS unless it uses localhost or 127\.0\.0\.1/);
 });
 
 test("machine translation requests reject cross-origin redirects", async () => {

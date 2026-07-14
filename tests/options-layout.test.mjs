@@ -117,11 +117,16 @@ test("provider test result is shown in a separate container below provider setti
 test("provider tab turns light green after a successful provider test", () => {
   assert.doesNotMatch(optionsCss, /button\.primary\.connection-success/);
   assert.match(optionsCss, /\.provider-tabs button\.connection-success/);
-  assert.match(optionsJs, /persistProviderTestStatus\(providerId, "success"\)/);
+  assert.match(optionsJs, /persistProviderTestStatus\(providerId, "success", \{ activate: true \}\)/);
   assert.match(optionsJs, /getProviderTestStatus\(provider\.id\)/);
   assert.match(optionsJs, /providerTestStatus/);
   assert.match(optionsJs, /classList\.toggle\("connection-success"/);
   assert.doesNotMatch(optionsJs, /testProviderButton\.classList\.toggle\("connection-success"/);
+});
+
+test("a successful connection test activates the tested provider", () => {
+  assert.match(optionsJs, /if \(activate && state === "success"\) \{\s*settings\.activeProvider = providerId;\s*\}/);
+  assert.match(optionsJs, /persistProviderTestStatus\(providerId, "success", \{ activate: true \}\)/);
 });
 
 test("active provider select only shows providers that pass connection tests", () => {
@@ -191,11 +196,13 @@ test("system prompt editor is a full-width general setting and custom-only edita
   assert.doesNotMatch(optionsJs, /buildSystemPromptFromSettings/);
 });
 
-test("local LLM check is rendered only inside provider settings for the Local provider", () => {
+test("Custom LLM check and endpoint permission request are rendered only in its provider settings", () => {
   assert.doesNotMatch(optionsHtml, /<h2 data-i18n="localExample">/);
   assert.doesNotMatch(optionsHtml, /Local LLM 예시/);
-  assert.equal(message("ko", "localCheckTitle"), "Local LLM 확인 방법");
+  assert.equal(message("ko", "localCheckTitle"), "Custom LLM 확인 방법");
   assert.match(optionsJs, /if \(provider\.id === "local"\) \{[\s\S]*renderLocalLlmCheck\(provider\)/);
+  assert.match(optionsJs, /function requestCustomLlmEndpointPermission\(provider\)/);
+  assert.match(optionsJs, /chrome\.permissions\.request\(\{ origins: \[permissionOrigin\] \}\)/);
   assert.match(optionsJs, /buildLocalChatCompletionsUrl\(draft\.baseUrl\)/);
   assert.match(optionsJs, /draft\.model/);
   assert.match(optionsJs, /draft\.apiKey/);
