@@ -830,6 +830,60 @@ test("another player toolbar button closes the AST menu during event capture", a
   );
 });
 
+test("AST menu closes when an iframe parent relays an outside interaction", async () => {
+  const { context, controls, runtimeMessageListeners, sentMessages } = createYoutubeHarness();
+  const source = readFileSync("extension/content/content-script.js", "utf8");
+
+  vm.runInNewContext(source, context, { filename: "extension/content/content-script.js" });
+  await flushPromises();
+
+  const astButton = controls.querySelector("#ast-toolbar-button");
+  astButton.dispatchEvent({
+    type: "click",
+    stopPropagation: () => {},
+    preventDefault: () => {}
+  });
+  await flushPromises();
+
+  const menu = context.document.getElementById("ast-provider-menu");
+  assert.equal(menu.hidden, false);
+  assert.ok(
+    sentMessages.some((message) => message.type === "ast.providerMenu.setOpen" && message.open === true),
+    "expected an opened AST menu to notify its iframe parent"
+  );
+
+  for (const listener of runtimeMessageListeners) {
+    listener({ type: "ast.providerMenu.setOpen", open: false });
+  }
+
+  assert.equal(menu.hidden, true);
+  assert.equal(astButton.getAttribute("aria-expanded"), "false");
+});
+
+test("top-level frame relays outside clicks while an iframe AST menu is open", async () => {
+  const { context, runtimeMessageListeners, sentMessages } = createYoutubeHarness();
+  context.top = context;
+  const source = readFileSync("extension/content/content-script.js", "utf8");
+
+  vm.runInNewContext(source, context, { filename: "extension/content/content-script.js" });
+  await flushPromises();
+
+  for (const listener of runtimeMessageListeners) {
+    listener({ type: "ast.providerMenu.setOpen", open: true });
+  }
+  context.document.dispatchCaptureEvent({
+    type: "pointerdown",
+    target: context.document.body,
+    stopPropagation: () => {}
+  });
+  await flushPromises();
+
+  assert.ok(
+    sentMessages.some((message) => message.type === "ast.providerMenu.setOpen" && message.open === false),
+    "expected the parent document to close the open iframe menu"
+  );
+});
+
 test("Udemy toolbar opens the independently styled AST provider menu", async () => {
   const harness = createUdemyHarness({
     settings: {

@@ -84,6 +84,7 @@ const subtitleState = {
   udemyTranscriptRefreshQueued: false,
   disposed: false
 };
+let crossFrameProviderMenuOpen = false;
 const CAPTION_SVG = `
 <svg class="ast-toolbar-icon" viewBox="0 0 1240 1240" width="24" height="24" aria-hidden="true" focusable="false">
   <path class="ast-toolbar-icon-bg" d="M330 110H910Q1100 110 1100 327V797Q1100 969 910 969H850V1109Q850 1132 818 1119L680 969H330Q140 969 140 797V327Q140 110 330 110Z"/>
@@ -240,11 +241,18 @@ function getProviderMenuHost(platform) {
     || findOverlayHost(platform, findVideoElement(platform));
 }
 
-function closeProviderMenu() {
+function setProviderMenuVisibility(open) {
+  crossFrameProviderMenuOpen = Boolean(open);
+  return sendRuntimeMessage({ type: "ast.providerMenu.setOpen", open: crossFrameProviderMenuOpen });
+}
+
+function closeProviderMenu({ notify = true } = {}) {
   const menu = document.getElementById(PROVIDER_MENU_ID);
+  const wasOpen = Boolean(menu && !menu.hidden);
   if (menu) menu.hidden = true;
   const button = document.getElementById(BUTTON_ID);
   button?.setAttribute("aria-expanded", "false");
+  if (notify && wasOpen) void setProviderMenuVisibility(false);
 }
 
 function createProviderMenuButton(className, label) {
@@ -486,6 +494,7 @@ async function toggleProviderMenu(platform) {
   renderProviderMenu(platform);
   menu.hidden = false;
   document.getElementById(BUTTON_ID)?.setAttribute("aria-expanded", "true");
+  void setProviderMenuVisibility(true);
 }
 
 async function selectSourceCaptionTrack(platform, trackId) {
@@ -2841,6 +2850,11 @@ async function loadPlatformSubtitleOverlay(handler, options = {}) {
 }
 
 chrome.runtime.onMessage.addListener((message) => {
+  if (message?.type === "ast.providerMenu.setOpen") {
+    crossFrameProviderMenuOpen = Boolean(message.open);
+    if (!crossFrameProviderMenuOpen) closeProviderMenu({ notify: false });
+    return false;
+  }
   if (message?.type === "settings.changed") {
     const settings = message.settings || {};
     subtitleState.subtitleStyle = settings.subtitleStyle || subtitleState.subtitleStyle;
@@ -2981,8 +2995,14 @@ document.addEventListener?.("fullscreenchange", refreshActiveOverlayStyle);
 function closeProviderMenuOnOutsideInteraction(event) {
   const menu = document.getElementById(PROVIDER_MENU_ID);
   const button = document.getElementById(BUTTON_ID);
-  if (!menu || menu.hidden || button?.contains?.(event.target) || menu.contains?.(event.target)) return;
-  closeProviderMenu();
+  if (menu && !menu.hidden) {
+    if (button?.contains?.(event.target) || menu.contains?.(event.target)) return;
+    closeProviderMenu();
+    return;
+  }
+  if (event.type === "pointerdown" && crossFrameProviderMenuOpen && globalThis.top === globalThis) {
+    void setProviderMenuVisibility(false);
+  }
 }
 
 // Some player toolbar buttons stop click propagation. Listen while the event is

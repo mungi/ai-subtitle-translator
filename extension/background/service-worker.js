@@ -84,6 +84,14 @@ async function broadcastPublicSettings() {
     }).catch(() => {})));
 }
 
+export async function relayProviderMenuVisibility(tabId, open) {
+  if (!Number.isInteger(tabId) || tabId < 0 || !chrome.tabs?.sendMessage) return;
+  await chrome.tabs.sendMessage(tabId, {
+    type: "ast.providerMenu.setOpen",
+    open: Boolean(open)
+  }).catch(() => {});
+}
+
 chrome.storage?.onChanged?.addListener((changes, areaName) => {
   if (areaName === "local" && changes.llmSettings?.newValue) {
     broadcastPublicSettings().catch(() => {});
@@ -471,6 +479,13 @@ function dispatchBackgroundMessage(message, sender, sendResponse) {
         : null;
     sendResponse({ ok: true, platform });
     return false;
+  }
+
+  if (message?.type === "ast.providerMenu.setOpen") {
+    relayProviderMenuVisibility(sender.tab?.id, message.open)
+      .then(() => sendResponse({ ok: true }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
   }
 
   if (message?.type === "translation.translateDocument") {

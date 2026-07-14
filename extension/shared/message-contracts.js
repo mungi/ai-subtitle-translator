@@ -8,6 +8,7 @@ const BACKGROUND_MESSAGE_TYPES = new Set([
   "settings.setActiveProvider",
   "settings.setTranslationStyle",
   "ast.openOptions",
+  "ast.providerMenu.setOpen",
   "captions.youtube.listTracks",
   "captions.youtube.fetchTranscript",
   "captions.udemy.listTracks",
@@ -31,6 +32,7 @@ const CONTENT_SCRIPT_MESSAGE_TYPES = new Set([
   "settings.setActiveProvider",
   "settings.setTranslationStyle",
   "ast.openOptions",
+  "ast.providerMenu.setOpen",
   "captions.youtube.listTracks",
   "captions.youtube.fetchTranscript",
   "captions.udemy.listTracks",
@@ -169,6 +171,9 @@ export function validateBackgroundMessage(message) {
       break;
     case "settings.setTranslationStyle":
       if (!isNonEmptyValue(message.translationStyle)) error = "translationStyle is required.";
+      break;
+    case "ast.providerMenu.setOpen":
+      if (typeof message.open !== "boolean") error = "open must be a boolean.";
       break;
     case "captions.youtube.listTracks":
       if (!isNonEmptyValue(message.urlOrId)) error = "urlOrId is required.";

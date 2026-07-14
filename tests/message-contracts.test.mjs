@@ -42,6 +42,17 @@ test("background message validation accepts public settings reads and subtitle s
   }), { handled: true, ok: true });
 });
 
+test("background message validation accepts AST menu visibility updates", () => {
+  assert.deepEqual(validateBackgroundMessage({
+    type: "ast.providerMenu.setOpen",
+    open: true
+  }), { handled: true, ok: true });
+  assert.deepEqual(validateBackgroundMessage({
+    type: "ast.providerMenu.setOpen",
+    open: false
+  }), { handled: true, ok: true });
+});
+
 test("background message validation rejects unsupported subtitle style patch fields", () => {
   assert.deepEqual(validateBackgroundMessage({
     type: "settings.updateSubtitleStyle",

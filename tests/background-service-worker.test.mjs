@@ -19,6 +19,30 @@ test("provider connection tests reserve output tokens for Gemini thinking models
   assert.equal(PROVIDER_CONNECTION_TEST_MAX_TOKENS, 128);
 });
 
+test("AST menu visibility updates are relayed to every frame in the tab", async () => {
+  const sentMessages = [];
+  globalThis.chrome = {
+    runtime: {
+      onMessage: {
+        addListener: () => {}
+      }
+    },
+    tabs: {
+      sendMessage: async (tabId, message) => {
+        sentMessages.push({ tabId, message });
+      }
+    }
+  };
+
+  const { relayProviderMenuVisibility } = await import("../extension/background/service-worker.js");
+  await relayProviderMenuVisibility(42, true);
+
+  assert.deepEqual(sentMessages, [{
+    tabId: 42,
+    message: { type: "ast.providerMenu.setOpen", open: true }
+  }]);
+});
+
 test("YouTube transcript errors include page retry metadata when available", async () => {
   globalThis.chrome = {
     runtime: {
