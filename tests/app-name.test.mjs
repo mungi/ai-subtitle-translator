@@ -9,6 +9,8 @@ const PREVIOUS_APP_NAME = ["Context", "Subtitle", "Translator"].join(" ");
 
 const manifest = JSON.parse(readFileSync(new URL("../extension/manifest.json", import.meta.url), "utf8"));
 const englishMessages = JSON.parse(readFileSync(new URL("../extension/_locales/en/messages.json", import.meta.url), "utf8"));
+const japaneseMessages = JSON.parse(readFileSync(new URL("../extension/_locales/ja/messages.json", import.meta.url), "utf8"));
+const koreanMessages = JSON.parse(readFileSync(new URL("../extension/_locales/ko/messages.json", import.meta.url), "utf8"));
 const optionsJs = readFileSync(new URL("../extension/options/options.js", import.meta.url), "utf8");
 const optionsHtml = readFileSync(new URL("../extension/options/options.html", import.meta.url), "utf8");
 const popupJs = readFileSync(new URL("../extension/popup/popup.js", import.meta.url), "utf8");
@@ -41,6 +43,18 @@ test("extension app name uses AI Subtitle Translator", () => {
   assert.match(readme, new RegExp(`^# ${APP_NAME}\\n`));
   assert.match(chromeStoreKo, new RegExp(`제품명: ${APP_NAME}`));
   assert.match(chromeStoreEn, new RegExp(`Product name: ${APP_NAME}`));
+});
+
+test("popup headings keep AI subtitle translation branding in every locale", () => {
+  assert.deepEqual({
+    en: englishMessages.popupHeading.message,
+    ja: japaneseMessages.popupHeading.message,
+    ko: koreanMessages.popupHeading.message
+  }, {
+    en: "AI Subtitle Translation",
+    ja: "AI 字幕翻訳",
+    ko: "AI 자막 번역"
+  });
 });
 
 test("previous app name is not left in user-facing app metadata", () => {
