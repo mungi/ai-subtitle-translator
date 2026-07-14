@@ -52,7 +52,7 @@ test("popup headings keep AI subtitle translation branding in every locale", () 
     ko: koreanMessages.popupHeading.message
   }, {
     en: "AI Subtitle Translation",
-    ja: "AI 字幕翻訳",
+    ja: "AI字幕翻訳",
     ko: "AI 자막 번역"
   });
 });
