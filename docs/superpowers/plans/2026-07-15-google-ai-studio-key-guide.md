@@ -2,20 +2,21 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 간단 설정 패널에서만 Google AI Studio API 키 발급 절차와 현지화된 라벨을 제공한다.
+**Goal:** 간단 설정 패널에서만 Google AI Studio API 키 발급 절차, 무료 등급 한도 안내, 명시적 API 키 연결 확인을 제공한다.
 
-**Architecture:** 간단 설정 패널에 정적이고 접근 가능한 다섯 단계 안내 블록을 추가한다. 링크의 표시 라벨은 공유 설정 객체의 메시지 키로 관리하고, options.js가 현재 UI 언어의 문자열을 렌더링한다. API 키의 저장·마스킹·자동 연결 검증 흐름은 바꾸지 않는다.
+**Architecture:** 간단 설정 패널에 정적이고 접근 가능한 다섯 단계 안내 블록과 명시적 연결 확인 버튼을 둔다. 키 변경은 Flash Lite 설정만 자동 저장하고, 버튼이 기존 Google 연결 검증을 실행해 상태 메시지에 결과를 표시한다.
 
 **Tech Stack:** Manifest V3 옵션 페이지 HTML/CSS/ES modules, Chrome i18n JSON, Node 내장 테스트 러너.
 
 ## Global Constraints
 
 - 가이드는 simpleSettingsPanel 아래에만 렌더링하고 advancedSettingsPanel에는 렌더링하지 않는다.
-- 간단 설정의 API 키 입력은 한 개만 유지하며 기존 저장·마스킹·자동 연결 검증 코드를 변경하지 않는다.
+- 간단 설정의 API 키 입력은 한 개만 유지하며 기존 저장·마스킹을 유지한다. 키 변경은 Flash Lite 설정을 자동 저장하고, 연결 검증은 `API 키 확인` 버튼으로만 실행한다.
 - 가이드는 로그인, 처음 사용하는 경우의 영문 프로젝트 생성, 키 생성·복사, 무료 등급 확인, 복사·입력과 자동 연결 확인의 다섯 단계다.
 - 키를 공유하거나 공개 문서에 넣지 말라는 주의 문구를 표시한다.
 - 한국어를 원본으로 영어·일본어 메시지를 같은 키 구조로 동기화한다.
 - 링크는 Google AI Studio API 키 페이지와 기존 더미 YouTube 설정 가이드만 유지한다.
+- 무료 등급에는 사용 한도가 있고 일일 요청 한도는 미국 태평양 시간 자정에 초기화된다는 안내를 표시한다.
 
 ---
 
