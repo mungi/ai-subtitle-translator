@@ -11,7 +11,7 @@
 
 ## 범위
 
-- 간단 설정의 API 키 입력과 기존 Google AI 안내 문구 아래에 `Google AI Studio에서 API 키 받기` 단계 안내를 둔다.
+- 간단 설정의 API 키 입력과 기존 Google AI 안내 문구 아래에만 `Google AI Studio에서 API 키 받기` 단계 안내를 둔다. 고급 설정에는 이 안내를 렌더링하지 않는다.
 - 단계 안내는 실제 Google AI Studio 흐름에 맞춰 로그인, API Keys, 프로젝트 선택 또는 키 생성, 키 복사·입력의 네 단계로 구성한다.
 - 기존 `Get API Key` 링크와 더미 YouTube 설정 가이드 링크는 유지한다.
 - `Get API Key`를 포함한 간단 설정의 라벨은 현재 UI 언어에 맞게 표시한다. 한국어를 원본으로 영어·일본어 메시지를 같은 키 구조로 동기화한다.
