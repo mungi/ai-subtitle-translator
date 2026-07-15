@@ -24,7 +24,10 @@
     "message": "고급 설정"
   },
   "simpleSettingsTitle": {
-    "message": "Google Gemini로 무료 자막 번역 시작하기"
+    "message": "Google Gemini로 무료 AI 자막 번역 시작하기"
+  },
+  "simpleSettingsDescription": {
+    "message": "API 키를 입력하지 않으면 Google 번역으로 자막 번역이 진행됩니다."
   },
   "simpleGoogleApiKey": {
     "message": "Google AI API 키"

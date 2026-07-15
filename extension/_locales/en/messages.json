@@ -24,7 +24,10 @@
     "message": "Advanced Settings"
   },
   "simpleSettingsTitle": {
-    "message": "Start free subtitle translation with Google Gemini"
+    "message": "Start free AI subtitle translation with Google Gemini"
+  },
+  "simpleSettingsDescription": {
+    "message": "If you do not enter an API key, subtitles will be translated with Google Translate."
   },
   "simpleGoogleApiKey": {
     "message": "Google AI API key"

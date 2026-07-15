@@ -53,7 +53,15 @@ test("settings mode tabs default to a focused Google API key simple panel", () =
   assert.match(optionsHtml, /id="advancedSettingsPanel"[^>]*hidden/);
   assert.match(optionsCss, /\.settings-mode-tabs\s*\{/);
   assert.match(optionsCss, /\.settings-mode-tabs button\.active\s*\{/);
-  assert.equal(message("ko", "simpleSettingsTitle"), "Google Gemini로 무료 자막 번역 시작하기");
+  assert.equal(message("ko", "simpleSettingsTitle"), "Google Gemini로 무료 AI 자막 번역 시작하기");
+  assert.match(
+    optionsHtml,
+    /<div class="section-title-row">\s*<h2 data-i18n="simpleSettingsTitle"><\/h2>\s*<\/div>\s*<p class="section-description" data-i18n="simpleSettingsDescription"><\/p>\s*<div class="simple-google-key-row">/
+  );
+  assert.equal(
+    message("ko", "simpleSettingsDescription"),
+    "API 키를 입력하지 않으면 Google 번역으로 자막 번역이 진행됩니다."
+  );
 });
 
 test("simple settings retain the existing Google guide and show the API key guide only there", () => {
@@ -150,6 +158,7 @@ test("simple settings messages are synchronized in Korean, English, and Japanese
       "settingsModeLabel",
       "simpleSettingsTab",
       "simpleSettingsTitle",
+      "simpleSettingsDescription",
       "simpleGoogleApiKey",
       "simpleGoogleIntroGuide",
       "simpleGoogleTestApiKey",

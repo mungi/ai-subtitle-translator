@@ -24,7 +24,10 @@
     "message": "詳細設定"
   },
   "simpleSettingsTitle": {
-    "message": "Google Gemini で無料の字幕翻訳を始める"
+    "message": "Google Gemini で無料の AI 字幕翻訳を始める"
+  },
+  "simpleSettingsDescription": {
+    "message": "API キーを入力しない場合、Google 翻訳で字幕を翻訳します。"
   },
   "simpleGoogleApiKey": {
     "message": "Google AI API キー"
