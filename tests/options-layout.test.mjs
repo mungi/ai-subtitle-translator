@@ -53,6 +53,7 @@ test("settings mode tabs default to a focused Google API key simple panel", () =
   assert.match(optionsHtml, /id="advancedSettingsPanel"[^>]*hidden/);
   assert.match(optionsCss, /\.settings-mode-tabs\s*\{/);
   assert.match(optionsCss, /\.settings-mode-tabs button\.active\s*\{/);
+  assert.equal(message("ko", "simpleSettingsTitle"), "Google Gemini로 무료 LLM AI 번역 시작하기");
 });
 
 test("simple settings retain the existing Google guide and show the API key guide only there", () => {
