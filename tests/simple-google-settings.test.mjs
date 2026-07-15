@@ -5,6 +5,7 @@ import {
   SIMPLE_GOOGLE_GUIDE_LINKS,
   SIMPLE_GOOGLE_MODEL,
   applySimpleGoogleTestResult,
+  captureActiveGoogleBackup,
   stageSimpleGoogleApiKey
 } from "../extension/shared/simple-google-settings.js";
 
@@ -47,6 +48,41 @@ test("a failed simple Google test preserves the active provider", () => {
 
   assert.equal(next.activeProvider, "openai");
   assert.equal(next.providerTestStatus.google, undefined);
+});
+
+test("a failed replacement restores the previously verified active Google configuration", () => {
+  const previous = {
+    ...createSettings(),
+    activeProvider: "google",
+    providers: {
+      ...createSettings().providers,
+      google: { apiKey: "verified-google-key", model: "verified-google-model" }
+    }
+  };
+  const backup = captureActiveGoogleBackup(previous);
+  const next = applySimpleGoogleTestResult(
+    stageSimpleGoogleApiKey(previous, "replacement-google-key"),
+    false,
+    backup
+  );
+
+  assert.equal(next.activeProvider, "google");
+  assert.equal(next.providers.google.apiKey, "verified-google-key");
+  assert.equal(next.providers.google.model, "verified-google-model");
+  assert.equal(next.providerTestStatus.google, "success");
+});
+
+test("an empty replacement restores the previously verified active Google configuration", () => {
+  const previous = {
+    ...createSettings(),
+    activeProvider: "google"
+  };
+  const backup = captureActiveGoogleBackup(previous);
+  const next = applySimpleGoogleTestResult(stageSimpleGoogleApiKey(previous, ""), false, backup);
+
+  assert.equal(next.activeProvider, "google");
+  assert.equal(next.providers.google.apiKey, "stored-google-key");
+  assert.equal(next.providerTestStatus.google, "success");
 });
 
 test("simple settings expose only the required API key and dummy YouTube links", () => {

@@ -19,7 +19,7 @@
 3. 저장할 때 Google Provider의 모델을 `gemini-3.1-flash-lite`로 설정한다.
 4. 키가 바뀌면 Google Provider 연결을 자동으로 검증한다.
 5. 검증 성공 시 Google Provider의 연결 성공 상태를 저장하고 활성 번역 Provider를 Google AI로 바꾼다.
-6. 검증 실패 시 Google Provider의 성공 상태를 제거하고, 기존 활성 Provider는 바꾸지 않는다. 간단 설정 안에 실패 상태를 표시한다.
+6. 검증 실패 시 Google Provider의 성공 상태를 제거하고, 기존 활성 Provider는 바꾸지 않는다. 단, 이전에 연결 검증을 마친 Google AI가 활성 상태였다면 이전 Google API Key·모델·성공 상태를 복원해 Google AI를 계속 활성으로 둔다. 간단 설정 안에 실패 상태를 표시한다.
 7. 안내 문구는 기존 `providerGuideGoogle` 메시지를 그대로 쓴다. 링크는 Google AI Studio의 `Get API Key`와 더미 URL `https://www.youtube.com/watch?v=PLACEHOLDER`의 YouTube 설정 가이드만 제공한다.
 
 ## 화면 구조
@@ -30,11 +30,11 @@
 
 - 자동 연결 검증 중에는 간단 설정의 상태 메시지로 진행 상태를 표시한다.
 - 검증 실패는 API Key가 유효하지 않거나 네트워크 요청을 완료하지 못한 경우를 포함한다. 실패 메시지는 기존 활성 번역 Provider를 변경하지 않는다는 동작과 함께 표시한다.
-- 빈 키로 변경하면 Google Provider의 연결 성공 상태를 제거하고 활성 Provider를 변경하지 않는다.
+- 빈 키로 변경하면 기존 활성 Provider를 변경하지 않는다. 이전에 검증된 Google AI가 활성 상태였다면 그 Google 설정을 복원한다.
 
 ## 검증
 
 - 옵션 레이아웃 테스트로 제목 아래 탭, 기본 간단 설정 선택, 고급 설정의 기존 섹션 보존을 확인한다.
 - 간단 설정 테스트로 API Key 단일 입력, 기존 안내 문구, `Get API Key` 한 개, 더미 YouTube 가이드 링크 한 개를 확인한다.
-- 동작 테스트로 키 저장 시 모델이 `gemini-3.1-flash-lite`가 되는 것, 연결 성공 시 Google AI 활성화, 실패·빈 키 시 기존 활성 Provider 유지와 Google 성공 상태 해제를 확인한다.
+- 동작 테스트로 키 저장 시 모델이 `gemini-3.1-flash-lite`가 되는 것, 연결 성공 시 Google AI 활성화, 실패·빈 키 시 기존 활성 Provider 유지, 기존에 활성인 Google AI의 검증된 설정 복원을 확인한다.
 - 전체 `npm test`와 `npm run check`를 실행한다.

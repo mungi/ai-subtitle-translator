@@ -13,7 +13,7 @@
 - 기본 선택 탭은 페이지를 열 때마다 `simple`이며 저장하지 않는다.
 - 간단 설정의 유일한 입력 필드는 Google AI API Key이며 저장된 키는 기존 마스킹 규칙을 따른다.
 - 간단 설정에서 모델은 반드시 `gemini-3.1-flash-lite`다.
-- Google 연결 검증 성공 때만 활성 Provider를 `google`로 바꾼다. 실패·빈 키는 기존 활성 Provider를 유지한다.
+- Google 연결 검증 성공 때만 활성 Provider를 `google`로 바꾼다. 실패·빈 키는 기존 활성 Provider를 유지하며, 이전에 검증된 Google AI가 활성 상태였다면 API Key·모델·성공 상태를 복원한다.
 - 간단 설정 링크는 Google AI Studio `Get API Key`와 `https://www.youtube.com/watch?v=PLACEHOLDER`뿐이다.
 - 모든 신규 문구는 한국어를 원본으로 작성하고 영어·일본어를 같은 키 구조로 동기화한다.
 - YouTube와 Udemy 자막 기능 및 기존 고급 설정 동작을 변경하지 않는다.
@@ -28,9 +28,9 @@
 
 **Interfaces:**
 - Consumes: `resolveSecretFieldValue(visibleValue, storedValue)` from `extension/shared/secret-fields.js`.
-- Produces: `SIMPLE_GOOGLE_MODEL`, `SIMPLE_GOOGLE_GUIDE_LINKS`, `stageSimpleGoogleApiKey(settings, visibleValue)`, `applySimpleGoogleTestResult(settings, ok)`.
+- Produces: `SIMPLE_GOOGLE_MODEL`, `SIMPLE_GOOGLE_GUIDE_LINKS`, `stageSimpleGoogleApiKey(settings, visibleValue)`, `captureActiveGoogleBackup(settings)`, `applySimpleGoogleTestResult(settings, ok, activeGoogleBackup)`.
 - `stageSimpleGoogleApiKey` returns a new settings object, preserves every non-Google setting, resolves an unchanged masked key, enforces the model, and clears only Google’s previous connection-success state.
-- `applySimpleGoogleTestResult` returns a new settings object. `ok === true` records Google success and activates Google; `ok === false` removes Google success and leaves `activeProvider` unchanged.
+- `applySimpleGoogleTestResult` returns a new settings object. `ok === true` records Google success and activates Google; `ok === false` removes Google success and leaves `activeProvider` unchanged, except that a verified active-Google backup is restored intact.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -319,7 +319,7 @@ async function testSimpleGoogleApiKey() {
 }
 ```
 
-In `renderAll()`, call `renderSimpleGoogleSettings()` and `setSettingsMode("simple")`. In `init()`, add click handlers for both tabs and a `change` handler that calls `testSimpleGoogleApiKey()` with an error catch that preserves the existing active Provider and shows the local failure status. Do not attach the advanced `providerForm` listener to the simple key input.
+In `renderAll()`, call `renderSimpleGoogleSettings()`. In `init()`, choose `simple` as the initial tab, add click and Arrow/Home/End keyboard handlers for both tabs, and add a `change` handler that calls `testSimpleGoogleApiKey()` with an error catch that preserves the existing active Provider and shows the local failure status. Before staging a key, flush pending automatic saves. Do not attach the advanced `providerForm` listener to the simple key input.
 
 - [ ] **Step 4: Run the focused layout test to verify it passes**
 

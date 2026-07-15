@@ -48,7 +48,7 @@ test("settings mode tabs default to a focused Google API key simple panel", () =
   assert.ok(advancedIndex > simpleIndex);
   assert.match(optionsHtml, /id="simpleSettingsTab"[^>]*role="tab"[^>]*aria-selected="true"/);
   assert.match(optionsHtml, /id="advancedSettingsTab"[^>]*role="tab"[^>]*aria-selected="false"/);
-  assert.match(optionsHtml, /id="simpleGoogleApiKey" type="text" autocomplete="off"/);
+  assert.match(optionsHtml, /id="simpleGoogleApiKey" type="password" autocomplete="off"/);
   assert.match(optionsHtml, /id="simpleSettingsStatus"[^>]*role="status"/);
   assert.match(optionsHtml, /id="advancedSettingsPanel"[^>]*hidden/);
   assert.match(optionsCss, /\.settings-mode-tabs\s*\{/);
@@ -73,10 +73,17 @@ test("simple settings use the Google helper, test the key, and retain the curren
   assert.match(optionsJs, /function setSettingsMode\(mode\)/);
   assert.match(optionsJs, /function renderSimpleGoogleSettings\(\)/);
   assert.match(optionsJs, /async function testSimpleGoogleApiKey\(\)/);
+  assert.match(optionsJs, /function handleSettingsModeTabsKeydown\(event\)/);
+  assert.match(optionsJs, /case "ArrowRight":/);
+  assert.match(optionsJs, /case "ArrowLeft":/);
+  assert.match(optionsJs, /case "Home":/);
+  assert.match(optionsJs, /case "End":/);
+  assert.match(optionsJs, /settingsModeTabs\.addEventListener\("keydown", handleSettingsModeTabsKeydown\);/);
   assert.match(optionsJs, /async function testSimpleGoogleApiKey\(\) \{\s*await flushAutomaticSave\(\);/);
   assert.match(optionsJs, /settings = stageSimpleGoogleApiKey\(settings, simpleGoogleApiKeyInput\.value\);/);
+  assert.match(optionsJs, /const activeGoogleBackup = captureActiveGoogleBackup\(settings\);/);
   assert.match(optionsJs, /type: "llm\.testActiveProvider",\s*providerId: "google"/);
-  assert.match(optionsJs, /settings = applySimpleGoogleTestResult\(settings, response\?\.ok\);/);
+  assert.match(optionsJs, /settings = applySimpleGoogleTestResult\(settings, response\?\.ok, activeGoogleBackup\);/);
   assert.match(optionsJs, /simpleGoogleApiKeyInput\.addEventListener\("change"/);
   assert.match(optionsJs, /settings = await getSettings\(\);\s*selectedProviderId = settings\.activeProvider;\s*renderAll\(\);\s*setSettingsMode\("simple"\);/);
   const renderAllBlock = optionsJs.match(/function renderAll\(\) \{([\s\S]*?)\n\}/)?.[1] || "";

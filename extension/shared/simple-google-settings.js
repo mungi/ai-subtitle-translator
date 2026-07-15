@@ -27,9 +27,27 @@ export function stageSimpleGoogleApiKey(settings, visibleValue) {
   };
 }
 
-export function applySimpleGoogleTestResult(settings, ok) {
+export function captureActiveGoogleBackup(settings) {
+  if (settings.activeProvider !== "google" || settings.providerTestStatus?.google !== "success") {
+    return null;
+  }
+  return { provider: { ...settings.providers.google } };
+}
+
+export function applySimpleGoogleTestResult(settings, ok, activeGoogleBackup = null) {
   const providerTestStatus = withoutGoogleTestSuccess(settings.providerTestStatus);
-  if (!ok) return { ...settings, providerTestStatus };
+  if (!ok) {
+    if (!activeGoogleBackup) return { ...settings, providerTestStatus };
+    return {
+      ...settings,
+      activeProvider: "google",
+      providers: {
+        ...settings.providers,
+        google: activeGoogleBackup.provider
+      },
+      providerTestStatus: { ...providerTestStatus, google: "success" }
+    };
+  }
 
   return {
     ...settings,

@@ -4,7 +4,7 @@ import { getConfiguredKeyProviders, validateConfiguredProviderKeys } from "../sh
 import { selectRecommendedModel } from "../shared/model-recommendations.js";
 import { getOrderedProviders, PROVIDER_TAB_SEPARATOR_AFTER_ID } from "../shared/provider-order.js";
 import { maskSecretValue, resolveSecretFieldValue } from "../shared/secret-fields.js";
-import { SIMPLE_GOOGLE_GUIDE_LINKS, stageSimpleGoogleApiKey, applySimpleGoogleTestResult } from "../shared/simple-google-settings.js";
+import { SIMPLE_GOOGLE_GUIDE_LINKS, stageSimpleGoogleApiKey, captureActiveGoogleBackup, applySimpleGoogleTestResult } from "../shared/simple-google-settings.js";
 import { createEncryptedSettingsBackup, decryptSettingsBackup, settingsBackupInternals, validateBackupSeed } from "../shared/settings-backup.js";
 import { getExtensionUiLanguage, getMessage } from "../shared/i18n.js";
 import { getCustomLlmPermissionOrigin } from "../shared/provider-security.js";
@@ -137,6 +137,7 @@ const providerTabs = document.getElementById("providerTabs");
 const providerForm = document.getElementById("providerForm");
 const testProviderButton = document.getElementById("testProvider");
 const statusLine = document.getElementById("statusLine");
+const settingsModeTabs = document.getElementById("settingsModeTabs");
 const simpleSettingsTab = document.getElementById("simpleSettingsTab");
 const advancedSettingsTab = document.getElementById("advancedSettingsTab");
 const simpleSettingsPanel = document.getElementById("simpleSettingsPanel");
@@ -220,6 +221,37 @@ function setSettingsMode(mode) {
   advancedSettingsTab.tabIndex = isSimple ? -1 : 0;
   simpleSettingsTab.classList.toggle("active", isSimple);
   advancedSettingsTab.classList.toggle("active", !isSimple);
+}
+
+function handleSettingsModeTabsKeydown(event) {
+  const tabs = [simpleSettingsTab, advancedSettingsTab];
+  const currentIndex = tabs.indexOf(event.target);
+  if (currentIndex === -1) return;
+
+  let nextIndex;
+  switch (event.key) {
+    case "ArrowRight":
+    case "ArrowDown":
+      nextIndex = (currentIndex + 1) % tabs.length;
+      break;
+    case "ArrowLeft":
+    case "ArrowUp":
+      nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+      break;
+    case "Home":
+      nextIndex = 0;
+      break;
+    case "End":
+      nextIndex = tabs.length - 1;
+      break;
+    default:
+      return;
+  }
+
+  event.preventDefault();
+  const nextTab = tabs[nextIndex];
+  setSettingsMode(nextTab.dataset.settingsMode);
+  nextTab.focus();
 }
 
 function setBackupStatus(message, type = "") {
@@ -1131,15 +1163,19 @@ function renderSimpleGoogleSettings() {
 
 async function testSimpleGoogleApiKey() {
   await flushAutomaticSave();
+  const activeGoogleBackup = captureActiveGoogleBackup(settings);
   settings = stageSimpleGoogleApiKey(settings, simpleGoogleApiKeyInput.value);
-  settings = await saveSettings(settings);
-  renderSimpleGoogleSettings();
 
   if (!settings.providers.google.apiKey) {
+    settings = applySimpleGoogleTestResult(settings, false, activeGoogleBackup);
+    settings = await saveSettings(settings);
+    renderAll();
     setSimpleSettingsStatus(t("simpleGoogleApiKeyRequired"), "error");
     return;
   }
 
+  settings = await saveSettings(settings);
+  renderSimpleGoogleSettings();
   simpleGoogleApiKeyInput.disabled = true;
   setSimpleSettingsStatus(t("simpleGoogleTesting"));
   let response;
@@ -1154,7 +1190,7 @@ async function testSimpleGoogleApiKey() {
     simpleGoogleApiKeyInput.disabled = false;
   }
 
-  settings = applySimpleGoogleTestResult(settings, response?.ok);
+  settings = applySimpleGoogleTestResult(settings, response?.ok, activeGoogleBackup);
   settings = await saveSettings(settings);
   renderAll();
   setSimpleSettingsStatus(
@@ -1317,6 +1353,7 @@ async function init() {
 
   simpleSettingsTab.addEventListener("click", () => setSettingsMode("simple"));
   advancedSettingsTab.addEventListener("click", () => setSettingsMode("advanced"));
+  settingsModeTabs.addEventListener("keydown", handleSettingsModeTabsKeydown);
   simpleGoogleApiKeyInput.addEventListener("change", () => {
     testSimpleGoogleApiKey().catch((error) => {
       setSimpleSettingsStatus(`${t("simpleGoogleTestFailed")}: ${error.message}`, "error");
