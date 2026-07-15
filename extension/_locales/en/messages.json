@@ -24,7 +24,7 @@
     "message": "Advanced Settings"
   },
   "simpleSettingsTitle": {
-    "message": "Start subtitle translation with Google AI"
+    "message": "Start free LLM AI translation with Google Gemini"
   },
   "simpleGoogleApiKey": {
     "message": "Google AI API key"
