@@ -100,7 +100,7 @@ test("simple settings use the Google helper, test the key, and retain the curren
   const renderAllBlock = optionsJs.match(/function renderAll\(\) \{([\s\S]*?)\n\}/)?.[1] || "";
   assert.doesNotMatch(renderAllBlock, /setSettingsMode/);
   assert.match(optionsJs, /SIMPLE_GOOGLE_GUIDE_LINKS/);
-  assert.match(optionsJs, /getProviderGuide\("google"\)\.text/);
+  assert.match(optionsJs, /simpleGoogleGuide\.textContent = t\("simpleGoogleIntroGuide"\);/);
 });
 
 test("simple settings messages are synchronized in Korean, English, and Japanese", () => {
@@ -114,6 +114,7 @@ test("simple settings messages are synchronized in Korean, English, and Japanese
       "simpleSettingsTab",
       "simpleSettingsTitle",
       "simpleGoogleApiKey",
+      "simpleGoogleIntroGuide",
       "simpleGoogleGetApiKey",
       "simpleGoogleYoutubeGuide",
       "simpleGoogleKeyGuideTitle",
@@ -139,6 +140,10 @@ test("simple settings messages are synchronized in Korean, English, and Japanese
   assert.equal(
     message("ko", "simpleGoogleKeyGuideStep4"),
     "생성한 프로젝트의 결제 등급이 '무료 등급(Free)'인지 꼭 확인하세요."
+  );
+  assert.equal(
+    message("ko", "simpleGoogleIntroGuide"),
+    "Google AI로 자막을 번역합니다. 아래 안내대로 API 키를 만든 뒤 입력하면 Gemini 3.1 Flash Lite를 자동으로 설정하고 연결을 확인합니다."
   );
 });
 

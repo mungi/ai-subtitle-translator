@@ -29,6 +29,9 @@
   "simpleGoogleApiKey": {
     "message": "Google AI API key"
   },
+  "simpleGoogleIntroGuide": {
+    "message": "Translate subtitles with Google AI. Create an API key using the guide below and enter it here; Gemini 3.1 Flash Lite is configured and checked automatically."
+  },
   "simpleGoogleGetApiKey": {
     "message": "Get API key"
   },

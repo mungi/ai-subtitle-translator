@@ -29,6 +29,9 @@
   "simpleGoogleApiKey": {
     "message": "Google AI API 키"
   },
+  "simpleGoogleIntroGuide": {
+    "message": "Google AI로 자막을 번역합니다. 아래 안내대로 API 키를 만든 뒤 입력하면 Gemini 3.1 Flash Lite를 자동으로 설정하고 연결을 확인합니다."
+  },
   "simpleGoogleGetApiKey": {
     "message": "API 키 발급하기"
   },
