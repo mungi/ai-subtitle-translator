@@ -69,6 +69,7 @@ test("simple settings retain the existing Google guide and show the API key guid
   assert.match(simpleHtml, /data-i18n="simpleGoogleKeyGuideStep2"/);
   assert.match(simpleHtml, /data-i18n="simpleGoogleKeyGuideStep3"/);
   assert.match(simpleHtml, /data-i18n="simpleGoogleKeyGuideStep4"/);
+  assert.match(simpleHtml, /data-i18n="simpleGoogleKeyGuideStep5"/);
   assert.match(simpleHtml, /data-i18n="simpleGoogleKeySecurityNotice"/);
   assert.match(simpleHtml, /id="simpleGoogleGuideLinks"/);
   assert.doesNotMatch(simpleHtml, /id="providerTabs"/);
@@ -120,6 +121,7 @@ test("simple settings messages are synchronized in Korean, English, and Japanese
       "simpleGoogleKeyGuideStep2",
       "simpleGoogleKeyGuideStep3",
       "simpleGoogleKeyGuideStep4",
+      "simpleGoogleKeyGuideStep5",
       "simpleGoogleKeySecurityNotice",
       "simpleGoogleApiKeyRequired",
       "simpleGoogleTesting",
@@ -129,6 +131,15 @@ test("simple settings messages are synchronized in Korean, English, and Japanese
       assert.ok(message(locale, key), `${locale} should define ${key}`);
     }
   }
+
+  assert.equal(
+    message("ko", "simpleGoogleKeyGuideStep2"),
+    "처음이라면 API Keys 페이지에서 사용할 프로젝트를 생성하세요. 이름은 'Gemini Project'처럼 영어로 입력하세요."
+  );
+  assert.equal(
+    message("ko", "simpleGoogleKeyGuideStep4"),
+    "생성한 프로젝트의 결제 등급이 '무료 등급(Free)'인지 꼭 확인하세요."
+  );
 });
 
 test("each settings section has its own reset button on the title row", () => {
