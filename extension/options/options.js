@@ -126,6 +126,7 @@ let settingsRevision = 0;
 let pendingAutoSave = null;
 let pendingSimpleGoogleActiveBackup = null;
 let pendingSimpleGoogleApiKey = null;
+let simpleGoogleTestRunId = 0;
 
 const activeProviderSelect = document.getElementById("activeProvider");
 const targetLanguageSelect = document.getElementById("targetLanguage");
@@ -1175,19 +1176,24 @@ function prepareSimpleGoogleApiKey() {
 }
 
 function clearPendingSimpleGoogleApiKey() {
+  simpleGoogleTestRunId += 1;
   pendingSimpleGoogleApiKey = null;
   pendingSimpleGoogleActiveBackup = null;
   setSimpleSettingsStatus("");
 }
 
 async function testSimpleGoogleApiKey() {
+  const testRunId = ++simpleGoogleTestRunId;
   await flushAutomaticSave();
+  if (testRunId !== simpleGoogleTestRunId) return;
+
   const activeGoogleBackup = pendingSimpleGoogleActiveBackup ?? captureActiveGoogleBackup(settings);
   settings = stageSimpleGoogleApiKey(settings, pendingSimpleGoogleApiKey ?? simpleGoogleApiKeyInput.value);
 
   if (!settings.providers.google.apiKey) {
     settings = applySimpleGoogleTestResult(settings, false, activeGoogleBackup);
     settings = await saveSettings(settings);
+    if (testRunId !== simpleGoogleTestRunId) return;
     pendingSimpleGoogleApiKey = null;
     pendingSimpleGoogleActiveBackup = null;
     renderAll();
@@ -1196,6 +1202,7 @@ async function testSimpleGoogleApiKey() {
   }
 
   settings = await saveSettings(settings);
+  if (testRunId !== simpleGoogleTestRunId) return;
   pendingSimpleGoogleApiKey = null;
   renderSimpleGoogleSettings();
   simpleGoogleApiKeyInput.disabled = true;
@@ -1213,6 +1220,7 @@ async function testSimpleGoogleApiKey() {
     simpleGoogleApiKeyInput.disabled = false;
     testSimpleGoogleApiKeyButton.disabled = false;
   }
+  if (testRunId !== simpleGoogleTestRunId) return;
 
   settings = applySimpleGoogleTestResult(settings, response?.ok, activeGoogleBackup);
   settings = await saveSettings(settings);
