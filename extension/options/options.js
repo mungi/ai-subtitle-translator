@@ -1130,6 +1130,7 @@ function renderSimpleGoogleSettings() {
 }
 
 async function testSimpleGoogleApiKey() {
+  await flushAutomaticSave();
   settings = stageSimpleGoogleApiKey(settings, simpleGoogleApiKeyInput.value);
   settings = await saveSettings(settings);
   renderSimpleGoogleSettings();
@@ -1298,7 +1299,6 @@ function renderAll() {
   renderProviderTabs();
   renderProviderForm();
   renderSimpleGoogleSettings();
-  setSettingsMode("simple");
 }
 
 function renderPlatformSettings() {
@@ -1313,6 +1313,7 @@ async function init() {
   settings = await getSettings();
   selectedProviderId = settings.activeProvider;
   renderAll();
+  setSettingsMode("simple");
 
   simpleSettingsTab.addEventListener("click", () => setSettingsMode("simple"));
   advancedSettingsTab.addEventListener("click", () => setSettingsMode("advanced"));

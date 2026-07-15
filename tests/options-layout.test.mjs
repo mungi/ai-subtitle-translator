@@ -73,11 +73,14 @@ test("simple settings use the Google helper, test the key, and retain the curren
   assert.match(optionsJs, /function setSettingsMode\(mode\)/);
   assert.match(optionsJs, /function renderSimpleGoogleSettings\(\)/);
   assert.match(optionsJs, /async function testSimpleGoogleApiKey\(\)/);
+  assert.match(optionsJs, /async function testSimpleGoogleApiKey\(\) \{\s*await flushAutomaticSave\(\);/);
   assert.match(optionsJs, /settings = stageSimpleGoogleApiKey\(settings, simpleGoogleApiKeyInput\.value\);/);
   assert.match(optionsJs, /type: "llm\.testActiveProvider",\s*providerId: "google"/);
   assert.match(optionsJs, /settings = applySimpleGoogleTestResult\(settings, response\?\.ok\);/);
   assert.match(optionsJs, /simpleGoogleApiKeyInput\.addEventListener\("change"/);
-  assert.match(optionsJs, /setSettingsMode\("simple"\);/);
+  assert.match(optionsJs, /settings = await getSettings\(\);\s*selectedProviderId = settings\.activeProvider;\s*renderAll\(\);\s*setSettingsMode\("simple"\);/);
+  const renderAllBlock = optionsJs.match(/function renderAll\(\) \{([\s\S]*?)\n\}/)?.[1] || "";
+  assert.doesNotMatch(renderAllBlock, /setSettingsMode/);
   assert.match(optionsJs, /SIMPLE_GOOGLE_GUIDE_LINKS/);
   assert.match(optionsJs, /getProviderGuide\("google"\)\.text/);
 });
