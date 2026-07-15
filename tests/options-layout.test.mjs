@@ -94,6 +94,7 @@ test("simple settings use the Google helper, test the key, and retain the curren
   assert.match(optionsJs, /case "End":/);
   assert.match(optionsJs, /settingsModeTabs\.addEventListener\("keydown", handleSettingsModeTabsKeydown\);/);
   assert.match(optionsJs, /function prepareSimpleGoogleApiKey\(\)/);
+  assert.match(optionsJs, /function clearPendingSimpleGoogleApiKey\(\)/);
   assert.match(optionsJs, /async function testSimpleGoogleApiKey\(\) \{\s*await flushAutomaticSave\(\);/);
   assert.match(optionsJs, /const stagedSettings = stageSimpleGoogleApiKey\(settings, pendingSimpleGoogleApiKey\);/);
   assert.match(optionsJs, /settings = stageSimpleGoogleApiKey\(settings, pendingSimpleGoogleApiKey \?\? simpleGoogleApiKeyInput\.value\);/);
@@ -103,6 +104,9 @@ test("simple settings use the Google helper, test the key, and retain the curren
   assert.match(optionsJs, /simpleGoogleApiKeyInput\.addEventListener\("change", prepareSimpleGoogleApiKey\);/);
   assert.match(optionsJs, /testSimpleGoogleApiKeyButton\.addEventListener\("click"/);
   assert.match(optionsJs, /testSimpleGoogleApiKeyButton\.disabled = true;/);
+  assert.match(optionsJs, /async function resetProviderSettingsSection\(\) \{[\s\S]*clearPendingSimpleGoogleApiKey\(\);/);
+  assert.match(optionsJs, /document\.getElementById\("resetSettings"\)\.addEventListener\("click", async \(\) => \{\s*clearPendingSimpleGoogleApiKey\(\);/);
+  assert.match(optionsJs, /async function restoreSettingsFromFile\(file\) \{[\s\S]*if \(!globalThis\.confirm\(t\("restoreConfirm"\)\)\) return;\s*clearPendingSimpleGoogleApiKey\(\);/);
   assert.match(optionsJs, /settings = await getSettings\(\);\s*selectedProviderId = settings\.activeProvider;\s*renderAll\(\);\s*setSettingsMode\("simple"\);/);
   const renderAllBlock = optionsJs.match(/function renderAll\(\) \{([\s\S]*?)\n\}/)?.[1] || "";
   assert.doesNotMatch(renderAllBlock, /setSettingsMode/);

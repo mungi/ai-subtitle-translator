@@ -436,6 +436,7 @@ async function restoreSettingsFromFile(file) {
   try {
     const restoredSettings = await decryptSettingsBackup(await file.text(), seed);
     if (!globalThis.confirm(t("restoreConfirm"))) return;
+    clearPendingSimpleGoogleApiKey();
     settings = await saveSettings(restoredSettings);
     selectedProviderId = settings.activeProvider;
     renderAll();
@@ -1173,6 +1174,12 @@ function prepareSimpleGoogleApiKey() {
   );
 }
 
+function clearPendingSimpleGoogleApiKey() {
+  pendingSimpleGoogleApiKey = null;
+  pendingSimpleGoogleActiveBackup = null;
+  setSimpleSettingsStatus("");
+}
+
 async function testSimpleGoogleApiKey() {
   await flushAutomaticSave();
   const activeGoogleBackup = pendingSimpleGoogleActiveBackup ?? captureActiveGoogleBackup(settings);
@@ -1302,6 +1309,7 @@ async function resetGeneralSettingsSection() {
 
 async function resetProviderSettingsSection() {
   await flushAutomaticSave();
+  clearPendingSimpleGoogleApiKey();
   captureCurrentFormState();
   settings.providers = clone(DEFAULT_SETTINGS.providers);
   settings.providerTestStatus = clone(DEFAULT_SETTINGS.providerTestStatus);
@@ -1497,6 +1505,7 @@ async function init() {
     });
   });
   document.getElementById("resetSettings").addEventListener("click", async () => {
+    clearPendingSimpleGoogleApiKey();
     settings = await resetSettings();
     selectedProviderId = settings.activeProvider;
     renderAll();
