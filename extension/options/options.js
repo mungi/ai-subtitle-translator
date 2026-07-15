@@ -127,6 +127,8 @@ let pendingAutoSave = null;
 let pendingSimpleGoogleActiveBackup = null;
 let pendingSimpleGoogleApiKey = null;
 let simpleGoogleTestRunId = 0;
+let simpleGoogleTestInProgress = false;
+let backupRestoreOperationDepth = 0;
 
 const activeProviderSelect = document.getElementById("activeProvider");
 const targetLanguageSelect = document.getElementById("targetLanguage");
@@ -168,9 +170,7 @@ const simpleGoogleTestLockedControls = [
   document.getElementById("resetGeneralSettings"),
   document.getElementById("resetProviderSettings"),
   document.getElementById("resetFallbackSettings"),
-  document.getElementById("resetSubtitleStyleSettings"),
-  restoreSettingsButton,
-  restoreSettingsFileInput
+  document.getElementById("resetSubtitleStyleSettings")
 ];
 const platformToggleInputs = {
   udemy: document.getElementById("toggleUdemy"),
@@ -361,12 +361,11 @@ function downloadBackupFile(contents) {
 }
 
 async function backupCurrentSettings() {
-  const seed = await requestBackupPassword("backup");
-  if (!seed) return;
-  setBackupStatus(t("backupCreating"));
-  backupSettingsButton.disabled = true;
-  restoreSettingsButton.disabled = true;
+  beginBackupRestoreOperation();
   try {
+    const seed = await requestBackupPassword("backup");
+    if (!seed) return;
+    setBackupStatus(t("backupCreating"));
     await flushAutomaticSave();
     const backup = await createEncryptedSettingsBackup(settings, seed);
     downloadBackupFile(backup);
@@ -374,8 +373,7 @@ async function backupCurrentSettings() {
   } catch (error) {
     setBackupStatus(`${t("backupFailed")}: ${getLocalizedBackupError(error)}`, "error");
   } finally {
-    backupSettingsButton.disabled = false;
-    restoreSettingsButton.disabled = false;
+    endBackupRestoreOperation();
   }
 }
 
@@ -435,17 +433,12 @@ async function restoreSettingsFromFile(file) {
     restoreSettingsFileInput.value = "";
     return;
   }
-  await flushAutomaticSave();
-  const seed = await requestBackupPassword("restore");
-  if (!seed) {
-    restoreSettingsFileInput.value = "";
-    return;
-  }
-
-  setBackupStatus(t("restoreReading"));
-  backupSettingsButton.disabled = true;
-  restoreSettingsButton.disabled = true;
+  beginBackupRestoreOperation();
   try {
+    await flushAutomaticSave();
+    const seed = await requestBackupPassword("restore");
+    if (!seed) return;
+    setBackupStatus(t("restoreReading"));
     const restoredSettings = await decryptSettingsBackup(await file.text(), seed);
     if (!globalThis.confirm(t("restoreConfirm"))) return;
     clearPendingSimpleGoogleApiKey();
@@ -459,8 +452,7 @@ async function restoreSettingsFromFile(file) {
   } catch (error) {
     setBackupStatus(`${t("restoreFailed")}: ${getLocalizedBackupError(error)}`, "error");
   } finally {
-    backupSettingsButton.disabled = false;
-    restoreSettingsButton.disabled = false;
+    endBackupRestoreOperation();
     restoreSettingsFileInput.value = "";
   }
 }
@@ -1193,10 +1185,29 @@ function clearPendingSimpleGoogleApiKey() {
   setSimpleSettingsStatus("");
 }
 
+function updateBackupRestoreControlState() {
+  const disabled = simpleGoogleTestInProgress || backupRestoreOperationDepth > 0;
+  backupSettingsButton.disabled = disabled;
+  restoreSettingsButton.disabled = disabled;
+  restoreSettingsFileInput.disabled = disabled;
+}
+
+function beginBackupRestoreOperation() {
+  backupRestoreOperationDepth += 1;
+  updateBackupRestoreControlState();
+}
+
+function endBackupRestoreOperation() {
+  backupRestoreOperationDepth = Math.max(0, backupRestoreOperationDepth - 1);
+  updateBackupRestoreControlState();
+}
+
 function setSimpleGoogleTestControlsDisabled(disabled) {
+  simpleGoogleTestInProgress = disabled;
   for (const control of simpleGoogleTestLockedControls) {
     control.disabled = disabled;
   }
+  updateBackupRestoreControlState();
 }
 
 async function testSimpleGoogleApiKey() {

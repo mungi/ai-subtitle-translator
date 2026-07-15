@@ -97,6 +97,11 @@ test("simple settings use the Google helper, test the key, and retain the curren
   assert.match(optionsJs, /function clearPendingSimpleGoogleApiKey\(\)/);
   assert.match(optionsJs, /function setSimpleGoogleTestControlsDisabled\(disabled\)/);
   assert.match(optionsJs, /let simpleGoogleTestRunId = 0;/);
+  assert.match(optionsJs, /let simpleGoogleTestInProgress = false;/);
+  assert.match(optionsJs, /let backupRestoreOperationDepth = 0;/);
+  assert.match(optionsJs, /function updateBackupRestoreControlState\(\)/);
+  assert.match(optionsJs, /backupRestoreOperationDepth \+= 1;/);
+  assert.match(optionsJs, /backupRestoreOperationDepth = Math\.max\(0, backupRestoreOperationDepth - 1\);/);
   assert.match(optionsJs, /async function testSimpleGoogleApiKey\(\) \{\s*const testRunId = \+\+simpleGoogleTestRunId;\s*setSimpleGoogleTestControlsDisabled\(true\);/);
   assert.match(optionsJs, /const stagedSettings = stageSimpleGoogleApiKey\(settings, pendingSimpleGoogleApiKey\);/);
   assert.match(optionsJs, /settings = stageSimpleGoogleApiKey\(settings, pendingSimpleGoogleApiKey \?\? simpleGoogleApiKeyInput\.value\);/);
