@@ -300,3 +300,49 @@ test("provider HTTP errors include the status reason phrase", async () => {
     globalThis.fetch = originalFetch;
   }
 });
+
+test("provider model errors redact echoed authentication secrets", async () => {
+  globalThis.chrome = {
+    runtime: {
+      onMessage: {
+        addListener: () => {}
+      }
+    },
+    storage: {
+      local: {
+        setAccessLevel: async () => {}
+      }
+    }
+  };
+
+  const { listProviderModels } = await import("../extension/background/service-worker.js");
+  const apiKey = "sk-secret+/=";
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    error: {
+      message: `Invalid key ${apiKey}; request=https://api.example.test/v1?key=${encodeURIComponent(apiKey)}`
+    }
+  }), {
+    status: 401,
+    headers: { "Content-Type": "application/json" }
+  });
+
+  try {
+    await assert.rejects(
+      () => listProviderModels({
+        id: "openrouter",
+        label: "OpenRouter",
+        baseUrl: "https://openrouter.ai/api/v1",
+        apiKey
+      }),
+      (error) => {
+        assert.match(error.message, /HTTP 401 Unauthorized - Invalid key \[redacted\]/);
+        assert.match(error.message, /key=\[redacted\]/);
+        assert.doesNotMatch(error.message, /sk-secret/);
+        return true;
+      }
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

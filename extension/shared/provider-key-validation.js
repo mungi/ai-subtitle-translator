@@ -1,20 +1,9 @@
 import { getOrderedProviders } from "./provider-order.js";
+import { sanitizeProviderErrorMessage } from "./provider-error-sanitizer.js";
 
 export function getConfiguredKeyProviders(settings = {}) {
   return getOrderedProviders(settings.providers || {})
     .filter((provider) => String(provider.apiKey || "").trim());
-}
-
-function getSafeConnectionError(message, apiKey) {
-  let safeMessage = String(message || "Connection test failed.");
-  const secret = String(apiKey || "").trim();
-  if (!secret) return safeMessage;
-  safeMessage = safeMessage.split(secret).join("[redacted]");
-  const encodedSecret = encodeURIComponent(secret);
-  if (encodedSecret !== secret) {
-    safeMessage = safeMessage.split(encodedSecret).join("[redacted]");
-  }
-  return safeMessage;
 }
 
 export async function validateConfiguredProviderKeys(settings, { testProvider, onProgress } = {}) {
@@ -46,7 +35,7 @@ export async function validateConfiguredProviderKeys(settings, { testProvider, o
           providerId: provider.id,
           providerLabel: provider.label || provider.id,
           ok: false,
-          error: getSafeConnectionError(response?.error, provider.apiKey)
+          error: sanitizeProviderErrorMessage(response?.error, provider)
         });
       }
     } catch (error) {
@@ -54,7 +43,7 @@ export async function validateConfiguredProviderKeys(settings, { testProvider, o
         providerId: provider.id,
         providerLabel: provider.label || provider.id,
         ok: false,
-        error: getSafeConnectionError(error?.message, provider.apiKey)
+        error: sanitizeProviderErrorMessage(error?.message, provider)
       });
     }
   }

@@ -2,6 +2,7 @@ import { getPublicSettings, getSettings, restrictLocalStorageAccess, saveSetting
 import { TRANSLATION_STYLES } from "../shared/defaults.js";
 import { validateBackgroundMessage, validateMessageSender } from "../shared/message-contracts.js";
 import { ANTHROPIC_DIRECT_BROWSER_ACCESS_HEADER, buildProviderRequest, extractText, shouldRetryOpenRouterWithoutReasoning } from "../shared/provider-request.js";
+import { sanitizeProviderErrorMessage } from "../shared/provider-error-sanitizer.js";
 import { assertProviderEndpoint } from "../shared/provider-security.js";
 import { translateSubtitleDocument } from "../shared/translation.js";
 import { fetchYoutubeCaptionTracks, fetchYoutubeTranscript } from "../platforms/youtube-captions.js";
@@ -181,71 +182,75 @@ async function fetchJson(url, init) {
 }
 
 export async function listProviderModels(provider) {
-  if (!provider) {
-    throw new Error("Provider is required.");
-  }
-  assertProviderEndpoint(provider);
+  try {
+    if (!provider) {
+      throw new Error("Provider is required.");
+    }
+    assertProviderEndpoint(provider);
 
-  switch (provider.id) {
-    case "openai": {
-      const baseUrl = requireProviderValue(provider, "baseUrl", "Base URL");
-      const apiKey = requireProviderValue(provider, "apiKey", "API key");
-      const body = await fetchJson(joinUrl(baseUrl, "models"), {
-        headers: { Authorization: `Bearer ${apiKey}` }
-      });
-      return normalizeModelList(body.data || []);
-    }
-    case "openrouter": {
-      const baseUrl = requireProviderValue(provider, "baseUrl", "Base URL");
-      const headers = {};
-      if (provider.apiKey?.trim()) {
-        headers.Authorization = `Bearer ${provider.apiKey.trim()}`;
+    switch (provider.id) {
+      case "openai": {
+        const baseUrl = requireProviderValue(provider, "baseUrl", "Base URL");
+        const apiKey = requireProviderValue(provider, "apiKey", "API key");
+        const body = await fetchJson(joinUrl(baseUrl, "models"), {
+          headers: { Authorization: `Bearer ${apiKey}` }
+        });
+        return normalizeModelList(body.data || []);
       }
-      const body = await fetchJson(joinUrl(baseUrl, "models"), { headers });
-      return normalizeOpenRouterModelList(body.data || []);
-    }
-    case "nvidiaNim": {
-      const baseUrl = requireProviderValue(provider, "baseUrl", "Base URL");
-      const headers = {};
-      if (provider.apiKey?.trim()) {
-        headers.Authorization = `Bearer ${provider.apiKey.trim()}`;
-      }
-      const body = await fetchJson(joinUrl(baseUrl, "models"), { headers });
-      return normalizeModelList(body.data || []);
-    }
-    case "local": {
-      const baseUrl = requireProviderValue(provider, "baseUrl", "Base URL");
-      const headers = {};
-      if (provider.apiKey?.trim()) {
-        headers.Authorization = `Bearer ${provider.apiKey.trim()}`;
-      }
-      const body = await fetchJson(joinUrl(baseUrl, "models"), { headers });
-      return normalizeModelList(body.data || []);
-    }
-    case "anthropic": {
-      const baseUrl = requireProviderValue(provider, "baseUrl", "Base URL");
-      const apiKey = requireProviderValue(provider, "apiKey", "API key");
-      const body = await fetchJson(joinUrl(baseUrl, "v1/models"), {
-        headers: {
-          "x-api-key": apiKey,
-          "anthropic-version": provider.anthropicVersion || "2023-06-01",
-          [ANTHROPIC_DIRECT_BROWSER_ACCESS_HEADER]: "true"
+      case "openrouter": {
+        const baseUrl = requireProviderValue(provider, "baseUrl", "Base URL");
+        const headers = {};
+        if (provider.apiKey?.trim()) {
+          headers.Authorization = `Bearer ${provider.apiKey.trim()}`;
         }
-      });
-      return normalizeModelList(body.data || []);
+        const body = await fetchJson(joinUrl(baseUrl, "models"), { headers });
+        return normalizeOpenRouterModelList(body.data || []);
+      }
+      case "nvidiaNim": {
+        const baseUrl = requireProviderValue(provider, "baseUrl", "Base URL");
+        const headers = {};
+        if (provider.apiKey?.trim()) {
+          headers.Authorization = `Bearer ${provider.apiKey.trim()}`;
+        }
+        const body = await fetchJson(joinUrl(baseUrl, "models"), { headers });
+        return normalizeModelList(body.data || []);
+      }
+      case "local": {
+        const baseUrl = requireProviderValue(provider, "baseUrl", "Base URL");
+        const headers = {};
+        if (provider.apiKey?.trim()) {
+          headers.Authorization = `Bearer ${provider.apiKey.trim()}`;
+        }
+        const body = await fetchJson(joinUrl(baseUrl, "models"), { headers });
+        return normalizeModelList(body.data || []);
+      }
+      case "anthropic": {
+        const baseUrl = requireProviderValue(provider, "baseUrl", "Base URL");
+        const apiKey = requireProviderValue(provider, "apiKey", "API key");
+        const body = await fetchJson(joinUrl(baseUrl, "v1/models"), {
+          headers: {
+            "x-api-key": apiKey,
+            "anthropic-version": provider.anthropicVersion || "2023-06-01",
+            [ANTHROPIC_DIRECT_BROWSER_ACCESS_HEADER]: "true"
+          }
+        });
+        return normalizeModelList(body.data || []);
+      }
+      case "google": {
+        const baseUrl = requireProviderValue(provider, "baseUrl", "Base URL");
+        const apiKey = requireProviderValue(provider, "apiKey", "API key");
+        const url = `${joinUrl(baseUrl, "models")}?key=${encodeURIComponent(apiKey)}`;
+        const body = await fetchJson(url);
+        return normalizeModelList((body.models || []).filter((model) => {
+          const methods = model.supportedGenerationMethods || [];
+          return methods.includes("generateContent");
+        }));
+      }
+      default:
+        throw new Error(`${provider.label || provider.id} does not support model listing.`);
     }
-    case "google": {
-      const baseUrl = requireProviderValue(provider, "baseUrl", "Base URL");
-      const apiKey = requireProviderValue(provider, "apiKey", "API key");
-      const url = `${joinUrl(baseUrl, "models")}?key=${encodeURIComponent(apiKey)}`;
-      const body = await fetchJson(url);
-      return normalizeModelList((body.models || []).filter((model) => {
-        const methods = model.supportedGenerationMethods || [];
-        return methods.includes("generateContent");
-      }));
-    }
-    default:
-      throw new Error(`${provider.label || provider.id} does not support model listing.`);
+  } catch (error) {
+    throw new Error(sanitizeProviderErrorMessage(error?.message, provider));
   }
 }
 
@@ -256,66 +261,70 @@ async function testActiveProvider(providerId) {
     throw new Error(`Unknown provider: ${providerId || settings.activeProvider}`);
   }
 
-  if (provider.apiStyle === "google-translate" || provider.apiStyle === "deepl") {
-    const document = await translateSubtitleDocument({
-      platform: "test",
-      videoId: "provider-test",
-      sourceLanguage: "en",
-      cues: [
-        {
-          id: "test-0",
-          start: 0,
-          end: 1,
-          text: "Hello"
-        }
-      ]
-    }, {
-      providerId: provider.id,
-      forceNoCache: true,
-      allowFallback: false
-    });
+  try {
+    if (provider.apiStyle === "google-translate" || provider.apiStyle === "deepl") {
+      const document = await translateSubtitleDocument({
+        platform: "test",
+        videoId: "provider-test",
+        sourceLanguage: "en",
+        cues: [
+          {
+            id: "test-0",
+            start: 0,
+            end: 1,
+            text: "Hello"
+          }
+        ]
+      }, {
+        providerId: provider.id,
+        forceNoCache: true,
+        allowFallback: false
+      });
+
+      return {
+        providerId: provider.id,
+        providerLabel: provider.label,
+        text: document.cues[0]?.text || "",
+        raw: document
+      };
+    }
+
+    const requestOptions = {
+      systemPrompt: TEST_SYSTEM_PROMPT,
+      input: TEST_INPUT,
+      structuredOutput: false,
+      maxTokens: PROVIDER_CONNECTION_TEST_MAX_TOKENS
+    };
+    let request = buildProviderRequest(provider, requestOptions);
+    let response = await fetch(request.url, request.init);
+    let responseBody = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      const detail = responseBody.error?.message || responseBody.message || response.statusText;
+      const error = new Error(formatHttpErrorMessage(response.status, detail, response.statusText));
+      error.status = response.status;
+      if (shouldRetryOpenRouterWithoutReasoning(provider, error)) {
+        provider.disableReasoning = false;
+        request = buildProviderRequest(provider, requestOptions);
+        response = await fetch(request.url, request.init);
+        responseBody = await response.json().catch(() => ({}));
+      }
+    }
+
+    if (!response.ok) {
+      const detail = responseBody.error?.message || responseBody.message || response.statusText;
+      throw new Error(formatHttpErrorMessage(response.status, detail, response.statusText));
+    }
 
     return {
       providerId: provider.id,
       providerLabel: provider.label,
-      text: document.cues[0]?.text || "",
-      raw: document
+      text: extractText(provider, responseBody).trim(),
+      raw: responseBody
     };
+  } catch (error) {
+    throw new Error(sanitizeProviderErrorMessage(error?.message, provider));
   }
-
-  const requestOptions = {
-    systemPrompt: TEST_SYSTEM_PROMPT,
-    input: TEST_INPUT,
-    structuredOutput: false,
-    maxTokens: PROVIDER_CONNECTION_TEST_MAX_TOKENS
-  };
-  let request = buildProviderRequest(provider, requestOptions);
-  let response = await fetch(request.url, request.init);
-  let responseBody = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    const detail = responseBody.error?.message || responseBody.message || response.statusText;
-    const error = new Error(formatHttpErrorMessage(response.status, detail, response.statusText));
-    error.status = response.status;
-    if (shouldRetryOpenRouterWithoutReasoning(provider, error)) {
-      provider.disableReasoning = false;
-      request = buildProviderRequest(provider, requestOptions);
-      response = await fetch(request.url, request.init);
-      responseBody = await response.json().catch(() => ({}));
-    }
-  }
-
-  if (!response.ok) {
-    const detail = responseBody.error?.message || responseBody.message || response.statusText;
-    throw new Error(formatHttpErrorMessage(response.status, detail, response.statusText));
-  }
-
-  return {
-    providerId: provider.id,
-    providerLabel: provider.label,
-    text: extractText(provider, responseBody).trim(),
-    raw: responseBody
-  };
 }
 
 async function setActiveProvider(providerId) {
