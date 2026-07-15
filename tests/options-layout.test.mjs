@@ -37,6 +37,34 @@ test("top actions only expose reset all when settings save automatically", () =>
   assert.equal(message("en", "allReset"), "Reset all");
 });
 
+test("settings mode tabs default to a focused Google API key simple panel", () => {
+  const headerEnd = optionsHtml.indexOf("</header>");
+  const tabsIndex = optionsHtml.indexOf('id="settingsModeTabs"');
+  const simpleIndex = optionsHtml.indexOf('id="simpleSettingsPanel"');
+  const advancedIndex = optionsHtml.indexOf('id="advancedSettingsPanel"');
+
+  assert.ok(tabsIndex > headerEnd);
+  assert.ok(simpleIndex > tabsIndex);
+  assert.ok(advancedIndex > simpleIndex);
+  assert.match(optionsHtml, /id="simpleSettingsTab"[^>]*role="tab"[^>]*aria-selected="true"/);
+  assert.match(optionsHtml, /id="advancedSettingsTab"[^>]*role="tab"[^>]*aria-selected="false"/);
+  assert.match(optionsHtml, /id="simpleGoogleApiKey" type="password" autocomplete="off"/);
+  assert.match(optionsHtml, /id="simpleSettingsStatus"[^>]*role="status"/);
+  assert.match(optionsHtml, /id="advancedSettingsPanel"[^>]*hidden/);
+  assert.match(optionsCss, /\.settings-mode-tabs\s*\{/);
+  assert.match(optionsCss, /\.settings-mode-tabs button\.active\s*\{/);
+});
+
+test("simple settings retain the existing Google guide but expose exactly two links", () => {
+  const simpleStart = optionsHtml.indexOf('id="simpleSettingsPanel"');
+  const simpleEnd = optionsHtml.indexOf("</section>", simpleStart);
+  const simpleHtml = optionsHtml.slice(simpleStart, simpleEnd);
+
+  assert.match(simpleHtml, /id="simpleGoogleGuide"/);
+  assert.match(simpleHtml, /id="simpleGoogleGuideLinks"/);
+  assert.doesNotMatch(simpleHtml, /id="providerTabs"/);
+});
+
 test("each settings section has its own reset button on the title row", () => {
   for (const id of [
     "resetGeneralSettings",

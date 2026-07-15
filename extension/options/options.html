@@ -24,6 +24,25 @@
         </div>
       </header>
 
+      <div id="settingsModeTabs" class="settings-mode-tabs" role="tablist" data-i18n-aria-label="settingsModeLabel">
+        <button id="simpleSettingsTab" type="button" role="tab" aria-controls="simpleSettingsPanel" aria-selected="true" data-settings-mode="simple" data-i18n="simpleSettingsTab"></button>
+        <button id="advancedSettingsTab" type="button" role="tab" aria-controls="advancedSettingsPanel" aria-selected="false" data-settings-mode="advanced" data-i18n="advancedSettingsTab"></button>
+      </div>
+
+      <section id="simpleSettingsPanel" class="settings-section simple-settings-panel" role="tabpanel" aria-labelledby="simpleSettingsTab">
+        <div class="section-title-row">
+          <h2 data-i18n="simpleSettingsTitle"></h2>
+        </div>
+        <label class="simple-google-key-field">
+          <span data-i18n="simpleGoogleApiKey"></span>
+          <input id="simpleGoogleApiKey" type="password" autocomplete="off" spellcheck="false">
+        </label>
+        <p id="simpleGoogleGuide" class="provider-note"></p>
+        <div id="simpleGoogleGuideLinks" class="provider-note-links"></div>
+        <p id="simpleSettingsStatus" class="status-line" role="status"></p>
+      </section>
+
+      <div id="advancedSettingsPanel" role="tabpanel" aria-labelledby="advancedSettingsTab" hidden>
       <section class="settings-section supported-sites-section">
         <div class="section-title-row">
           <h2 data-i18n="supportedSites"></h2>
@@ -231,6 +250,7 @@
           <p id="backupStatusLine" class="backup-status-line" role="status"></p>
         </div>
       </section>
+      </div>
 
       <dialog id="backupPasswordDialog" class="backup-password-dialog" aria-labelledby="backupPasswordDialogTitle">
         <form id="backupPasswordForm" class="backup-password-form">

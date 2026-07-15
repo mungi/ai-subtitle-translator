@@ -142,6 +142,39 @@ button.ghost {
   padding: 20px;
 }
 
+.settings-mode-tabs {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.settings-mode-tabs button.active {
+  border-color: var(--accent);
+  background: #eaf2ff;
+  color: var(--accent-strong);
+  font-weight: 700;
+}
+
+.simple-google-key-field {
+  display: grid;
+  gap: 7px;
+  max-width: 520px;
+  margin-top: 16px;
+}
+
+.simple-settings-panel .provider-note {
+  margin-top: 16px;
+}
+
+.simple-settings-panel .status-line {
+  margin-top: 12px;
+  text-align: left;
+}
+
+#advancedSettingsPanel[hidden] {
+  display: none;
+}
+
 .settings-section h2 {
   font-size: 17px;
 }
