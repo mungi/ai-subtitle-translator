@@ -568,7 +568,7 @@ function clampNumber(value, min, max, fallback) {
 function buildPreviewTextShadow(style) {
   if (style.shadowEnabled) {
     const distance = clampNumber(style.shadowDistance, 0, 12, 2);
-    const blur = clampNumber(style.shadowBlur, 0, 20, 4);
+    const blur = clampNumber(style.shadowBlur, 0, 20, 3);
     return `${distance}px ${distance}px ${blur}px ${style.shadowColor || "#000000"}`;
   }
   return "none";
@@ -683,13 +683,14 @@ function applySubtitlePreview() {
   customPreviewFontStyle.textContent = style.webFontCss || "";
   subtitleStylePreview.style.fontSize = `${clampNumber(style.fontSize, 10, 64, 30)}px`;
   subtitleStylePreview.style.fontFamily = style.fontFamily || "Arial, sans-serif";
-  subtitleStylePreview.style.color = style.textColor || "#ffffff";
+  subtitleStylePreview.style.color = style.textColor || "#f2f2f2";
   subtitleStylePreview.style.textShadow = buildPreviewTextShadow(style);
+  const outlineWidth = clampNumber(style.outlineWidth, 0, 16, 2);
   subtitleStylePreview.style.webkitTextStroke = style.outlineEnabled ?? true
-    ? `${clampNumber(style.outlineWidth, 0, 16, 3)}px ${style.outlineColor || "#000000"}`
+    ? `${outlineWidth}px ${style.outlineColor || "#000000"}`
     : "0 transparent";
   subtitleStylePreview.style.paintOrder = "stroke fill";
-  subtitleStylePreview.style.background = `rgba(${hexToRgb(style.backgroundColor)}, ${clampNumber(style.backgroundOpacity, 0, 1, 0.3)})`;
+  subtitleStylePreview.style.background = `rgba(${hexToRgb(style.backgroundColor)}, ${clampNumber(style.backgroundOpacity, 0, 1, 0.5)})`;
 }
 
 function renderGeneralSettings() {
@@ -768,17 +769,17 @@ function renderSubtitleStyleSettings() {
     subtitleStyleInputs.fontFamily.value = "gangwon-moduche";
   }
   subtitleStyleInputs.customWebFontCss.value = style.customWebFontCss || DEFAULT_CUSTOM_WEB_FONT_CSS;
-  subtitleStyleInputs.textColor.value = style.textColor || "#ffffff";
+  subtitleStyleInputs.textColor.value = style.textColor || "#f2f2f2";
   subtitleStyleInputs.shadowEnabled.checked = Boolean(style.shadowEnabled);
   subtitleStyleInputs.shadowColor.value = style.shadowColor || "#000000";
-  subtitleStyleInputs.shadowBlur.value = style.shadowBlur ?? 4;
+  subtitleStyleInputs.shadowBlur.value = style.shadowBlur ?? 3;
   subtitleStyleInputs.shadowDistance.value = style.shadowDistance ?? 2;
   subtitleStyleInputs.outlineEnabled.checked = style.outlineEnabled ?? true;
   subtitleStyleInputs.outlineColor.value = style.outlineColor || "#000000";
-  subtitleStyleInputs.outlineWidth.value = style.outlineWidth ?? 3;
-  subtitleStyleInputs.backgroundColor.value = style.backgroundColor || "#b0b0b0";
+  subtitleStyleInputs.outlineWidth.value = style.outlineWidth ?? 2;
+  subtitleStyleInputs.backgroundColor.value = style.backgroundColor || "#000000";
   subtitleStyleInputs.pendingBackgroundColor.value = style.pendingBackgroundColor || "#750000";
-  subtitleStyleInputs.backgroundOpacity.value = style.backgroundOpacity ?? 0.3;
+  subtitleStyleInputs.backgroundOpacity.value = style.backgroundOpacity ?? 0.5;
   updateCustomWebFontVisibility();
   applySubtitlePreview();
 }
@@ -1364,6 +1365,7 @@ async function resetSubtitleStyleSettingsSection() {
   await flushAutomaticSave();
   captureCurrentFormState();
   settings.subtitleStyle = clone(DEFAULT_SETTINGS.subtitleStyle);
+  subtitleStylePreview.textContent = getDefaultPreviewText();
   await persistSectionReset();
 }
 
@@ -1430,7 +1432,6 @@ async function init() {
     input.addEventListener("input", applySubtitlePreview);
     input.addEventListener("change", applySubtitlePreview);
   });
-
   activeProviderSelect.addEventListener("change", () => {
     scheduleAutomaticSave({ immediate: true });
   });

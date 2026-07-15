@@ -143,13 +143,13 @@ export const WEB_FONT_PRESETS = [
 }`
   },
   {
-    id: "samlip",
-    label: "산돌 삼립호빵체",
-    labels: { ko: "산돌 삼립호빵체", en: "SandollSamlipHobbangOutline" },
-    fontFamily: "'SandollSamlipHobbangOutline', sans-serif",
+    id: "gowun-batang",
+    label: "고운바탕",
+    labels: { ko: "고운바탕", en: "Gowun Batang" },
+    fontFamily: "'GounBatang', serif",
     css: `@font-face {
-    font-family: 'SandollSamlipHobbangOutline';
-    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts-20-12@1.0/SDSamliphopangche_Outline.woff') format('woff');
+    font-family: 'GounBatang';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2108@1.1/GowunBatang-Regular.woff') format('woff');
     font-weight: normal;
     font-display: swap;
 }`
@@ -185,13 +185,13 @@ export const WEB_FONT_PRESETS = [
 }`
   },
   {
-    id: "euljiro",
-    label: "Euljiro",
-    labels: { ko: "을지로체", en: "Euljiro" },
-    fontFamily: "'Euljiro', sans-serif",
+    id: "jeonju-wanpanbon",
+    label: "전주완판본 각체",
+    labels: { ko: "전주완판본 각체", en: "Jeonju Wanpanbon Gak" },
+    fontFamily: "'JeonjuWanpanbon', serif",
     css: `@font-face {
-    font-family: 'Euljiro';
-    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_twelve@1.0/BMEULJIRO.woff') format('woff');
+    font-family: 'JeonjuWanpanbon';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2102-01@1.0/Jeonju_gakR.woff') format('woff');
     font-weight: normal;
     font-display: swap;
 }`
@@ -396,17 +396,17 @@ export const DEFAULT_SETTINGS = {
     webFontCss: WEB_FONT_PRESETS.find((preset) => preset.id === "gangwon-moduche").css,
     customWebFontCss: DEFAULT_CUSTOM_WEB_FONT_CSS,
     width: 720,
-    textColor: "#ffffff",
+    textColor: "#f2f2f2",
     shadowEnabled: true,
     shadowColor: "#000000",
-    shadowBlur: 4,
+    shadowBlur: 3,
     shadowDistance: 2,
     outlineEnabled: true,
     outlineColor: "#000000",
-    outlineWidth: 3,
-    backgroundColor: "#b0b0b0",
+    outlineWidth: 2,
+    backgroundColor: "#000000",
     pendingBackgroundColor: "#750000",
-    backgroundOpacity: 0.3
+    backgroundOpacity: 0.5
   },
   providers: PROVIDERS
 };

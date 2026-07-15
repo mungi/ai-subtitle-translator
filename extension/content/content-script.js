@@ -1390,7 +1390,7 @@ function scalePx(value, scale, min = 0) {
 function buildTextShadow(style, scale = 1) {
   if (style.shadowEnabled) {
     const distance = scalePx(clampNumber(style.shadowDistance, 0, 12, 2), scale);
-    const blur = scalePx(clampNumber(style.shadowBlur, 0, 20, 4), scale);
+    const blur = scalePx(clampNumber(style.shadowBlur, 0, 20, 3), scale);
     return `${formatPx(distance)} ${formatPx(distance)} ${formatPx(blur)} ${style.shadowColor || "#000000"}`;
   }
   return "none";
@@ -1400,7 +1400,7 @@ function getOverlayBackgroundColor(style) {
   if (subtitleState.translationPhase === "temporary") {
     return style.pendingBackgroundColor || "#750000";
   }
-  return style.backgroundColor || "#b0b0b0";
+  return style.backgroundColor || "#000000";
 }
 
 function applyWebFontCss(css) {
@@ -1453,12 +1453,13 @@ function applyOverlayStyle(overlay) {
   const x = clampNumber(style.positionX, 0, 100, 50);
   const y = clampNumber(style.positionY, 0, 100, 78);
   const width = clampNumber(style.width, 160, 1400, 720);
-  const backgroundOpacity = clampNumber(style.backgroundOpacity, 0, 1, 0.3);
+  const backgroundOpacity = clampNumber(style.backgroundOpacity, 0, 1, 0.5);
   const backgroundColor = getOverlayBackgroundColor(style);
   const scale = getOverlayScale(overlay);
   const displayWidth = scalePx(width, scale, 80);
   const fontSize = scalePx(clampNumber(style.fontSize, 10, 64, 30), scale, 8);
-  const outlineWidth = scalePx(clampNumber(style.outlineWidth, 0, 16, 3), scale);
+  const outlineWidth = scalePx(clampNumber(style.outlineWidth, 0, 16, 2), scale);
+  const outlineEnabled = style.outlineEnabled ?? true;
   applyWebFontCss(style.webFontCss || "");
 
   overlay.style.left = `${x}%`;
@@ -1470,9 +1471,9 @@ function applyOverlayStyle(overlay) {
   overlay.style.padding = `${formatPx(scalePx(8, scale, 3))} ${formatPx(scalePx(14, scale, 5))}`;
   overlay.style.fontSize = formatPx(fontSize);
   overlay.style.fontFamily = style.fontFamily || "Arial, sans-serif";
-  overlay.style.color = style.textColor || "#ffffff";
+  overlay.style.color = style.textColor || "#f2f2f2";
   overlay.style.textShadow = buildTextShadow(style, scale);
-  overlay.style.webkitTextStroke = style.outlineEnabled ?? true
+  overlay.style.webkitTextStroke = outlineEnabled
     ? `${formatPx(outlineWidth)} ${style.outlineColor || "#000000"}`
     : "0 transparent";
   overlay.style.paintOrder = "stroke fill";

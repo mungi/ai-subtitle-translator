@@ -3,8 +3,8 @@ import test from "node:test";
 import { DEFAULT_SETTINGS, PROVIDERS } from "../extension/shared/defaults.js";
 import { normalizeSettings } from "../extension/shared/storage.js";
 
-test("subtitle background color defaults to light gray", () => {
-  assert.equal(DEFAULT_SETTINGS.subtitleStyle.backgroundColor, "#b0b0b0");
+test("subtitle background color defaults to black", () => {
+  assert.equal(DEFAULT_SETTINGS.subtitleStyle.backgroundColor, "#000000");
 });
 
 test("NVIDIA Academy and Vimeo subtitle support are enabled by default", () => {
@@ -19,10 +19,12 @@ test("default translation style and subtitle appearance match the intended initi
   assert.equal(DEFAULT_SETTINGS.subtitleStyle.fontSize, 30);
   assert.equal(DEFAULT_SETTINGS.subtitleStyle.fontPreset, "gangwon-moduche");
   assert.equal(DEFAULT_SETTINGS.subtitleStyle.fontFamily, "'GangwonEducationModuche', Arial, sans-serif");
+  assert.equal(DEFAULT_SETTINGS.subtitleStyle.textColor, "#f2f2f2");
+  assert.equal(DEFAULT_SETTINGS.subtitleStyle.shadowBlur, 3);
   assert.equal(DEFAULT_SETTINGS.subtitleStyle.outlineEnabled, true);
-  assert.equal(DEFAULT_SETTINGS.subtitleStyle.outlineWidth, 3);
+  assert.equal(DEFAULT_SETTINGS.subtitleStyle.outlineWidth, 2);
   assert.equal(DEFAULT_SETTINGS.subtitleStyle.pendingBackgroundColor, "#750000");
-  assert.equal(DEFAULT_SETTINGS.subtitleStyle.backgroundOpacity, 0.3);
+  assert.equal(DEFAULT_SETTINGS.subtitleStyle.backgroundOpacity, 0.5);
 });
 
 test("Japanese UI defaults subtitle font to Noto Sans JP", () => {

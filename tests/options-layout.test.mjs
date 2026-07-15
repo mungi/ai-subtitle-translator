@@ -255,6 +255,7 @@ test("section reset handlers reset only their own settings group", () => {
   assert.match(optionsJs, /settings\.fallback = clone\(DEFAULT_SETTINGS\.fallback\);/);
   assert.match(optionsJs, /async function resetSubtitleStyleSettingsSection\(\)/);
   assert.match(optionsJs, /settings\.subtitleStyle = clone\(DEFAULT_SETTINGS\.subtitleStyle\);/);
+  assert.match(optionsJs, /subtitleStylePreview\.textContent = getDefaultPreviewText\(\);/);
 });
 
 test("cache controls are part of general settings instead of provider actions", () => {
