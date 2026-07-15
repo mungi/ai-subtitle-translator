@@ -390,9 +390,15 @@ test("Custom LLM check and endpoint permission request are rendered only in its 
 
 test("API key fields render masked saved values and preserve untouched secrets", () => {
   assert.match(optionsJs, /import \{ maskSecretValue, resolveSecretFieldValue \} from "\.\.\/shared\/secret-fields\.js";/);
+  assert.match(optionsJs, /input\.type = key === "apiKey" \? "password" : type;/);
   assert.match(optionsJs, /input\.value = key === "apiKey"\s*\?\s*maskSecretValue\(provider\[key\]\)\s*:\s*\(provider\[key\] \?\? ""\);/);
   assert.match(optionsJs, /if \(key === "apiKey"\) \{\s*provider\[key\] = resolveSecretFieldValue\(value, provider\[key\]\);/);
   assert.doesNotMatch(optionsJs, /input\.value = provider\[key\] \?\? "";/);
+});
+
+test("Custom LLM curl preview never includes the entered API key", () => {
+  assert.match(optionsJs, /Authorization: Bearer \\\$\{API_KEY\}/);
+  assert.doesNotMatch(optionsJs, /Authorization: Bearer \$\{apiKey\}/);
 });
 
 test("provider API key row is placed before model and keeps fetch models button", () => {

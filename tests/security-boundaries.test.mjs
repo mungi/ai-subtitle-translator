@@ -7,6 +7,12 @@ import { restrictLocalStorageAccess } from "../extension/shared/storage.js";
 import { translationInternals } from "../extension/shared/translation.js";
 import * as messageContracts from "../extension/shared/message-contracts.js";
 
+test("runtime dependencies exclude the unused Codex CLI package", async () => {
+  const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
+
+  assert.equal(packageJson.dependencies?.["@openai/codex"], undefined);
+});
+
 test("content scripts cannot access chrome.storage.local directly", async () => {
   const contentScript = await readFile(new URL("../extension/content/content-script.js", import.meta.url), "utf8");
   const serviceWorker = await readFile(new URL("../extension/background/service-worker.js", import.meta.url), "utf8");

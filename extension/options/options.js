@@ -915,7 +915,7 @@ function renderField(provider, [key, labelKey, placeholder, type = "text"]) {
 
   const input = document.createElement("input");
   input.name = key;
-  input.type = type;
+  input.type = key === "apiKey" ? "password" : type;
   input.placeholder = localizedPlaceholder;
   input.value = key === "apiKey" ? maskSecretValue(provider[key]) : (provider[key] ?? "");
   if (type === "number") {
@@ -1073,7 +1073,7 @@ function buildLocalLlmCheckText(provider) {
   const url = buildLocalChatCompletionsUrl(draft.baseUrl);
   const model = String(draft.model || "google/gemma-4-e4b").trim();
   const apiKey = String(draft.apiKey || "").trim();
-  const authHeader = apiKey ? ` \\\n  -H "Authorization: Bearer ${apiKey}"` : "";
+  const authHeader = apiKey ? ` \\\n  -H "Authorization: Bearer \${API_KEY}"` : "";
 
   return [
     t("localLlmBaseUrlComment"),

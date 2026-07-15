@@ -12,12 +12,13 @@
 - Google Translate를 기본 번역 provider로 둔다.
 - DeepL은 Free/Pro API provider로 둔다.
 - Udemy 자막은 course/lecture id 기반 API에서 caption URL을 가져온다.
+- NVIDIA Academy와 Vimeo 자막은 Vimeo caption track에서 가져온다.
 - Google cue 번역은 `\n\n` delimiter로 cue 텍스트를 묶어 chunk 요청하고, 응답을 다시 cue에 매핑한다.
 - Google/DeepL은 전체 LLM fallback 전용이 아니라 선택 가능한 provider다.
 
 ## 현재 구현 요약
 
-- Udemy와 YouTube 자막 track 수집.
+- Udemy, YouTube, NVIDIA Academy, Vimeo 자막 track 수집.
 - 영어 source track 우선 선택.
 - Google Translate cue 번역을 즉시 표시.
 - LLM/DeepL provider 번역 완료 시 최종 자막으로 교체.
@@ -32,6 +33,7 @@
 - `chrome.storage.local` trusted-context 제한과 API key를 제외한 content-script 설정 bridge.
 - runtime message sender 분리, hosted provider 공식 HTTPS origin/Custom LLM loopback 또는 사용자 승인 HTTPS origin allowlist, cross-origin redirect 차단.
 - 사용자 백업 비밀번호 기반 AES-GCM 설정 백업/복구.
+- 기본 간단 설정과 전체 고급 설정 분리. 간단 설정의 Google AI API key 확인 성공 시 Gemini 3.1 Flash Lite를 자동 설정.
 - 한국어·영어·일본어 개인정보 처리방침과 Chrome Web Store 문서 연결.
 - Chrome Web Store용 아이콘과 소개문.
 

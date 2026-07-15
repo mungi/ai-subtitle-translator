@@ -13,6 +13,7 @@ extension/
   platforms/
     youtube-captions.js             YouTube track/cue 수집과 fallback
     udemy-captions.js               Udemy caption API와 WebVTT 수집
+    vimeo-captions.js               Vimeo 계열 caption URL 검증과 WebVTT 수집
   shared/
     subtitles.js                    내부 cue/document 표준화와 WebVTT 파서
     translation.js                  Google/DeepL/LLM 번역, chunk, cache, fallback
@@ -47,7 +48,7 @@ type SubtitleCue = {
 };
 
 type SubtitleDocument = {
-  platform: "youtube" | "udemy" | "test";
+  platform: "youtube" | "udemy" | "nvidia" | "vimeo" | "test";
   videoId: string;
   sourceLanguage: string;
   cues: SubtitleCue[];
@@ -58,8 +59,8 @@ type SubtitleDocument = {
 
 ## 런타임 흐름
 
-1. `content/content-script.js`가 현재 host로 `youtube` 또는 `udemy`를 감지합니다.
-2. 영상 컨트롤 영역에 `ast-toolbar-button`을 주입합니다. 버튼은 Udemy/YouTube별 독립 AST provider 메뉴를 엽니다.
+1. `content/content-script.js`가 현재 host로 `youtube`, `udemy`, `nvidia`, `vimeo`를 감지합니다.
+2. 영상 컨트롤 영역에 `ast-toolbar-button`을 주입합니다. 버튼은 플랫폼별 독립 AST provider 메뉴를 엽니다.
 3. 사용자가 메뉴에서 AST를 켜거나 provider를 선택하면 현재 플랫폼 handler가 session key와 video element를 확인합니다.
 4. content script가 background service worker로 `captions.*.fetchTranscript` 메시지를 보냅니다.
 5. `platforms/*-captions.js`가 track을 선택하고 cue를 파싱해 `SubtitleDocument`를 반환합니다.
@@ -75,6 +76,7 @@ type SubtitleDocument = {
 | --- | --- | --- | --- |
 | `captions.youtube.fetchTranscript` | content | background | YouTube track/cue 수집 |
 | `captions.udemy.fetchTranscript` | content | background | Udemy caption URL/WebVTT 수집 |
+| `captions.vimeo.fetchTranscript` | content | background | NVIDIA Academy/Vimeo caption WebVTT 수집 |
 | `translation.translateDocument` | content | background | provider 번역 실행 |
 | `translation.progress` | background | content | chunk/cue 진행분 반영 |
 | `settings.getPublic` | content | background | API key가 제거된 공개 설정 조회 |
@@ -110,6 +112,10 @@ type SubtitleDocument = {
 
 caption URL의 WebVTT를 받아 `parseWebVtt`로 cue를 생성합니다. 로그인 쿠키와 수강 권한에 의존하므로 실제 QA가 필요합니다.
 
+### NVIDIA Academy와 Vimeo
+
+`platforms/vimeo-captions.js`는 Vimeo 계열 player가 제공한 caption URL을 `captions.vimeo.com` 또는 `captions.cloud.vimeo.com` HTTPS host로 제한한 뒤 WebVTT를 읽습니다. NVIDIA Academy는 Vimeo player를 사용하는 강의 화면에서 같은 경로를 사용합니다.
+
 ## 번역 계층
 
 `shared/translation.js`의 공개 진입점은 `translateSubtitleDocument(document, options)`입니다.
@@ -143,7 +149,7 @@ CST에서 AST로 명칭을 바꾼 현재 초기 개발 단계에서는 storage n
 
 `content/content-script.js`가 담당하는 UI 책임은 다음과 같습니다.
 
-- Udemy/YouTube toolbar target 탐색
+- Udemy/YouTube/NVIDIA Academy/Vimeo toolbar target 탐색
 - SVG 기반 툴바 버튼과 플랫폼별 독립 provider 메뉴 삽입
 - 문서 캡처 단계에서 다른 플레이어 툴바 아이콘 상호작용을 감지해 AST 메뉴를 닫고 메뉴 겹침 방지
 - 현재 재생 위치 우선 provider 전환, 선택 저장, request ID 기반 이전 번역 격리
@@ -160,13 +166,13 @@ CST에서 AST로 명칭을 바꾼 현재 초기 개발 단계에서는 storage n
 
 ### Options
 
-`options/options.js`는 provider tab, provider별 field, 모델 조회, 연결 테스트, target language, translation style, subtitle style preview, cache clear와 설정 백업/복구를 렌더링합니다. 모델 조회가 끝나면 `model-recommendations.js`로 권장 모델을 선택합니다. 온라인 provider는 즉시 연결 테스트해 상태를 갱신하고, Custom LLM은 `google/gemma-4-e4b` 우선 모델 선택까지만 수행합니다. 사용자 지정 HTTPS Custom LLM은 모델 가져오기 또는 연결 테스트를 시작할 때 해당 origin 접근 권한을 요청합니다. provider field는 `providerFieldDefs`에 모여 있어 provider 추가 시 defaults, request adapter, host permission, field 정의, recommendation과 tests를 함께 갱신해야 합니다.
+`options/options.js`는 기본 `간단 설정`과 전체 `고급 설정`을 렌더링합니다. 간단 설정은 Google AI API key 한 개와 연결 확인만 제공하며, 성공 시 Gemini 3.1 Flash Lite를 자동 설정합니다. 고급 설정은 provider tab, provider별 field, 모델 조회, 연결 테스트, target language, translation style, subtitle style preview, cache clear와 설정 백업/복구를 렌더링합니다. 모델 조회가 끝나면 `model-recommendations.js`로 권장 모델을 선택합니다. 온라인 provider는 즉시 연결 테스트해 상태를 갱신하고, Custom LLM은 `google/gemma-4-e4b` 우선 모델 선택까지만 수행합니다. 사용자 지정 HTTPS Custom LLM은 모델 가져오기 또는 연결 테스트를 시작할 때 해당 origin 접근 권한을 요청합니다. provider field는 `providerFieldDefs`에 모여 있어 provider 추가 시 defaults, request adapter, host permission, field 정의, recommendation과 tests를 함께 갱신해야 합니다.
 
 설정 백업은 API key가 복원된 현재 설정을 사용자 백업 비밀번호에서 파생한 AES-GCM key로 암호화해 `.astbackup` 파일로 저장합니다. 복구 선택창과 파일명 검증은 이 확장자만 허용합니다. 백업/복구 비밀번호는 버튼 동작 시 `<dialog>` 기반 마스킹 팝업에서 입력받고 저장하지 않습니다. PBKDF2-SHA-256 250,000회와 파일별 salt/nonce를 사용합니다. 복구는 파일 형식과 payload를 검증한 뒤 기존 `saveSettings` 흐름을 사용하므로 API key는 다시 내부 secret vault에 암호화 저장됩니다. 사용자가 동의하면 `provider-key-validation.js`가 API key가 있는 provider를 순차 테스트하고 성공 상태를 실제 결과로 갱신합니다.
 
 ### Popup
 
-`popup/popup.js`는 현재 provider/target language 표시와 Udemy/YouTube platform toggle 저장만 담당합니다.
+`popup/popup.js`는 현재 provider/target language 표시와 지원 사이트 platform toggle 저장을 담당합니다.
 
 ## 테스트 커버리지
 
@@ -180,6 +186,7 @@ npm run check
 주요 커버리지:
 
 - YouTube caption track 선택, timedtext format fallback, transcript panel fallback
+- Vimeo/NVIDIA Academy caption URL 검증과 WebVTT 수집
 - content script의 YouTube toolbar, translation message sequencing, progress 상태, overlay mount/style
 - Google Translate/LLM 응답 정리, cue count/time 보존, fallback
 - provider request body와 response text 추출
@@ -187,7 +194,7 @@ npm run check
 - options layout, provider guide, provider order
 - secret masking, target language, default settings, manifest permission
 
-자동 테스트는 실제 Chrome 확장 로드, 실제 Udemy 로그인/수강 권한, 실제 provider API key 호출까지 보장하지 않습니다. 이 항목은 `TASKS.md`의 수동 QA 목록으로 남아 있습니다.
+자동 테스트는 실제 Chrome 확장 로드, 지원 사이트 로그인·수강 권한, 실제 provider API key 호출까지 보장하지 않습니다. 이 항목은 `TASKS.md`의 수동 QA 목록으로 남아 있습니다.
 
 ## 변경 영향 범위
 
@@ -196,6 +203,7 @@ npm run check
 | 새 provider 추가 | `defaults.js`, `provider-request.js`, `service-worker.js`, `options.js`, `manifest.json` | `provider-request`, `background-service-worker`, `options-layout`, `manifest` |
 | YouTube 수집 수정 | `platforms/youtube-captions.js`, `content/content-script.js` | `youtube-captions`, `content-script-youtube` |
 | Udemy 수집 수정 | `platforms/udemy-captions.js`, `content/content-script.js` | WebVTT/수동 Udemy QA 추가 필요 |
+| Vimeo/NVIDIA Academy 수집 수정 | `platforms/vimeo-captions.js`, `content/content-script.js` | `vimeo-captions`, `content-script-youtube`, 수동 Vimeo/NVIDIA QA |
 | subtitle model 변경 | `subtitles.js`, `translation.js`, 플랫폼 수집기, content render | `youtube-captions`, `translation-cleanup`, `content-script-youtube` |
 | overlay 스타일 변경 | `content-script.js`, `content-style.css`, `defaults.js`, `options.js` | `content-script-youtube`, `options-layout`, `default-settings` |
 | 설정 저장 변경 | `storage.js`, `defaults.js`, `options.js`, `popup.js` | `default-settings`, `secret-fields`, `options-layout` |
@@ -207,4 +215,6 @@ npm run check
 - YouTube 내부 구조와 Innertube endpoint는 변경 가능성이 높아 fallback 테스트와 수동 QA가 계속 필요합니다.
 - Udemy는 인증/권한/강의 UI 구조에 의존하므로 자동 테스트만으로는 충분하지 않습니다.
 - API key 암호화 key도 난독화된 형태로 로컬에 존재하므로 표적 분석에 대한 보안 저장소는 아닙니다. 배포 문서와 개인정보 문구에서 이 범위를 과장하지 않아야 합니다.
+- 사용자 지정 HTTPS Custom LLM origin은 사용자가 승인하면 현재 별도 회수 UI 없이 유지됩니다. 권한 목록 표시와 개별 회수 기능을 추가하는 것이 좋습니다.
+- provider가 반환한 오류 문구를 상태 영역에 표시할 때 키나 URL을 다시 포함하지 않도록, 공통 오류 정제 함수를 도입하는 것이 좋습니다.
 - 번역 cache는 항목 수와 직렬화 용량 기준으로 제한하지만, 설정 화면에서 현재 사용량이나 항목별 제거 기능은 제공하지 않습니다.

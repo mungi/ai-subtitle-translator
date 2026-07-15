@@ -25,6 +25,13 @@ Chrome 102 or later is required.
 4. Choose this repository's `extension/` folder.
 5. Set a translation provider and target language in the extension options.
 
+## Quick start
+
+1. Open the extension options. **Simple Settings** is shown by default.
+2. You can translate subtitles with Google Translate without entering an API key.
+3. To use Google Gemini, create a key in [Google AI Studio API Keys](https://aistudio.google.com/api-keys), paste it into **Google AI API key**, and select **Check API key**. On success, Gemini 3.1 Flash Lite is configured automatically.
+4. Use **Advanced Settings** for other translation providers, subtitle appearance, and backup or restore.
+
 ## Usage
 
 1. Open a Udemy course, YouTube video, NVIDIA Academy course, or Vimeo video with subtitles.
@@ -47,6 +54,7 @@ Request URL: http://localhost:1234/v1/chat/completions
 - Subtitle text may be sent to the translation provider you choose. Please review each provider's terms and pricing.
 - Access to Udemy subtitles depends on your signed-in state and course enrollment.
 - API keys are encrypted in local storage and are not sent to content scripts. This is a convenience-focused design that does not require a master password, so it does not provide the same security as a dedicated secret manager.
+- Never put an API key in screen shares or public documents. If you suspect exposure, revoke the key in the provider console immediately and create a replacement.
 
 For details, see the privacy policy in [Korean](PRIVACY.md), [English](PRIVACY_en.md), or [Japanese](PRIVACY_ja.md).
 
