@@ -14,6 +14,36 @@
   "allReset": {
     "message": "Reset all"
   },
+  "settingsModeLabel": {
+    "message": "Settings mode"
+  },
+  "simpleSettingsTab": {
+    "message": "Simple Settings"
+  },
+  "advancedSettingsTab": {
+    "message": "Advanced Settings"
+  },
+  "simpleSettingsTitle": {
+    "message": "Get started quickly with Google AI"
+  },
+  "simpleGoogleApiKey": {
+    "message": "Google AI API Key"
+  },
+  "simpleGoogleYoutubeGuide": {
+    "message": "YouTube setup guide"
+  },
+  "simpleGoogleApiKeyRequired": {
+    "message": "Enter a Google AI API Key."
+  },
+  "simpleGoogleTesting": {
+    "message": "Checking the Google AI connection."
+  },
+  "simpleGoogleTestSuccess": {
+    "message": "Google AI is connected and Gemini 3.1 Flash Lite is active."
+  },
+  "simpleGoogleTestFailed": {
+    "message": "Google AI connection failed. Your current translation provider is unchanged."
+  },
   "generalSettings": {
     "message": "Translation Settings"
   },

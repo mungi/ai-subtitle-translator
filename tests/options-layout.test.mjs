@@ -48,7 +48,7 @@ test("settings mode tabs default to a focused Google API key simple panel", () =
   assert.ok(advancedIndex > simpleIndex);
   assert.match(optionsHtml, /id="simpleSettingsTab"[^>]*role="tab"[^>]*aria-selected="true"/);
   assert.match(optionsHtml, /id="advancedSettingsTab"[^>]*role="tab"[^>]*aria-selected="false"/);
-  assert.match(optionsHtml, /id="simpleGoogleApiKey" type="password" autocomplete="off"/);
+  assert.match(optionsHtml, /id="simpleGoogleApiKey" type="text" autocomplete="off"/);
   assert.match(optionsHtml, /id="simpleSettingsStatus"[^>]*role="status"/);
   assert.match(optionsHtml, /id="advancedSettingsPanel"[^>]*hidden/);
   assert.match(optionsCss, /\.settings-mode-tabs\s*\{/);
@@ -80,6 +80,28 @@ test("simple settings use the Google helper, test the key, and retain the curren
   assert.match(optionsJs, /setSettingsMode\("simple"\);/);
   assert.match(optionsJs, /SIMPLE_GOOGLE_GUIDE_LINKS/);
   assert.match(optionsJs, /getProviderGuide\("google"\)\.text/);
+});
+
+test("simple settings messages are synchronized in Korean, English, and Japanese", () => {
+  assert.equal(message("ko", "advancedSettingsTab"), "고급 설정");
+  assert.equal(message("en", "advancedSettingsTab"), "Advanced Settings");
+  assert.equal(message("ja", "advancedSettingsTab"), "詳細設定");
+
+  for (const locale of ["ko", "en", "ja"]) {
+    for (const key of [
+      "settingsModeLabel",
+      "simpleSettingsTab",
+      "simpleSettingsTitle",
+      "simpleGoogleApiKey",
+      "simpleGoogleYoutubeGuide",
+      "simpleGoogleApiKeyRequired",
+      "simpleGoogleTesting",
+      "simpleGoogleTestSuccess",
+      "simpleGoogleTestFailed"
+    ]) {
+      assert.ok(message(locale, key), `${locale} should define ${key}`);
+    }
+  }
 });
 
 test("each settings section has its own reset button on the title row", () => {

@@ -14,6 +14,36 @@
   "allReset": {
     "message": "전체 초기화"
   },
+  "settingsModeLabel": {
+    "message": "설정 모드"
+  },
+  "simpleSettingsTab": {
+    "message": "간단 설정"
+  },
+  "advancedSettingsTab": {
+    "message": "고급 설정"
+  },
+  "simpleSettingsTitle": {
+    "message": "Google AI로 빠르게 시작하기"
+  },
+  "simpleGoogleApiKey": {
+    "message": "Google AI API Key"
+  },
+  "simpleGoogleYoutubeGuide": {
+    "message": "YouTube 설정 가이드"
+  },
+  "simpleGoogleApiKeyRequired": {
+    "message": "Google AI API Key를 입력하세요."
+  },
+  "simpleGoogleTesting": {
+    "message": "Google AI 연결을 확인하는 중입니다."
+  },
+  "simpleGoogleTestSuccess": {
+    "message": "Google AI 연결을 확인했고 Gemini 3.1 Flash Lite를 활성화했습니다."
+  },
+  "simpleGoogleTestFailed": {
+    "message": "Google AI 연결에 실패했습니다. 기존 번역 엔진을 유지합니다."
+  },
   "generalSettings": {
     "message": "기본 번역 설정"
   },

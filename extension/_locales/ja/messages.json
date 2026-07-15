@@ -14,6 +14,36 @@
   "allReset": {
     "message": "すべてリセット"
   },
+  "settingsModeLabel": {
+    "message": "設定モード"
+  },
+  "simpleSettingsTab": {
+    "message": "かんたん設定"
+  },
+  "advancedSettingsTab": {
+    "message": "詳細設定"
+  },
+  "simpleSettingsTitle": {
+    "message": "Google AI ですぐに始める"
+  },
+  "simpleGoogleApiKey": {
+    "message": "Google AI API Key"
+  },
+  "simpleGoogleYoutubeGuide": {
+    "message": "YouTube 設定ガイド"
+  },
+  "simpleGoogleApiKeyRequired": {
+    "message": "Google AI API Key を入力してください。"
+  },
+  "simpleGoogleTesting": {
+    "message": "Google AI の接続を確認しています。"
+  },
+  "simpleGoogleTestSuccess": {
+    "message": "Google AI に接続し、Gemini 3.1 Flash Lite を有効にしました。"
+  },
+  "simpleGoogleTestFailed": {
+    "message": "Google AI への接続に失敗しました。現在の翻訳プロバイダーを維持します。"
+  },
   "generalSettings": {
     "message": "翻訳設定"
   },
