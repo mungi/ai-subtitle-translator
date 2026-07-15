@@ -161,6 +161,17 @@ const backupSettingsButton = document.getElementById("backupSettings");
 const restoreSettingsButton = document.getElementById("restoreSettings");
 const restoreSettingsFileInput = document.getElementById("restoreSettingsFile");
 const backupStatusLine = document.getElementById("backupStatusLine");
+const simpleGoogleTestLockedControls = [
+  simpleGoogleApiKeyInput,
+  testSimpleGoogleApiKeyButton,
+  document.getElementById("resetSettings"),
+  document.getElementById("resetGeneralSettings"),
+  document.getElementById("resetProviderSettings"),
+  document.getElementById("resetFallbackSettings"),
+  document.getElementById("resetSubtitleStyleSettings"),
+  restoreSettingsButton,
+  restoreSettingsFileInput
+];
 const platformToggleInputs = {
   udemy: document.getElementById("toggleUdemy"),
   youtube: document.getElementById("toggleYoutube"),
@@ -1182,56 +1193,63 @@ function clearPendingSimpleGoogleApiKey() {
   setSimpleSettingsStatus("");
 }
 
+function setSimpleGoogleTestControlsDisabled(disabled) {
+  for (const control of simpleGoogleTestLockedControls) {
+    control.disabled = disabled;
+  }
+}
+
 async function testSimpleGoogleApiKey() {
   const testRunId = ++simpleGoogleTestRunId;
-  await flushAutomaticSave();
-  if (testRunId !== simpleGoogleTestRunId) return;
+  setSimpleGoogleTestControlsDisabled(true);
+  try {
+    await flushAutomaticSave();
+    if (testRunId !== simpleGoogleTestRunId) return;
 
-  const activeGoogleBackup = pendingSimpleGoogleActiveBackup ?? captureActiveGoogleBackup(settings);
-  settings = stageSimpleGoogleApiKey(settings, pendingSimpleGoogleApiKey ?? simpleGoogleApiKeyInput.value);
+    const activeGoogleBackup = pendingSimpleGoogleActiveBackup ?? captureActiveGoogleBackup(settings);
+    settings = stageSimpleGoogleApiKey(settings, pendingSimpleGoogleApiKey ?? simpleGoogleApiKeyInput.value);
 
-  if (!settings.providers.google.apiKey) {
-    settings = applySimpleGoogleTestResult(settings, false, activeGoogleBackup);
+    if (!settings.providers.google.apiKey) {
+      settings = applySimpleGoogleTestResult(settings, false, activeGoogleBackup);
+      settings = await saveSettings(settings);
+      if (testRunId !== simpleGoogleTestRunId) return;
+      pendingSimpleGoogleApiKey = null;
+      pendingSimpleGoogleActiveBackup = null;
+      renderAll();
+      setSimpleSettingsStatus(t("simpleGoogleApiKeyRequired"), "error");
+      return;
+    }
+
     settings = await saveSettings(settings);
     if (testRunId !== simpleGoogleTestRunId) return;
     pendingSimpleGoogleApiKey = null;
+    renderSimpleGoogleSettings();
+    setSimpleSettingsStatus(t("simpleGoogleTesting"));
+    let response;
+    try {
+      response = await chrome.runtime.sendMessage({
+        type: "llm.testActiveProvider",
+        providerId: "google"
+      });
+    } catch (error) {
+      response = { ok: false, error: error.message };
+    }
+    if (testRunId !== simpleGoogleTestRunId) return;
+
+    settings = applySimpleGoogleTestResult(settings, response?.ok, activeGoogleBackup);
+    settings = await saveSettings(settings);
+    if (testRunId !== simpleGoogleTestRunId) return;
     pendingSimpleGoogleActiveBackup = null;
     renderAll();
-    setSimpleSettingsStatus(t("simpleGoogleApiKeyRequired"), "error");
-    return;
-  }
-
-  settings = await saveSettings(settings);
-  if (testRunId !== simpleGoogleTestRunId) return;
-  pendingSimpleGoogleApiKey = null;
-  renderSimpleGoogleSettings();
-  simpleGoogleApiKeyInput.disabled = true;
-  testSimpleGoogleApiKeyButton.disabled = true;
-  setSimpleSettingsStatus(t("simpleGoogleTesting"));
-  let response;
-  try {
-    response = await chrome.runtime.sendMessage({
-      type: "llm.testActiveProvider",
-      providerId: "google"
-    });
-  } catch (error) {
-    response = { ok: false, error: error.message };
+    setSimpleSettingsStatus(
+      response?.ok
+        ? t("simpleGoogleTestSuccess")
+        : `${t("simpleGoogleTestFailed")}: ${response?.error || "Unknown error"}`,
+      response?.ok ? "success" : "error"
+    );
   } finally {
-    simpleGoogleApiKeyInput.disabled = false;
-    testSimpleGoogleApiKeyButton.disabled = false;
+    setSimpleGoogleTestControlsDisabled(false);
   }
-  if (testRunId !== simpleGoogleTestRunId) return;
-
-  settings = applySimpleGoogleTestResult(settings, response?.ok, activeGoogleBackup);
-  settings = await saveSettings(settings);
-  pendingSimpleGoogleActiveBackup = null;
-  renderAll();
-  setSimpleSettingsStatus(
-    response?.ok
-      ? t("simpleGoogleTestSuccess")
-      : `${t("simpleGoogleTestFailed")}: ${response?.error || "Unknown error"}`,
-    response?.ok ? "success" : "error"
-  );
 }
 
 function captureCurrentFormState() {
