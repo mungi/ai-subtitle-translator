@@ -47,8 +47,14 @@
   "simpleGoogleKeyGuideTitle": {
     "message": "Google AI Studio에서 API 키 받기"
   },
-  "simpleGoogleKeyGuideStep1": {
-    "message": "Google 계정으로 Google AI Studio에 로그인하세요."
+  "simpleGoogleKeyGuideStep1Prefix": {
+    "message": "Google 계정으로 "
+  },
+  "simpleGoogleKeyGuideStep1Link": {
+    "message": "Google AI Studio"
+  },
+  "simpleGoogleKeyGuideStep1Suffix": {
+    "message": "에 로그인하세요."
   },
   "simpleGoogleKeyGuideStep2": {
     "message": "처음이라면 API Keys 페이지에서 사용할 프로젝트를 생성하세요. 이름은 'Gemini Project'처럼 영어로 입력하세요."

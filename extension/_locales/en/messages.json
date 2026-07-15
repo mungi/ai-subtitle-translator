@@ -47,8 +47,14 @@
   "simpleGoogleKeyGuideTitle": {
     "message": "Get an API key in Google AI Studio"
   },
-  "simpleGoogleKeyGuideStep1": {
-    "message": "Sign in to Google AI Studio with your Google account."
+  "simpleGoogleKeyGuideStep1Prefix": {
+    "message": "Sign in to "
+  },
+  "simpleGoogleKeyGuideStep1Link": {
+    "message": "Google AI Studio"
+  },
+  "simpleGoogleKeyGuideStep1Suffix": {
+    "message": " with your Google account."
   },
   "simpleGoogleKeyGuideStep2": {
     "message": "If this is your first time, create a project on the API Keys page. Use an English name such as 'Gemini Project'."

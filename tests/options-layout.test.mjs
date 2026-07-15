@@ -71,7 +71,10 @@ test("simple settings retain the existing Google guide and show the API key guid
   assert.ok(simpleHtml.indexOf('id="simpleSettingsStatus"') < simpleHtml.indexOf('id="simpleGoogleGuide"'));
   assert.match(simpleHtml, /id="simpleGoogleKeyGuide"/);
   assert.match(simpleHtml, /data-i18n="simpleGoogleKeyGuideTitle"/);
-  assert.match(simpleHtml, /data-i18n="simpleGoogleKeyGuideStep1"/);
+  assert.match(
+    simpleHtml,
+    /<li><span data-i18n="simpleGoogleKeyGuideStep1Prefix"><\/span><a href="https:\/\/aistudio\.google\.com\/api-keys" target="_blank" rel="noreferrer" data-i18n="simpleGoogleKeyGuideStep1Link"><\/a><span data-i18n="simpleGoogleKeyGuideStep1Suffix"><\/span><\/li>/
+  );
   assert.match(simpleHtml, /data-i18n="simpleGoogleKeyGuideStep2"/);
   assert.match(simpleHtml, /data-i18n="simpleGoogleKeyGuideStep3"/);
   assert.match(simpleHtml, /data-i18n="simpleGoogleKeyGuideStep4"/);
@@ -154,7 +157,9 @@ test("simple settings messages are synchronized in Korean, English, and Japanese
       "simpleGoogleGetApiKey",
       "simpleGoogleYoutubeGuide",
       "simpleGoogleKeyGuideTitle",
-      "simpleGoogleKeyGuideStep1",
+      "simpleGoogleKeyGuideStep1Prefix",
+      "simpleGoogleKeyGuideStep1Link",
+      "simpleGoogleKeyGuideStep1Suffix",
       "simpleGoogleKeyGuideStep2",
       "simpleGoogleKeyGuideStep3",
       "simpleGoogleKeyGuideStep4",
@@ -170,6 +175,18 @@ test("simple settings messages are synchronized in Korean, English, and Japanese
     }
   }
 
+  assert.equal(
+    message("ko", "simpleGoogleKeyGuideStep1Prefix"),
+    "Google 계정으로 "
+  );
+  assert.equal(
+    message("ko", "simpleGoogleKeyGuideStep1Link"),
+    "Google AI Studio"
+  );
+  assert.equal(
+    message("ko", "simpleGoogleKeyGuideStep1Suffix"),
+    "에 로그인하세요."
+  );
   assert.equal(
     message("ko", "simpleGoogleKeyGuideStep2"),
     "처음이라면 API Keys 페이지에서 사용할 프로젝트를 생성하세요. 이름은 'Gemini Project'처럼 영어로 입력하세요."
