@@ -708,3 +708,14 @@ textarea:focus {
     grid-row: auto;
   }
 }
+
+@media (max-width: 420px) {
+  .simple-google-key-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .simple-google-key-row .primary {
+    align-self: flex-start;
+  }
+}

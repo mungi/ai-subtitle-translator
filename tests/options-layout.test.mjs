@@ -84,6 +84,10 @@ test("simple settings retain the existing Google guide and show the API key guid
   assert.doesNotMatch(advancedHtml, /simpleGoogleKeyGuide/);
   assert.match(optionsCss, /\.simple-google-key-row\s*\{[\s\S]*display: flex;/);
   assert.match(extractCssBlock(optionsCss, ".simple-google-key-field"), /flex: 1;/);
+  assert.match(
+    optionsCss,
+    /@media \(max-width: 420px\) \{[\s\S]*\.simple-google-key-row\s*\{[\s\S]*flex-direction: column;/
+  );
 });
 
 test("simple settings use the Google helper, test the key, and retain the current provider on failure", () => {
