@@ -37,6 +37,83 @@ test("top actions only expose reset all when settings save automatically", () =>
   assert.equal(message("en", "allReset"), "Reset all");
 });
 
+test("settings mode tabs default to a focused Google API key simple panel", () => {
+  const headerEnd = optionsHtml.indexOf("</header>");
+  const tabsIndex = optionsHtml.indexOf('id="settingsModeTabs"');
+  const simpleIndex = optionsHtml.indexOf('id="simpleSettingsPanel"');
+  const advancedIndex = optionsHtml.indexOf('id="advancedSettingsPanel"');
+
+  assert.ok(tabsIndex > headerEnd);
+  assert.ok(simpleIndex > tabsIndex);
+  assert.ok(advancedIndex > simpleIndex);
+  assert.match(optionsHtml, /id="simpleSettingsTab"[^>]*role="tab"[^>]*aria-selected="true"/);
+  assert.match(optionsHtml, /id="advancedSettingsTab"[^>]*role="tab"[^>]*aria-selected="false"/);
+  assert.match(optionsHtml, /id="simpleGoogleApiKey" type="password" autocomplete="off"/);
+  assert.match(optionsHtml, /id="simpleSettingsStatus"[^>]*role="status"/);
+  assert.match(optionsHtml, /id="advancedSettingsPanel"[^>]*hidden/);
+  assert.match(optionsCss, /\.settings-mode-tabs\s*\{/);
+  assert.match(optionsCss, /\.settings-mode-tabs button\.active\s*\{/);
+});
+
+test("simple settings retain the existing Google guide but expose exactly two links", () => {
+  const simpleStart = optionsHtml.indexOf('id="simpleSettingsPanel"');
+  const simpleEnd = optionsHtml.indexOf("</section>", simpleStart);
+  const simpleHtml = optionsHtml.slice(simpleStart, simpleEnd);
+
+  assert.match(simpleHtml, /id="simpleGoogleGuide"/);
+  assert.match(simpleHtml, /id="simpleGoogleGuideLinks"/);
+  assert.doesNotMatch(simpleHtml, /id="providerTabs"/);
+});
+
+test("simple settings use the Google helper, test the key, and retain the current provider on failure", () => {
+  assert.match(
+    optionsJs,
+    /import \{[\s\S]*stageSimpleGoogleApiKey[\s\S]*applySimpleGoogleTestResult[\s\S]*\} from "\.\.\/shared\/simple-google-settings\.js"/
+  );
+  assert.match(optionsJs, /function setSettingsMode\(mode\)/);
+  assert.match(optionsJs, /function renderSimpleGoogleSettings\(\)/);
+  assert.match(optionsJs, /async function testSimpleGoogleApiKey\(\)/);
+  assert.match(optionsJs, /function handleSettingsModeTabsKeydown\(event\)/);
+  assert.match(optionsJs, /case "ArrowRight":/);
+  assert.match(optionsJs, /case "ArrowLeft":/);
+  assert.match(optionsJs, /case "Home":/);
+  assert.match(optionsJs, /case "End":/);
+  assert.match(optionsJs, /settingsModeTabs\.addEventListener\("keydown", handleSettingsModeTabsKeydown\);/);
+  assert.match(optionsJs, /async function testSimpleGoogleApiKey\(\) \{\s*await flushAutomaticSave\(\);/);
+  assert.match(optionsJs, /settings = stageSimpleGoogleApiKey\(settings, simpleGoogleApiKeyInput\.value\);/);
+  assert.match(optionsJs, /const activeGoogleBackup = captureActiveGoogleBackup\(settings\);/);
+  assert.match(optionsJs, /type: "llm\.testActiveProvider",\s*providerId: "google"/);
+  assert.match(optionsJs, /settings = applySimpleGoogleTestResult\(settings, response\?\.ok, activeGoogleBackup\);/);
+  assert.match(optionsJs, /simpleGoogleApiKeyInput\.addEventListener\("change"/);
+  assert.match(optionsJs, /settings = await getSettings\(\);\s*selectedProviderId = settings\.activeProvider;\s*renderAll\(\);\s*setSettingsMode\("simple"\);/);
+  const renderAllBlock = optionsJs.match(/function renderAll\(\) \{([\s\S]*?)\n\}/)?.[1] || "";
+  assert.doesNotMatch(renderAllBlock, /setSettingsMode/);
+  assert.match(optionsJs, /SIMPLE_GOOGLE_GUIDE_LINKS/);
+  assert.match(optionsJs, /getProviderGuide\("google"\)\.text/);
+});
+
+test("simple settings messages are synchronized in Korean, English, and Japanese", () => {
+  assert.equal(message("ko", "advancedSettingsTab"), "고급 설정");
+  assert.equal(message("en", "advancedSettingsTab"), "Advanced Settings");
+  assert.equal(message("ja", "advancedSettingsTab"), "詳細設定");
+
+  for (const locale of ["ko", "en", "ja"]) {
+    for (const key of [
+      "settingsModeLabel",
+      "simpleSettingsTab",
+      "simpleSettingsTitle",
+      "simpleGoogleApiKey",
+      "simpleGoogleYoutubeGuide",
+      "simpleGoogleApiKeyRequired",
+      "simpleGoogleTesting",
+      "simpleGoogleTestSuccess",
+      "simpleGoogleTestFailed"
+    ]) {
+      assert.ok(message(locale, key), `${locale} should define ${key}`);
+    }
+  }
+});
+
 test("each settings section has its own reset button on the title row", () => {
   for (const id of [
     "resetGeneralSettings",
