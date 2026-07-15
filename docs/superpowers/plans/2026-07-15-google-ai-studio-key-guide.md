@@ -4,7 +4,7 @@
 
 **Goal:** 간단 설정 패널에서만 Google AI Studio API 키 발급 절차와 현지화된 라벨을 제공한다.
 
-**Architecture:** 간단 설정 패널에 정적이고 접근 가능한 네 단계 안내 블록을 추가한다. 링크의 표시 라벨은 공유 설정 객체의 메시지 키로 관리하고, options.js가 현재 UI 언어의 문자열을 렌더링한다. API 키의 저장·마스킹·자동 연결 검증 흐름은 바꾸지 않는다.
+**Architecture:** 간단 설정 패널에 정적이고 접근 가능한 다섯 단계 안내 블록을 추가한다. 링크의 표시 라벨은 공유 설정 객체의 메시지 키로 관리하고, options.js가 현재 UI 언어의 문자열을 렌더링한다. API 키의 저장·마스킹·자동 연결 검증 흐름은 바꾸지 않는다.
 
 **Tech Stack:** Manifest V3 옵션 페이지 HTML/CSS/ES modules, Chrome i18n JSON, Node 내장 테스트 러너.
 
@@ -12,7 +12,7 @@
 
 - 가이드는 simpleSettingsPanel 아래에만 렌더링하고 advancedSettingsPanel에는 렌더링하지 않는다.
 - 간단 설정의 API 키 입력은 한 개만 유지하며 기존 저장·마스킹·자동 연결 검증 코드를 변경하지 않는다.
-- 가이드는 로그인, API Keys, 프로젝트 선택 또는 키 생성, 복사·입력과 자동 연결 확인의 네 단계다.
+- 가이드는 로그인, 처음 사용하는 경우의 영문 프로젝트 생성, 키 생성·복사, 무료 등급 확인, 복사·입력과 자동 연결 확인의 다섯 단계다.
 - 키를 공유하거나 공개 문서에 넣지 말라는 주의 문구를 표시한다.
 - 한국어를 원본으로 영어·일본어 메시지를 같은 키 구조로 동기화한다.
 - 링크는 Google AI Studio API 키 페이지와 기존 더미 YouTube 설정 가이드만 유지한다.
@@ -41,7 +41,7 @@ test("simple settings contain the Google AI Studio key guide only", () => {
   const advancedHtml = optionsHtml.slice(advancedStart, advancedEnd);
 
   assert.match(simpleHtml, /id="simpleGoogleKeyGuide"/);
-  assert.match(simpleHtml, /simpleGoogleKeyGuideStep1[\s\S]*simpleGoogleKeyGuideStep4/);
+  assert.match(simpleHtml, /simpleGoogleKeyGuideStep1[\s\S]*simpleGoogleKeyGuideStep5/);
   assert.match(simpleHtml, /data-i18n="simpleGoogleKeySecurityNotice"/);
   assert.doesNotMatch(advancedHtml, /simpleGoogleKeyGuide/);
 });
@@ -76,7 +76,7 @@ git commit -m "Test Google AI Studio key guide"
 **Interfaces:**
 - SIMPLE_GOOGLE_GUIDE_LINKS becomes an array of { labelKey, url }.
 - renderSimpleGoogleSettings() renders every link with t(link.labelKey).
-- Static HTML guide uses data-i18n keys: simpleGoogleKeyGuideTitle, simpleGoogleKeyGuideStep1, simpleGoogleKeyGuideStep2, simpleGoogleKeyGuideStep3, simpleGoogleKeyGuideStep4, simpleGoogleKeySecurityNotice.
+- Static HTML guide uses data-i18n keys: simpleGoogleKeyGuideTitle, simpleGoogleKeyGuideStep1, simpleGoogleKeyGuideStep2, simpleGoogleKeyGuideStep3, simpleGoogleKeyGuideStep4, simpleGoogleKeyGuideStep5, simpleGoogleKeySecurityNotice.
 
 - [ ] **Step 1: Add the guide directly after the existing simple Google provider note**
 
@@ -88,6 +88,7 @@ git commit -m "Test Google AI Studio key guide"
     <li data-i18n="simpleGoogleKeyGuideStep2"></li>
     <li data-i18n="simpleGoogleKeyGuideStep3"></li>
     <li data-i18n="simpleGoogleKeyGuideStep4"></li>
+    <li data-i18n="simpleGoogleKeyGuideStep5"></li>
   </ol>
   <p class="simple-google-key-security-notice" data-i18n="simpleGoogleKeySecurityNotice"></p>
 </section>
@@ -114,9 +115,9 @@ Use the nearest existing color custom properties if needed; do not introduce pag
 
 - [ ] **Step 3: Localize labels, steps, and link captions**
 
-Add these simple-settings keys to Korean, English, and Japanese: simpleGoogleGetApiKey, simpleGoogleKeyGuideTitle, simpleGoogleKeyGuideStep1, simpleGoogleKeyGuideStep2, simpleGoogleKeyGuideStep3, simpleGoogleKeyGuideStep4, simpleGoogleKeySecurityNotice.
+Add these simple-settings keys to Korean, English, and Japanese: simpleGoogleGetApiKey, simpleGoogleKeyGuideTitle, simpleGoogleKeyGuideStep1, simpleGoogleKeyGuideStep2, simpleGoogleKeyGuideStep3, simpleGoogleKeyGuideStep4, simpleGoogleKeyGuideStep5, simpleGoogleKeySecurityNotice.
 
-Korean uses Google AI API 키, API 키 발급하기, and four concise user actions. English and Japanese convey the same steps. Replace raw link labels with:
+Korean uses Google AI API 키, API 키 발급하기, and five concise user actions, including an English project name example and free-tier check. English and Japanese convey the same steps. Replace raw link labels with:
 
 ~~~js
 export const SIMPLE_GOOGLE_GUIDE_LINKS = [
