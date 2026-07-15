@@ -1154,9 +1154,7 @@ function renderSimpleGoogleSettings() {
     anchor.href = link.url;
     anchor.target = "_blank";
     anchor.rel = "noreferrer";
-    anchor.textContent = link.label === "YouTube 설정 가이드"
-      ? t("simpleGoogleYoutubeGuide")
-      : link.label;
+    anchor.textContent = t(link.labelKey);
     return anchor;
   }));
 }

@@ -57,7 +57,7 @@ test("settings mode tabs default to a focused Google API key simple panel", () =
 
 test("simple settings retain the existing Google guide and show the API key guide only there", () => {
   const simpleStart = optionsHtml.indexOf('id="simpleSettingsPanel"');
-  const simpleEnd = optionsHtml.indexOf("</section>", simpleStart);
+  const simpleEnd = optionsHtml.indexOf('<div id="advancedSettingsPanel"', simpleStart);
   const simpleHtml = optionsHtml.slice(simpleStart, simpleEnd);
   const advancedStart = optionsHtml.indexOf('id="advancedSettingsPanel"');
   const advancedHtml = optionsHtml.slice(advancedStart);
