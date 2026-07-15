@@ -42,12 +42,15 @@
     "message": "Google アカウントで Google AI Studio にログインします。"
   },
   "simpleGoogleKeyGuideStep2": {
-    "message": "API Keys ページで使用するプロジェクトを選びます。"
+    "message": "初めての場合は、API Keys ページで使用するプロジェクトを作成します。名前は 'Gemini Project' のように英語で入力してください。"
   },
   "simpleGoogleKeyGuideStep3": {
     "message": "Create API key を押して新しいキーを作成し、コピーします。"
   },
   "simpleGoogleKeyGuideStep4": {
+    "message": "作成したプロジェクトの課金階層が '無料（Free）' になっていることを必ず確認してください。"
+  },
+  "simpleGoogleKeyGuideStep5": {
     "message": "コピーしたキーを上の入力欄に貼り付けると、Gemini 3.1 Flash Lite が自動設定され、接続を確認します。"
   },
   "simpleGoogleKeySecurityNotice": {
