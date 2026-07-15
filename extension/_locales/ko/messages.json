@@ -29,6 +29,9 @@
   "simpleGoogleApiKey": {
     "message": "Google AI API 키"
   },
+  "simpleGoogleIntroGuide": {
+    "message": "Google AI로 자막을 번역합니다. 아래 안내대로 API 키를 만든 뒤 입력하면 Gemini 3.1 Flash Lite를 자동으로 설정하고 연결을 확인합니다."
+  },
   "simpleGoogleGetApiKey": {
     "message": "API 키 발급하기"
   },
@@ -42,12 +45,15 @@
     "message": "Google 계정으로 Google AI Studio에 로그인하세요."
   },
   "simpleGoogleKeyGuideStep2": {
-    "message": "API Keys 페이지에서 사용할 프로젝트를 선택하세요."
+    "message": "처음이라면 API Keys 페이지에서 사용할 프로젝트를 생성하세요. 이름은 'Gemini Project'처럼 영어로 입력하세요."
   },
   "simpleGoogleKeyGuideStep3": {
     "message": "Create API key를 눌러 새 키를 만들고 복사하세요."
   },
   "simpleGoogleKeyGuideStep4": {
+    "message": "생성한 프로젝트의 결제 등급이 '무료 등급(Free)'인지 꼭 확인하세요."
+  },
+  "simpleGoogleKeyGuideStep5": {
     "message": "복사한 키를 위 입력란에 붙여 넣으면 Gemini 3.1 Flash Lite가 자동으로 설정되고 연결을 확인합니다."
   },
   "simpleGoogleKeySecurityNotice": {

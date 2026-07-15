@@ -1148,7 +1148,7 @@ function renderProviderGuide(providerId) {
 
 function renderSimpleGoogleSettings() {
   simpleGoogleApiKeyInput.value = maskSecretValue(settings.providers.google.apiKey);
-  simpleGoogleGuide.textContent = getProviderGuide("google").text;
+  simpleGoogleGuide.textContent = t("simpleGoogleIntroGuide");
   simpleGoogleGuideLinks.replaceChildren(...SIMPLE_GOOGLE_GUIDE_LINKS.map((link) => {
     const anchor = document.createElement("a");
     anchor.href = link.url;

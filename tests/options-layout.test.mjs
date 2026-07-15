@@ -69,6 +69,7 @@ test("simple settings retain the existing Google guide and show the API key guid
   assert.match(simpleHtml, /data-i18n="simpleGoogleKeyGuideStep2"/);
   assert.match(simpleHtml, /data-i18n="simpleGoogleKeyGuideStep3"/);
   assert.match(simpleHtml, /data-i18n="simpleGoogleKeyGuideStep4"/);
+  assert.match(simpleHtml, /data-i18n="simpleGoogleKeyGuideStep5"/);
   assert.match(simpleHtml, /data-i18n="simpleGoogleKeySecurityNotice"/);
   assert.match(simpleHtml, /id="simpleGoogleGuideLinks"/);
   assert.doesNotMatch(simpleHtml, /id="providerTabs"/);
@@ -99,7 +100,7 @@ test("simple settings use the Google helper, test the key, and retain the curren
   const renderAllBlock = optionsJs.match(/function renderAll\(\) \{([\s\S]*?)\n\}/)?.[1] || "";
   assert.doesNotMatch(renderAllBlock, /setSettingsMode/);
   assert.match(optionsJs, /SIMPLE_GOOGLE_GUIDE_LINKS/);
-  assert.match(optionsJs, /getProviderGuide\("google"\)\.text/);
+  assert.match(optionsJs, /simpleGoogleGuide\.textContent = t\("simpleGoogleIntroGuide"\);/);
 });
 
 test("simple settings messages are synchronized in Korean, English, and Japanese", () => {
@@ -113,6 +114,7 @@ test("simple settings messages are synchronized in Korean, English, and Japanese
       "simpleSettingsTab",
       "simpleSettingsTitle",
       "simpleGoogleApiKey",
+      "simpleGoogleIntroGuide",
       "simpleGoogleGetApiKey",
       "simpleGoogleYoutubeGuide",
       "simpleGoogleKeyGuideTitle",
@@ -120,6 +122,7 @@ test("simple settings messages are synchronized in Korean, English, and Japanese
       "simpleGoogleKeyGuideStep2",
       "simpleGoogleKeyGuideStep3",
       "simpleGoogleKeyGuideStep4",
+      "simpleGoogleKeyGuideStep5",
       "simpleGoogleKeySecurityNotice",
       "simpleGoogleApiKeyRequired",
       "simpleGoogleTesting",
@@ -129,6 +132,19 @@ test("simple settings messages are synchronized in Korean, English, and Japanese
       assert.ok(message(locale, key), `${locale} should define ${key}`);
     }
   }
+
+  assert.equal(
+    message("ko", "simpleGoogleKeyGuideStep2"),
+    "처음이라면 API Keys 페이지에서 사용할 프로젝트를 생성하세요. 이름은 'Gemini Project'처럼 영어로 입력하세요."
+  );
+  assert.equal(
+    message("ko", "simpleGoogleKeyGuideStep4"),
+    "생성한 프로젝트의 결제 등급이 '무료 등급(Free)'인지 꼭 확인하세요."
+  );
+  assert.equal(
+    message("ko", "simpleGoogleIntroGuide"),
+    "Google AI로 자막을 번역합니다. 아래 안내대로 API 키를 만든 뒤 입력하면 Gemini 3.1 Flash Lite를 자동으로 설정하고 연결을 확인합니다."
+  );
 });
 
 test("each settings section has its own reset button on the title row", () => {
