@@ -64,6 +64,11 @@ test("simple settings retain the existing Google guide and show the API key guid
   const advancedHtml = optionsHtml.slice(advancedStart);
 
   assert.match(simpleHtml, /id="simpleGoogleGuide"/);
+  assert.match(
+    simpleHtml,
+    /<div class="simple-google-key-row">\s*<label class="simple-google-key-field">[\s\S]*id="simpleGoogleApiKey"[\s\S]*<\/label>\s*<button id="testSimpleGoogleApiKey"[^>]*data-i18n="simpleGoogleTestApiKey"[^>]*><\/button>\s*<\/div>\s*<p id="simpleSettingsStatus"[^>]*role="status"><\/p>/
+  );
+  assert.ok(simpleHtml.indexOf('id="simpleSettingsStatus"') < simpleHtml.indexOf('id="simpleGoogleGuide"'));
   assert.match(simpleHtml, /id="simpleGoogleKeyGuide"/);
   assert.match(simpleHtml, /data-i18n="simpleGoogleKeyGuideTitle"/);
   assert.match(simpleHtml, /data-i18n="simpleGoogleKeyGuideStep1"/);
@@ -74,9 +79,11 @@ test("simple settings retain the existing Google guide and show the API key guid
   assert.match(simpleHtml, /data-i18n="simpleGoogleFreeTierNotice"/);
   assert.match(simpleHtml, /data-i18n="simpleGoogleKeySecurityNotice"/);
   assert.match(simpleHtml, /id="simpleGoogleGuideLinks"/);
-  assert.match(simpleHtml, /id="testSimpleGoogleApiKey"[^>]*data-i18n="simpleGoogleTestApiKey"/);
+  assert.doesNotMatch(simpleHtml, /simple-google-actions/);
   assert.doesNotMatch(simpleHtml, /id="providerTabs"/);
   assert.doesNotMatch(advancedHtml, /simpleGoogleKeyGuide/);
+  assert.match(optionsCss, /\.simple-google-key-row\s*\{[\s\S]*display: flex;/);
+  assert.match(extractCssBlock(optionsCss, ".simple-google-key-field"), /flex: 1;/);
 });
 
 test("simple settings use the Google helper, test the key, and retain the current provider on failure", () => {

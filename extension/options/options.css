@@ -155,11 +155,23 @@ button.ghost {
   font-weight: 700;
 }
 
+.simple-google-key-row {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+  max-width: 640px;
+  margin-top: 16px;
+}
+
 .simple-google-key-field {
   display: grid;
+  flex: 1;
   gap: 7px;
-  max-width: 520px;
-  margin-top: 16px;
+  min-width: 0;
+}
+
+.simple-google-key-row .primary {
+  flex: 0 0 auto;
 }
 
 .simple-settings-panel .provider-note {
@@ -196,12 +208,8 @@ button.ghost {
   font-size: 12px;
 }
 
-.simple-google-actions {
-  margin-top: 16px;
-}
-
 .simple-settings-panel .status-line {
-  margin-top: 12px;
+  margin: 8px 0 0;
   text-align: left;
 }
 
