@@ -177,9 +177,6 @@ test("settings mode tabs default to a focused Google API key simple panel", () =
   assert.match(optionsHtml, /id="simpleGoogleApiKey" type="password" autocomplete="off"/);
   assert.match(optionsHtml, /id="simpleSettingsStatus"[^>]*role="status"/);
   assert.match(optionsHtml, /id="advancedSettingsPanel"[^>]*hidden/);
-  assert.equal(message("ko", "simpleSettingsTab"), "간단 설정");
-  assert.equal(message("en", "simpleSettingsTab"), "Simple Settings");
-  assert.equal(message("ja", "simpleSettingsTab"), "かんたん設定");
   assert.match(optionsCss, /\.settings-mode-tabs\s*\{/);
   assert.match(optionsCss, /\.settings-mode-tabs button\.active\s*\{/);
 });
