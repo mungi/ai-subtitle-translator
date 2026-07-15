@@ -24,13 +24,34 @@
     "message": "Advanced Settings"
   },
   "simpleSettingsTitle": {
-    "message": "Get started quickly with Google AI"
+    "message": "Start subtitle translation with Google AI"
   },
   "simpleGoogleApiKey": {
-    "message": "Google AI API Key"
+    "message": "Google AI API key"
+  },
+  "simpleGoogleGetApiKey": {
+    "message": "Get API key"
   },
   "simpleGoogleYoutubeGuide": {
-    "message": "YouTube setup guide"
+    "message": "YouTube setup video"
+  },
+  "simpleGoogleKeyGuideTitle": {
+    "message": "Get an API key in Google AI Studio"
+  },
+  "simpleGoogleKeyGuideStep1": {
+    "message": "Sign in to Google AI Studio with your Google account."
+  },
+  "simpleGoogleKeyGuideStep2": {
+    "message": "On the API Keys page, choose the project you want to use."
+  },
+  "simpleGoogleKeyGuideStep3": {
+    "message": "Click Create API key, then copy the new key."
+  },
+  "simpleGoogleKeyGuideStep4": {
+    "message": "Paste the key above. Gemini 3.1 Flash Lite is set automatically and the connection is checked."
+  },
+  "simpleGoogleKeySecurityNotice": {
+    "message": "Treat your API key like a password. Do not share it or put it in public documents."
   },
   "simpleGoogleApiKeyRequired": {
     "message": "Enter a Google AI API Key."

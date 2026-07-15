@@ -55,14 +55,24 @@ test("settings mode tabs default to a focused Google API key simple panel", () =
   assert.match(optionsCss, /\.settings-mode-tabs button\.active\s*\{/);
 });
 
-test("simple settings retain the existing Google guide but expose exactly two links", () => {
+test("simple settings retain the existing Google guide and show the API key guide only there", () => {
   const simpleStart = optionsHtml.indexOf('id="simpleSettingsPanel"');
-  const simpleEnd = optionsHtml.indexOf("</section>", simpleStart);
+  const simpleEnd = optionsHtml.indexOf('<div id="advancedSettingsPanel"', simpleStart);
   const simpleHtml = optionsHtml.slice(simpleStart, simpleEnd);
+  const advancedStart = optionsHtml.indexOf('id="advancedSettingsPanel"');
+  const advancedHtml = optionsHtml.slice(advancedStart);
 
   assert.match(simpleHtml, /id="simpleGoogleGuide"/);
+  assert.match(simpleHtml, /id="simpleGoogleKeyGuide"/);
+  assert.match(simpleHtml, /data-i18n="simpleGoogleKeyGuideTitle"/);
+  assert.match(simpleHtml, /data-i18n="simpleGoogleKeyGuideStep1"/);
+  assert.match(simpleHtml, /data-i18n="simpleGoogleKeyGuideStep2"/);
+  assert.match(simpleHtml, /data-i18n="simpleGoogleKeyGuideStep3"/);
+  assert.match(simpleHtml, /data-i18n="simpleGoogleKeyGuideStep4"/);
+  assert.match(simpleHtml, /data-i18n="simpleGoogleKeySecurityNotice"/);
   assert.match(simpleHtml, /id="simpleGoogleGuideLinks"/);
   assert.doesNotMatch(simpleHtml, /id="providerTabs"/);
+  assert.doesNotMatch(advancedHtml, /simpleGoogleKeyGuide/);
 });
 
 test("simple settings use the Google helper, test the key, and retain the current provider on failure", () => {
@@ -103,7 +113,14 @@ test("simple settings messages are synchronized in Korean, English, and Japanese
       "simpleSettingsTab",
       "simpleSettingsTitle",
       "simpleGoogleApiKey",
+      "simpleGoogleGetApiKey",
       "simpleGoogleYoutubeGuide",
+      "simpleGoogleKeyGuideTitle",
+      "simpleGoogleKeyGuideStep1",
+      "simpleGoogleKeyGuideStep2",
+      "simpleGoogleKeyGuideStep3",
+      "simpleGoogleKeyGuideStep4",
+      "simpleGoogleKeySecurityNotice",
       "simpleGoogleApiKeyRequired",
       "simpleGoogleTesting",
       "simpleGoogleTestSuccess",

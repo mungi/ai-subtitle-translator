@@ -24,13 +24,34 @@
     "message": "詳細設定"
   },
   "simpleSettingsTitle": {
-    "message": "Google AI ですぐに始める"
+    "message": "Google AI で字幕翻訳を始める"
   },
   "simpleGoogleApiKey": {
-    "message": "Google AI API Key"
+    "message": "Google AI API キー"
+  },
+  "simpleGoogleGetApiKey": {
+    "message": "API キーを取得"
   },
   "simpleGoogleYoutubeGuide": {
-    "message": "YouTube 設定ガイド"
+    "message": "YouTube 設定ガイド動画"
+  },
+  "simpleGoogleKeyGuideTitle": {
+    "message": "Google AI Studio で API キーを取得"
+  },
+  "simpleGoogleKeyGuideStep1": {
+    "message": "Google アカウントで Google AI Studio にログインします。"
+  },
+  "simpleGoogleKeyGuideStep2": {
+    "message": "API Keys ページで使用するプロジェクトを選びます。"
+  },
+  "simpleGoogleKeyGuideStep3": {
+    "message": "Create API key を押して新しいキーを作成し、コピーします。"
+  },
+  "simpleGoogleKeyGuideStep4": {
+    "message": "コピーしたキーを上の入力欄に貼り付けると、Gemini 3.1 Flash Lite が自動設定され、接続を確認します。"
+  },
+  "simpleGoogleKeySecurityNotice": {
+    "message": "API キーはパスワードのように扱ってください。他の人と共有したり、公開文書に載せたりしないでください。"
   },
   "simpleGoogleApiKeyRequired": {
     "message": "Google AI API Key を入力してください。"

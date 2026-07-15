@@ -2,8 +2,8 @@ import { resolveSecretFieldValue } from "./secret-fields.js";
 
 export const SIMPLE_GOOGLE_MODEL = "gemini-3.1-flash-lite";
 export const SIMPLE_GOOGLE_GUIDE_LINKS = [
-  { label: "Get API Key", url: "https://aistudio.google.com/api-keys" },
-  { label: "YouTube 설정 가이드", url: "https://www.youtube.com/watch?v=PLACEHOLDER" }
+  { labelKey: "simpleGoogleGetApiKey", url: "https://aistudio.google.com/api-keys" },
+  { labelKey: "simpleGoogleYoutubeGuide", url: "https://www.youtube.com/watch?v=PLACEHOLDER" }
 ];
 
 function withoutGoogleTestSuccess(providerTestStatus = {}) {

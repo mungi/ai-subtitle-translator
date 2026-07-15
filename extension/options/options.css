@@ -166,6 +166,30 @@ button.ghost {
   margin-top: 16px;
 }
 
+.simple-google-key-guide {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.simple-google-key-guide h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.simple-google-key-guide ol {
+  margin: 10px 0;
+  padding-left: 22px;
+}
+
+.simple-google-key-security-notice {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .simple-settings-panel .status-line {
   margin-top: 12px;
   text-align: left;
