@@ -85,10 +85,10 @@ test("an empty replacement restores the previously verified active Google config
   assert.equal(next.providerTestStatus.google, "success");
 });
 
-test("simple settings expose only the required API key and dummy YouTube links", () => {
+test("simple settings expose localized API key and dummy YouTube guide links", () => {
   assert.deepEqual(SIMPLE_GOOGLE_GUIDE_LINKS, [
-    { label: "Get API Key", url: "https://aistudio.google.com/api-keys" },
-    { label: "YouTube 설정 가이드", url: "https://www.youtube.com/watch?v=PLACEHOLDER" }
+    { labelKey: "simpleGoogleGetApiKey", url: "https://aistudio.google.com/api-keys" },
+    { labelKey: "simpleGoogleYoutubeGuide", url: "https://www.youtube.com/watch?v=PLACEHOLDER" }
   ]);
   assert.equal(SIMPLE_GOOGLE_MODEL, "gemini-3.1-flash-lite");
 });
