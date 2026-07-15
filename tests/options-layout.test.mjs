@@ -65,6 +65,23 @@ test("simple settings retain the existing Google guide but expose exactly two li
   assert.doesNotMatch(simpleHtml, /id="providerTabs"/);
 });
 
+test("simple settings use the Google helper, test the key, and retain the current provider on failure", () => {
+  assert.match(
+    optionsJs,
+    /import \{[\s\S]*stageSimpleGoogleApiKey[\s\S]*applySimpleGoogleTestResult[\s\S]*\} from "\.\.\/shared\/simple-google-settings\.js"/
+  );
+  assert.match(optionsJs, /function setSettingsMode\(mode\)/);
+  assert.match(optionsJs, /function renderSimpleGoogleSettings\(\)/);
+  assert.match(optionsJs, /async function testSimpleGoogleApiKey\(\)/);
+  assert.match(optionsJs, /settings = stageSimpleGoogleApiKey\(settings, simpleGoogleApiKeyInput\.value\);/);
+  assert.match(optionsJs, /type: "llm\.testActiveProvider",\s*providerId: "google"/);
+  assert.match(optionsJs, /settings = applySimpleGoogleTestResult\(settings, response\?\.ok\);/);
+  assert.match(optionsJs, /simpleGoogleApiKeyInput\.addEventListener\("change"/);
+  assert.match(optionsJs, /setSettingsMode\("simple"\);/);
+  assert.match(optionsJs, /SIMPLE_GOOGLE_GUIDE_LINKS/);
+  assert.match(optionsJs, /getProviderGuide\("google"\)\.text/);
+});
+
 test("each settings section has its own reset button on the title row", () => {
   for (const id of [
     "resetGeneralSettings",

@@ -4,6 +4,7 @@ import { getConfiguredKeyProviders, validateConfiguredProviderKeys } from "../sh
 import { selectRecommendedModel } from "../shared/model-recommendations.js";
 import { getOrderedProviders, PROVIDER_TAB_SEPARATOR_AFTER_ID } from "../shared/provider-order.js";
 import { maskSecretValue, resolveSecretFieldValue } from "../shared/secret-fields.js";
+import { SIMPLE_GOOGLE_GUIDE_LINKS, stageSimpleGoogleApiKey, applySimpleGoogleTestResult } from "../shared/simple-google-settings.js";
 import { createEncryptedSettingsBackup, decryptSettingsBackup, settingsBackupInternals, validateBackupSeed } from "../shared/settings-backup.js";
 import { getExtensionUiLanguage, getMessage } from "../shared/i18n.js";
 import { getCustomLlmPermissionOrigin } from "../shared/provider-security.js";
@@ -136,6 +137,14 @@ const providerTabs = document.getElementById("providerTabs");
 const providerForm = document.getElementById("providerForm");
 const testProviderButton = document.getElementById("testProvider");
 const statusLine = document.getElementById("statusLine");
+const simpleSettingsTab = document.getElementById("simpleSettingsTab");
+const advancedSettingsTab = document.getElementById("advancedSettingsTab");
+const simpleSettingsPanel = document.getElementById("simpleSettingsPanel");
+const advancedSettingsPanel = document.getElementById("advancedSettingsPanel");
+const simpleGoogleApiKeyInput = document.getElementById("simpleGoogleApiKey");
+const simpleGoogleGuide = document.getElementById("simpleGoogleGuide");
+const simpleGoogleGuideLinks = document.getElementById("simpleGoogleGuideLinks");
+const simpleSettingsStatus = document.getElementById("simpleSettingsStatus");
 const backupSeedInput = document.getElementById("backupSeed");
 const backupSeedConfirmationField = document.getElementById("backupSeedConfirmationField");
 const backupSeedConfirmationInput = document.getElementById("backupSeedConfirmation");
@@ -194,6 +203,23 @@ function applyLocaleText() {
 function setStatus(message, type = "") {
   statusLine.textContent = message;
   statusLine.className = `status-line ${type}`.trim();
+}
+
+function setSimpleSettingsStatus(message, type = "") {
+  simpleSettingsStatus.textContent = message;
+  simpleSettingsStatus.className = `status-line ${type}`.trim();
+}
+
+function setSettingsMode(mode) {
+  const isSimple = mode === "simple";
+  simpleSettingsPanel.hidden = !isSimple;
+  advancedSettingsPanel.hidden = isSimple;
+  simpleSettingsTab.setAttribute("aria-selected", String(isSimple));
+  advancedSettingsTab.setAttribute("aria-selected", String(!isSimple));
+  simpleSettingsTab.tabIndex = isSimple ? 0 : -1;
+  advancedSettingsTab.tabIndex = isSimple ? -1 : 0;
+  simpleSettingsTab.classList.toggle("active", isSimple);
+  advancedSettingsTab.classList.toggle("active", !isSimple);
 }
 
 function setBackupStatus(message, type = "") {
@@ -1088,6 +1114,56 @@ function renderProviderGuide(providerId) {
   return note;
 }
 
+function renderSimpleGoogleSettings() {
+  simpleGoogleApiKeyInput.value = maskSecretValue(settings.providers.google.apiKey);
+  simpleGoogleGuide.textContent = getProviderGuide("google").text;
+  simpleGoogleGuideLinks.replaceChildren(...SIMPLE_GOOGLE_GUIDE_LINKS.map((link) => {
+    const anchor = document.createElement("a");
+    anchor.href = link.url;
+    anchor.target = "_blank";
+    anchor.rel = "noreferrer";
+    anchor.textContent = link.label === "YouTube 설정 가이드"
+      ? t("simpleGoogleYoutubeGuide")
+      : link.label;
+    return anchor;
+  }));
+}
+
+async function testSimpleGoogleApiKey() {
+  settings = stageSimpleGoogleApiKey(settings, simpleGoogleApiKeyInput.value);
+  settings = await saveSettings(settings);
+  renderSimpleGoogleSettings();
+
+  if (!settings.providers.google.apiKey) {
+    setSimpleSettingsStatus(t("simpleGoogleApiKeyRequired"), "error");
+    return;
+  }
+
+  simpleGoogleApiKeyInput.disabled = true;
+  setSimpleSettingsStatus(t("simpleGoogleTesting"));
+  let response;
+  try {
+    response = await chrome.runtime.sendMessage({
+      type: "llm.testActiveProvider",
+      providerId: "google"
+    });
+  } catch (error) {
+    response = { ok: false, error: error.message };
+  } finally {
+    simpleGoogleApiKeyInput.disabled = false;
+  }
+
+  settings = applySimpleGoogleTestResult(settings, response?.ok);
+  settings = await saveSettings(settings);
+  renderAll();
+  setSimpleSettingsStatus(
+    response?.ok
+      ? t("simpleGoogleTestSuccess")
+      : `${t("simpleGoogleTestFailed")}: ${response?.error || "Unknown error"}`,
+    response?.ok ? "success" : "error"
+  );
+}
+
 function captureCurrentFormState() {
   readGeneralSettings();
   readSubtitleStyleSettings();
@@ -1221,6 +1297,8 @@ function renderAll() {
   renderSubtitleStyleSettings();
   renderProviderTabs();
   renderProviderForm();
+  renderSimpleGoogleSettings();
+  setSettingsMode("simple");
 }
 
 function renderPlatformSettings() {
@@ -1235,6 +1313,14 @@ async function init() {
   settings = await getSettings();
   selectedProviderId = settings.activeProvider;
   renderAll();
+
+  simpleSettingsTab.addEventListener("click", () => setSettingsMode("simple"));
+  advancedSettingsTab.addEventListener("click", () => setSettingsMode("advanced"));
+  simpleGoogleApiKeyInput.addEventListener("change", () => {
+    testSimpleGoogleApiKey().catch((error) => {
+      setSimpleSettingsStatus(`${t("simpleGoogleTestFailed")}: ${error.message}`, "error");
+    });
+  });
 
   Object.values(subtitleStyleInputs).forEach((input) => {
     input.addEventListener("input", applySubtitlePreview);
