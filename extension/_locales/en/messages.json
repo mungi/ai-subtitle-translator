@@ -24,13 +24,19 @@
     "message": "Advanced Settings"
   },
   "simpleSettingsTitle": {
-    "message": "Start free LLM AI translation with Google Gemini"
+    "message": "Start free subtitle translation with Google Gemini"
   },
   "simpleGoogleApiKey": {
     "message": "Google AI API key"
   },
   "simpleGoogleIntroGuide": {
-    "message": "Translate subtitles with Google AI. Create an API key using the guide below and enter it here; Gemini 3.1 Flash Lite is configured and checked automatically."
+    "message": "Translate subtitles with Google AI. Create an API key using the guide below and enter it here; Gemini 3.1 Flash Lite is set automatically. Select Check API key to verify the connection."
+  },
+  "simpleGoogleTestApiKey": {
+    "message": "Check API key"
+  },
+  "simpleGoogleApiKeyReady": {
+    "message": "Your API key is ready. Select Check API key to save it and verify the connection."
   },
   "simpleGoogleGetApiKey": {
     "message": "Get API key"
@@ -54,7 +60,10 @@
     "message": "Make sure the billing tier for the project you created is 'Free'."
   },
   "simpleGoogleKeyGuideStep5": {
-    "message": "Paste the key above. Gemini 3.1 Flash Lite is set automatically and the connection is checked."
+    "message": "Paste the key above. Gemini 3.1 Flash Lite is set automatically. Select Check API key to verify the connection."
+  },
+  "simpleGoogleFreeTierNotice": {
+    "message": "The Free tier has usage limits. Daily request quotas reset at midnight Pacific time."
   },
   "simpleGoogleKeySecurityNotice": {
     "message": "Treat your API key like a password. Do not share it or put it in public documents."

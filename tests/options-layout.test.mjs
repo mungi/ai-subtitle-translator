@@ -53,7 +53,7 @@ test("settings mode tabs default to a focused Google API key simple panel", () =
   assert.match(optionsHtml, /id="advancedSettingsPanel"[^>]*hidden/);
   assert.match(optionsCss, /\.settings-mode-tabs\s*\{/);
   assert.match(optionsCss, /\.settings-mode-tabs button\.active\s*\{/);
-  assert.equal(message("ko", "simpleSettingsTitle"), "Google Gemini로 무료 LLM AI 번역 시작하기");
+  assert.equal(message("ko", "simpleSettingsTitle"), "Google Gemini로 무료 자막 번역 시작하기");
 });
 
 test("simple settings retain the existing Google guide and show the API key guide only there", () => {
@@ -71,8 +71,10 @@ test("simple settings retain the existing Google guide and show the API key guid
   assert.match(simpleHtml, /data-i18n="simpleGoogleKeyGuideStep3"/);
   assert.match(simpleHtml, /data-i18n="simpleGoogleKeyGuideStep4"/);
   assert.match(simpleHtml, /data-i18n="simpleGoogleKeyGuideStep5"/);
+  assert.match(simpleHtml, /data-i18n="simpleGoogleFreeTierNotice"/);
   assert.match(simpleHtml, /data-i18n="simpleGoogleKeySecurityNotice"/);
   assert.match(simpleHtml, /id="simpleGoogleGuideLinks"/);
+  assert.match(simpleHtml, /id="testSimpleGoogleApiKey"[^>]*data-i18n="simpleGoogleTestApiKey"/);
   assert.doesNotMatch(simpleHtml, /id="providerTabs"/);
   assert.doesNotMatch(advancedHtml, /simpleGoogleKeyGuide/);
 });
@@ -91,12 +93,16 @@ test("simple settings use the Google helper, test the key, and retain the curren
   assert.match(optionsJs, /case "Home":/);
   assert.match(optionsJs, /case "End":/);
   assert.match(optionsJs, /settingsModeTabs\.addEventListener\("keydown", handleSettingsModeTabsKeydown\);/);
+  assert.match(optionsJs, /function prepareSimpleGoogleApiKey\(\)/);
   assert.match(optionsJs, /async function testSimpleGoogleApiKey\(\) \{\s*await flushAutomaticSave\(\);/);
-  assert.match(optionsJs, /settings = stageSimpleGoogleApiKey\(settings, simpleGoogleApiKeyInput\.value\);/);
-  assert.match(optionsJs, /const activeGoogleBackup = captureActiveGoogleBackup\(settings\);/);
+  assert.match(optionsJs, /const stagedSettings = stageSimpleGoogleApiKey\(settings, pendingSimpleGoogleApiKey\);/);
+  assert.match(optionsJs, /settings = stageSimpleGoogleApiKey\(settings, pendingSimpleGoogleApiKey \?\? simpleGoogleApiKeyInput\.value\);/);
+  assert.match(optionsJs, /pendingSimpleGoogleActiveBackup \?\? captureActiveGoogleBackup\(settings\)/);
   assert.match(optionsJs, /type: "llm\.testActiveProvider",\s*providerId: "google"/);
   assert.match(optionsJs, /settings = applySimpleGoogleTestResult\(settings, response\?\.ok, activeGoogleBackup\);/);
-  assert.match(optionsJs, /simpleGoogleApiKeyInput\.addEventListener\("change"/);
+  assert.match(optionsJs, /simpleGoogleApiKeyInput\.addEventListener\("change", prepareSimpleGoogleApiKey\);/);
+  assert.match(optionsJs, /testSimpleGoogleApiKeyButton\.addEventListener\("click"/);
+  assert.match(optionsJs, /testSimpleGoogleApiKeyButton\.disabled = true;/);
   assert.match(optionsJs, /settings = await getSettings\(\);\s*selectedProviderId = settings\.activeProvider;\s*renderAll\(\);\s*setSettingsMode\("simple"\);/);
   const renderAllBlock = optionsJs.match(/function renderAll\(\) \{([\s\S]*?)\n\}/)?.[1] || "";
   assert.doesNotMatch(renderAllBlock, /setSettingsMode/);
@@ -116,6 +122,8 @@ test("simple settings messages are synchronized in Korean, English, and Japanese
       "simpleSettingsTitle",
       "simpleGoogleApiKey",
       "simpleGoogleIntroGuide",
+      "simpleGoogleTestApiKey",
+      "simpleGoogleApiKeyReady",
       "simpleGoogleGetApiKey",
       "simpleGoogleYoutubeGuide",
       "simpleGoogleKeyGuideTitle",
@@ -124,6 +132,7 @@ test("simple settings messages are synchronized in Korean, English, and Japanese
       "simpleGoogleKeyGuideStep3",
       "simpleGoogleKeyGuideStep4",
       "simpleGoogleKeyGuideStep5",
+      "simpleGoogleFreeTierNotice",
       "simpleGoogleKeySecurityNotice",
       "simpleGoogleApiKeyRequired",
       "simpleGoogleTesting",
@@ -144,7 +153,11 @@ test("simple settings messages are synchronized in Korean, English, and Japanese
   );
   assert.equal(
     message("ko", "simpleGoogleIntroGuide"),
-    "Google AI로 자막을 번역합니다. 아래 안내대로 API 키를 만든 뒤 입력하면 Gemini 3.1 Flash Lite를 자동으로 설정하고 연결을 확인합니다."
+    "Google AI로 자막을 번역합니다. 아래 안내대로 API 키를 만든 뒤 입력하면 Gemini 3.1 Flash Lite가 자동으로 설정됩니다. API 키 확인을 눌러 연결을 확인하세요."
+  );
+  assert.equal(
+    message("ko", "simpleGoogleFreeTierNotice"),
+    "무료 등급에는 사용 한도가 있습니다. 일일 요청 한도는 미국 태평양 시간 자정에 초기화됩니다."
   );
 });
 

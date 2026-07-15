@@ -24,13 +24,19 @@
     "message": "詳細設定"
   },
   "simpleSettingsTitle": {
-    "message": "Google Gemini で無料 LLM AI 翻訳を始める"
+    "message": "Google Gemini で無料の字幕翻訳を始める"
   },
   "simpleGoogleApiKey": {
     "message": "Google AI API キー"
   },
   "simpleGoogleIntroGuide": {
-    "message": "Google AI で字幕を翻訳します。下の案内に沿って API キーを作成して入力すると、Gemini 3.1 Flash Lite が自動設定され、接続を確認します。"
+    "message": "Google AI で字幕を翻訳します。下の案内に沿って API キーを作成して入力すると、Gemini 3.1 Flash Lite が自動設定されます。API キーを確認を押して接続を確認してください。"
+  },
+  "simpleGoogleTestApiKey": {
+    "message": "API キーを確認"
+  },
+  "simpleGoogleApiKeyReady": {
+    "message": "API キーを入力しました。API キーを確認を押して保存し、接続を確認してください。"
   },
   "simpleGoogleGetApiKey": {
     "message": "API キーを取得"
@@ -54,7 +60,10 @@
     "message": "作成したプロジェクトの課金階層が '無料（Free）' になっていることを必ず確認してください。"
   },
   "simpleGoogleKeyGuideStep5": {
-    "message": "コピーしたキーを上の入力欄に貼り付けると、Gemini 3.1 Flash Lite が自動設定され、接続を確認します。"
+    "message": "コピーしたキーを上の入力欄に貼り付けると、Gemini 3.1 Flash Lite が自動設定されます。API キーを確認を押して接続を確認してください。"
+  },
+  "simpleGoogleFreeTierNotice": {
+    "message": "無料枠には利用制限があります。1 日あたりのリクエスト上限は太平洋時間の午前 0 時にリセットされます。"
   },
   "simpleGoogleKeySecurityNotice": {
     "message": "API キーはパスワードのように扱ってください。他の人と共有したり、公開文書に載せたりしないでください。"

@@ -184,10 +184,20 @@ button.ghost {
   padding-left: 22px;
 }
 
+.simple-google-free-tier-notice {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .simple-google-key-security-notice {
   margin: 0;
   color: var(--muted);
   font-size: 12px;
+}
+
+.simple-google-actions {
+  margin-top: 16px;
 }
 
 .simple-settings-panel .status-line {

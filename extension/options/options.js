@@ -124,6 +124,8 @@ let autoSaveTimer = null;
 let autoSaveChain = Promise.resolve();
 let settingsRevision = 0;
 let pendingAutoSave = null;
+let pendingSimpleGoogleActiveBackup = null;
+let pendingSimpleGoogleApiKey = null;
 
 const activeProviderSelect = document.getElementById("activeProvider");
 const targetLanguageSelect = document.getElementById("targetLanguage");
@@ -145,6 +147,7 @@ const advancedSettingsPanel = document.getElementById("advancedSettingsPanel");
 const simpleGoogleApiKeyInput = document.getElementById("simpleGoogleApiKey");
 const simpleGoogleGuide = document.getElementById("simpleGoogleGuide");
 const simpleGoogleGuideLinks = document.getElementById("simpleGoogleGuideLinks");
+const testSimpleGoogleApiKeyButton = document.getElementById("testSimpleGoogleApiKey");
 const simpleSettingsStatus = document.getElementById("simpleSettingsStatus");
 const backupSeedInput = document.getElementById("backupSeed");
 const backupSeedConfirmationField = document.getElementById("backupSeedConfirmationField");
@@ -1147,7 +1150,7 @@ function renderProviderGuide(providerId) {
 }
 
 function renderSimpleGoogleSettings() {
-  simpleGoogleApiKeyInput.value = maskSecretValue(settings.providers.google.apiKey);
+  simpleGoogleApiKeyInput.value = pendingSimpleGoogleApiKey ?? maskSecretValue(settings.providers.google.apiKey);
   simpleGoogleGuide.textContent = t("simpleGoogleIntroGuide");
   simpleGoogleGuideLinks.replaceChildren(...SIMPLE_GOOGLE_GUIDE_LINKS.map((link) => {
     const anchor = document.createElement("a");
@@ -1159,22 +1162,37 @@ function renderSimpleGoogleSettings() {
   }));
 }
 
+function prepareSimpleGoogleApiKey() {
+  pendingSimpleGoogleApiKey = simpleGoogleApiKeyInput.value;
+  pendingSimpleGoogleActiveBackup ??= captureActiveGoogleBackup(settings);
+  const stagedSettings = stageSimpleGoogleApiKey(settings, pendingSimpleGoogleApiKey);
+
+  setSimpleSettingsStatus(
+    stagedSettings.providers.google.apiKey ? t("simpleGoogleApiKeyReady") : t("simpleGoogleApiKeyRequired"),
+    stagedSettings.providers.google.apiKey ? "" : "error"
+  );
+}
+
 async function testSimpleGoogleApiKey() {
   await flushAutomaticSave();
-  const activeGoogleBackup = captureActiveGoogleBackup(settings);
-  settings = stageSimpleGoogleApiKey(settings, simpleGoogleApiKeyInput.value);
+  const activeGoogleBackup = pendingSimpleGoogleActiveBackup ?? captureActiveGoogleBackup(settings);
+  settings = stageSimpleGoogleApiKey(settings, pendingSimpleGoogleApiKey ?? simpleGoogleApiKeyInput.value);
 
   if (!settings.providers.google.apiKey) {
     settings = applySimpleGoogleTestResult(settings, false, activeGoogleBackup);
     settings = await saveSettings(settings);
+    pendingSimpleGoogleApiKey = null;
+    pendingSimpleGoogleActiveBackup = null;
     renderAll();
     setSimpleSettingsStatus(t("simpleGoogleApiKeyRequired"), "error");
     return;
   }
 
   settings = await saveSettings(settings);
+  pendingSimpleGoogleApiKey = null;
   renderSimpleGoogleSettings();
   simpleGoogleApiKeyInput.disabled = true;
+  testSimpleGoogleApiKeyButton.disabled = true;
   setSimpleSettingsStatus(t("simpleGoogleTesting"));
   let response;
   try {
@@ -1186,10 +1204,12 @@ async function testSimpleGoogleApiKey() {
     response = { ok: false, error: error.message };
   } finally {
     simpleGoogleApiKeyInput.disabled = false;
+    testSimpleGoogleApiKeyButton.disabled = false;
   }
 
   settings = applySimpleGoogleTestResult(settings, response?.ok, activeGoogleBackup);
   settings = await saveSettings(settings);
+  pendingSimpleGoogleActiveBackup = null;
   renderAll();
   setSimpleSettingsStatus(
     response?.ok
@@ -1352,8 +1372,11 @@ async function init() {
   simpleSettingsTab.addEventListener("click", () => setSettingsMode("simple"));
   advancedSettingsTab.addEventListener("click", () => setSettingsMode("advanced"));
   settingsModeTabs.addEventListener("keydown", handleSettingsModeTabsKeydown);
-  simpleGoogleApiKeyInput.addEventListener("change", () => {
+  simpleGoogleApiKeyInput.addEventListener("change", prepareSimpleGoogleApiKey);
+  testSimpleGoogleApiKeyButton.addEventListener("click", () => {
     testSimpleGoogleApiKey().catch((error) => {
+      pendingSimpleGoogleApiKey = null;
+      pendingSimpleGoogleActiveBackup = null;
       setSimpleSettingsStatus(`${t("simpleGoogleTestFailed")}: ${error.message}`, "error");
     });
   });

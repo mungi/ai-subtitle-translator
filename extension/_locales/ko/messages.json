@@ -24,13 +24,19 @@
     "message": "고급 설정"
   },
   "simpleSettingsTitle": {
-    "message": "Google Gemini로 무료 LLM AI 번역 시작하기"
+    "message": "Google Gemini로 무료 자막 번역 시작하기"
   },
   "simpleGoogleApiKey": {
     "message": "Google AI API 키"
   },
   "simpleGoogleIntroGuide": {
-    "message": "Google AI로 자막을 번역합니다. 아래 안내대로 API 키를 만든 뒤 입력하면 Gemini 3.1 Flash Lite를 자동으로 설정하고 연결을 확인합니다."
+    "message": "Google AI로 자막을 번역합니다. 아래 안내대로 API 키를 만든 뒤 입력하면 Gemini 3.1 Flash Lite가 자동으로 설정됩니다. API 키 확인을 눌러 연결을 확인하세요."
+  },
+  "simpleGoogleTestApiKey": {
+    "message": "API 키 확인"
+  },
+  "simpleGoogleApiKeyReady": {
+    "message": "API 키를 입력했습니다. API 키 확인을 눌러 저장하고 연결을 확인하세요."
   },
   "simpleGoogleGetApiKey": {
     "message": "API 키 발급하기"
@@ -54,7 +60,10 @@
     "message": "생성한 프로젝트의 결제 등급이 '무료 등급(Free)'인지 꼭 확인하세요."
   },
   "simpleGoogleKeyGuideStep5": {
-    "message": "복사한 키를 위 입력란에 붙여 넣으면 Gemini 3.1 Flash Lite가 자동으로 설정되고 연결을 확인합니다."
+    "message": "복사한 키를 위 입력란에 붙여 넣으면 Gemini 3.1 Flash Lite가 자동으로 설정됩니다. API 키 확인을 눌러 연결을 확인하세요."
+  },
+  "simpleGoogleFreeTierNotice": {
+    "message": "무료 등급에는 사용 한도가 있습니다. 일일 요청 한도는 미국 태평양 시간 자정에 초기화됩니다."
   },
   "simpleGoogleKeySecurityNotice": {
     "message": "API 키는 비밀번호처럼 관리하세요. 다른 사람에게 공유하거나 공개 문서에 넣지 마세요."
