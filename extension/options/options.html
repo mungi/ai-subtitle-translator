@@ -1,0 +1,293 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title data-i18n="optionsPageTitle"></title>
+    <link rel="stylesheet" href="./options.css">
+    <script type="module" src="./options.js"></script>
+  </head>
+  <body>
+    <main class="settings-shell">
+      <header class="page-header">
+        <div class="page-header-title">
+          <img class="settings-app-icon" src="../icons/icon128.png" alt="">
+          <div>
+            <h1 data-i18n="title"></h1>
+            <p data-i18n="subtitle"></p>
+          </div>
+        </div>
+        <div class="header-panel">
+          <div class="header-actions">
+            <button id="resetSettings" type="button" class="ghost" data-i18n="allReset"></button>
+          </div>
+        </div>
+      </header>
+
+      <div id="settingsModeTabs" class="settings-mode-tabs" role="tablist" data-i18n-aria-label="settingsModeLabel">
+        <button id="simpleSettingsTab" type="button" role="tab" aria-controls="simpleSettingsPanel" aria-selected="true" data-settings-mode="simple" data-i18n="simpleSettingsTab"></button>
+        <button id="advancedSettingsTab" type="button" role="tab" aria-controls="advancedSettingsPanel" aria-selected="false" data-settings-mode="advanced" data-i18n="advancedSettingsTab"></button>
+      </div>
+
+      <section id="simpleSettingsPanel" class="settings-section simple-settings-panel" role="tabpanel" aria-labelledby="simpleSettingsTab">
+        <div class="section-title-row">
+          <h2 data-i18n="simpleSettingsTitle"></h2>
+        </div>
+        <p class="section-description" data-i18n="simpleSettingsDescription"></p>
+        <div class="simple-google-key-row">
+          <label class="simple-google-key-field">
+            <span data-i18n="simpleGoogleApiKey"></span>
+            <input id="simpleGoogleApiKey" type="password" autocomplete="off" spellcheck="false">
+          </label>
+          <button id="testSimpleGoogleApiKey" type="button" class="primary" data-i18n="simpleGoogleTestApiKey"></button>
+        </div>
+        <p id="simpleSettingsStatus" class="status-line" role="status"></p>
+        <p id="simpleGoogleGuide" class="provider-note"></p>
+        <section id="simpleGoogleKeyGuide" class="simple-google-key-guide" aria-labelledby="simpleGoogleKeyGuideTitle">
+          <h3 id="simpleGoogleKeyGuideTitle" data-i18n="simpleGoogleKeyGuideTitle"></h3>
+          <ol>
+            <li><span data-i18n="simpleGoogleKeyGuideStep1Prefix"></span><a href="https://aistudio.google.com/api-keys" target="_blank" rel="noreferrer" data-i18n="simpleGoogleKeyGuideStep1Link"></a><span data-i18n="simpleGoogleKeyGuideStep1Suffix"></span></li>
+            <li data-i18n="simpleGoogleKeyGuideStep2"></li>
+            <li data-i18n="simpleGoogleKeyGuideStep3"></li>
+            <li data-i18n="simpleGoogleKeyGuideStep4"></li>
+            <li data-i18n="simpleGoogleKeyGuideStep5"></li>
+          </ol>
+          <p class="simple-google-free-tier-notice" data-i18n="simpleGoogleFreeTierNotice"></p>
+          <p class="simple-google-key-security-notice" data-i18n="simpleGoogleKeySecurityNotice"></p>
+        </section>
+        <div id="simpleGoogleGuideLinks" class="provider-note-links"></div>
+      </section>
+
+      <div id="advancedSettingsPanel" role="tabpanel" aria-labelledby="advancedSettingsTab" hidden>
+      <section class="settings-section supported-sites-section">
+        <div class="section-title-row">
+          <h2 data-i18n="supportedSites"></h2>
+        </div>
+        <div class="supported-sites-toggles" role="group" data-i18n-aria-label="supportedSites">
+          <label class="checkbox-field">
+            <input id="toggleUdemy" type="checkbox">
+            <span>Udemy</span>
+          </label>
+          <label class="checkbox-field">
+            <input id="toggleYoutube" type="checkbox">
+            <span>YouTube</span>
+          </label>
+          <label class="checkbox-field">
+            <input id="toggleNvidia" type="checkbox">
+            <span>NVIDIA Academy</span>
+          </label>
+          <label class="checkbox-field">
+            <input id="toggleVimeo" type="checkbox">
+            <span>Vimeo</span>
+          </label>
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <div class="section-title-row">
+          <h2 data-i18n="generalSettings"></h2>
+          <div class="section-actions">
+            <button id="resetGeneralSettings" type="button" class="ghost" data-i18n="reset"></button>
+          </div>
+        </div>
+        <div class="form-grid">
+          <label>
+            <span data-i18n="activeProvider"></span>
+            <select id="activeProvider"></select>
+          </label>
+          <label>
+            <span data-i18n="targetLanguage"></span>
+            <select id="targetLanguage"></select>
+          </label>
+          <label class="chunk-duration-field">
+            <span data-i18n="chunkDuration"></span>
+            <div class="chunk-duration-control">
+              <input id="maxChunkDurationMinutes" type="range" min="2" max="15" step="1" value="7" aria-describedby="maxChunkDurationValue">
+              <output id="maxChunkDurationValue" for="maxChunkDurationMinutes">7</output>
+            </div>
+          </label>
+          <p class="wide active-provider-guide" data-i18n="activeProviderGuide"></p>
+          <label class="wide">
+            <span data-i18n="translationStyle"></span>
+            <select id="translationStyle"></select>
+          </label>
+          <label class="wide system-prompt-field">
+            <textarea id="systemPrompt" class="system-prompt-textarea" rows="8" spellcheck="false" readonly data-i18n-aria-label="systemPromptAriaLabel"></textarea>
+          </label>
+          <div class="wide cache-action-row">
+            <label class="checkbox-field">
+              <input id="cacheTranslations" type="checkbox">
+              <span data-i18n="cacheTranslations"></span>
+            </label>
+            <button id="clearCache" type="button" class="ghost" data-i18n="clearCache"></button>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <div class="section-title-row">
+          <h2 data-i18n="providerSettings"></h2>
+          <div class="section-actions">
+            <button id="resetProviderSettings" type="button" class="ghost" data-i18n="reset"></button>
+            <button id="testProvider" type="button" class="primary" data-i18n="testProvider"></button>
+          </div>
+        </div>
+        <div class="provider-status-row">
+          <p id="statusLine" class="status-line" role="status"></p>
+        </div>
+        <div id="providerTabs" class="provider-tabs" role="tablist"></div>
+        <form id="providerForm" class="provider-form"></form>
+      </section>
+
+      <section class="settings-section">
+        <div class="section-title-row">
+          <h2 data-i18n="fallbackTitle"></h2>
+          <div class="section-actions">
+            <button id="resetFallbackSettings" type="button" class="ghost" data-i18n="reset"></button>
+          </div>
+        </div>
+        <p class="section-description" data-i18n="fallbackDescription"></p>
+        <div class="form-grid">
+          <label>
+            <span data-i18n="fallbackProvider"></span>
+            <select id="fallbackProvider"></select>
+          </label>
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <div class="section-title-row">
+          <h2 data-i18n="subtitleStyle"></h2>
+          <div class="section-actions">
+            <button id="resetSubtitleStyleSettings" type="button" class="ghost" data-i18n="reset"></button>
+          </div>
+        </div>
+        <div class="subtitle-preview-frame">
+          <div id="subtitleStylePreview" class="subtitle-style-preview" contenteditable="true" role="textbox" aria-multiline="true"></div>
+        </div>
+        <div class="subtitle-style-groups">
+          <fieldset class="subtitle-style-group">
+            <legend data-i18n="fontGroup"></legend>
+            <div class="form-grid subtitle-style-grid">
+              <label>
+                <span data-i18n="fontSize"></span>
+                <input id="subtitleFontSize" type="number" min="10" max="64" step="1">
+              </label>
+              <label>
+                <span data-i18n="fontFamily"></span>
+                <select id="subtitleFontFamily"></select>
+              </label>
+              <label>
+                <span data-i18n="textColor"></span>
+                <input id="subtitleTextColor" type="color">
+              </label>
+              <label class="wide hidden" id="customWebFontField">
+                <span data-i18n="customWebFontCss"></span>
+                <textarea id="subtitleCustomWebFontCss" rows="7" spellcheck="false"></textarea>
+              </label>
+              <p class="font-guide hidden" id="customWebFontGuide">
+                <span data-i18n="customWebFontGuide"></span>
+                <a href="https://noonnu.cc/index?locale=ko&category_use_ids=6" target="_blank" rel="noreferrer">noonnu.cc</a>
+              </p>
+            </div>
+          </fieldset>
+
+          <fieldset class="subtitle-style-group">
+            <legend data-i18n="shadowGroup"></legend>
+            <div class="form-grid subtitle-style-grid">
+              <label class="checkbox-field">
+                <input id="subtitleShadowEnabled" type="checkbox">
+                <span data-i18n="shadowEnabled"></span>
+              </label>
+              <label>
+                <span data-i18n="shadowColor"></span>
+                <input id="subtitleShadowColor" type="color">
+              </label>
+              <label>
+                <span data-i18n="shadowBlur"></span>
+                <input id="subtitleShadowBlur" type="number" min="0" max="20" step="1">
+              </label>
+              <label>
+                <span data-i18n="shadowDistance"></span>
+                <input id="subtitleShadowDistance" type="number" min="0" max="12" step="1">
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset class="subtitle-style-group">
+            <legend data-i18n="outlineGroup"></legend>
+            <div class="form-grid subtitle-style-grid">
+              <label class="checkbox-field">
+                <input id="subtitleOutlineEnabled" type="checkbox">
+                <span data-i18n="outlineEnabled"></span>
+              </label>
+              <label>
+                <span data-i18n="outlineColor"></span>
+                <input id="subtitleOutlineColor" type="color">
+              </label>
+              <label>
+                <span data-i18n="outlineWidth"></span>
+                <input id="subtitleOutlineWidth" type="number" min="0" max="16" step="1">
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset class="subtitle-style-group">
+            <legend data-i18n="backgroundGroup"></legend>
+            <div class="form-grid subtitle-style-grid">
+              <label>
+                <span data-i18n="backgroundColor"></span>
+                <input id="subtitleBackgroundColor" type="color">
+              </label>
+              <label>
+                <span data-i18n="pendingBackgroundColor"></span>
+                <input id="subtitlePendingBackgroundColor" type="color">
+              </label>
+              <label>
+                <span data-i18n="backgroundOpacity"></span>
+                <input id="subtitleBackgroundOpacity" type="range" min="0" max="1" step="0.05">
+              </label>
+            </div>
+          </fieldset>
+        </div>
+      </section>
+
+      <section class="settings-section backup-restore-section">
+        <div class="section-title-row">
+          <h2 data-i18n="backupRestoreTitle"></h2>
+        </div>
+        <p class="section-description" data-i18n="backupRestoreDescription"></p>
+        <div class="backup-restore-grid">
+          <div class="backup-actions">
+            <button id="backupSettings" type="button" class="primary" data-i18n="backupSettings"></button>
+            <button id="restoreSettings" type="button" class="ghost" data-i18n="restoreSettings"></button>
+            <input id="restoreSettingsFile" class="hidden" type="file" accept=".astbackup">
+          </div>
+          <p id="backupStatusLine" class="backup-status-line" role="status"></p>
+        </div>
+      </section>
+      </div>
+
+      <dialog id="backupPasswordDialog" class="backup-password-dialog" aria-labelledby="backupPasswordDialogTitle">
+        <form id="backupPasswordForm" class="backup-password-form">
+          <h3 id="backupPasswordDialogTitle" data-i18n="backupPasswordDialogTitle"></h3>
+          <p class="backup-password-description" data-i18n="backupPasswordDescription"></p>
+          <label>
+            <span data-i18n="backupSeedLabel"></span>
+            <input id="backupSeed" type="password" minlength="8" autocomplete="off" spellcheck="false" data-i18n-placeholder="backupSeedPlaceholder">
+          </label>
+          <label id="backupSeedConfirmationField" hidden>
+            <span data-i18n="backupSeedConfirmLabel"></span>
+            <input id="backupSeedConfirmation" type="password" minlength="8" autocomplete="off" spellcheck="false" data-i18n-placeholder="backupSeedPlaceholder">
+          </label>
+          <p class="backup-seed-guide" data-i18n="backupSeedGuide"></p>
+          <div class="backup-password-actions">
+            <button id="cancelBackupPassword" type="button" class="ghost" data-i18n="cancel"></button>
+            <button id="confirmBackupPassword" type="submit" class="primary" data-i18n="confirm"></button>
+          </div>
+        </form>
+      </dialog>
+
+    </main>
+  </body>
+</html>
