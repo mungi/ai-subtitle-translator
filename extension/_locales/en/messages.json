@@ -1,0 +1,671 @@
+{
+  "title": {
+    "message": "AI Subtitle Translator Settings"
+  },
+  "subtitle": {
+    "message": "Configure the provider that translates Udemy, YouTube, NVIDIA Academy, and Vimeo subtitles with full document context."
+  },
+  "testProvider": {
+    "message": "Test connection"
+  },
+  "save": {
+    "message": "Save"
+  },
+  "allReset": {
+    "message": "Reset all"
+  },
+  "settingsModeLabel": {
+    "message": "Settings mode"
+  },
+  "simpleSettingsTab": {
+    "message": "Simple Settings"
+  },
+  "advancedSettingsTab": {
+    "message": "Advanced Settings"
+  },
+  "simpleSettingsTitle": {
+    "message": "Start free AI subtitle translation with Google Gemini"
+  },
+  "simpleSettingsDescription": {
+    "message": "If you do not enter an API key, subtitles will be translated with Google Translate."
+  },
+  "simpleGoogleApiKey": {
+    "message": "Google AI API key"
+  },
+  "simpleGoogleIntroGuide": {
+    "message": "Translate subtitles with Google AI. Create an API key using the guide below and enter it here; Gemini 3.1 Flash Lite is set automatically. Select Check API key to verify the connection."
+  },
+  "simpleGoogleTestApiKey": {
+    "message": "Check API key"
+  },
+  "simpleGoogleApiKeyReady": {
+    "message": "Your API key is ready. Select Check API key to save it and verify the connection."
+  },
+  "simpleGoogleGetApiKey": {
+    "message": "Get API key"
+  },
+  "simpleGoogleYoutubeGuide": {
+    "message": "YouTube setup video"
+  },
+  "simpleGoogleKeyGuideTitle": {
+    "message": "Get an API key in Google AI Studio"
+  },
+  "simpleGoogleKeyGuideStep1Prefix": {
+    "message": "Sign in to "
+  },
+  "simpleGoogleKeyGuideStep1Link": {
+    "message": "Google AI Studio"
+  },
+  "simpleGoogleKeyGuideStep1Suffix": {
+    "message": " with your Google account."
+  },
+  "simpleGoogleKeyGuideStep2": {
+    "message": "If this is your first time, create a project on the API Keys page. Use an English name such as 'Gemini Project'."
+  },
+  "simpleGoogleKeyGuideStep3": {
+    "message": "Click Create API key, then copy the new key."
+  },
+  "simpleGoogleKeyGuideStep4": {
+    "message": "Make sure the billing tier for the project you created is 'Free'."
+  },
+  "simpleGoogleKeyGuideStep5": {
+    "message": "Paste the key above. Gemini 3.1 Flash Lite is set automatically. Select Check API key to verify the connection."
+  },
+  "simpleGoogleFreeTierNotice": {
+    "message": "The Free tier has usage limits. Daily request quotas reset at midnight Pacific time."
+  },
+  "simpleGoogleKeySecurityNotice": {
+    "message": "Treat your API key like a password. Do not share it or put it in public documents."
+  },
+  "simpleGoogleApiKeyRequired": {
+    "message": "Enter a Google AI API Key."
+  },
+  "simpleGoogleTesting": {
+    "message": "Checking the Google AI connection."
+  },
+  "simpleGoogleTestSuccess": {
+    "message": "Google AI is connected and Gemini 3.1 Flash Lite is active."
+  },
+  "simpleGoogleTestFailed": {
+    "message": "Google AI connection failed. Your current translation provider is unchanged."
+  },
+  "generalSettings": {
+    "message": "Translation Settings"
+  },
+  "activeProvider": {
+    "message": "Provider"
+  },
+  "targetLanguage": {
+    "message": "Target language"
+  },
+  "translationStyle": {
+    "message": "Translation style"
+  },
+  "chunkDuration": {
+    "message": "Maximum chunk duration (minutes)"
+  },
+  "cacheTranslations": {
+    "message": "Use translation cache"
+  },
+  "providerSettings": {
+    "message": "Provider Settings"
+  },
+  "clearCache": {
+    "message": "Clear cache"
+  },
+  "reset": {
+    "message": "Reset"
+  },
+  "fallbackTitle": {
+    "message": "Temporary Translation"
+  },
+  "fallbackDescription": {
+    "message": "LLM translation can take time. Choose the temporary provider to show first while it is running.\nDeepL becomes selectable after you enter an API key and pass the connection test."
+  },
+  "fallbackProvider": {
+    "message": "Temporary provider"
+  },
+  "subtitleStyle": {
+    "message": "Subtitle Style"
+  },
+  "previewText": {
+    "message": "Subtitle Style Preview - Editable"
+  },
+  "fontGroup": {
+    "message": "Font"
+  },
+  "shadowGroup": {
+    "message": "Shadow"
+  },
+  "outlineGroup": {
+    "message": "Outline"
+  },
+  "backgroundGroup": {
+    "message": "Background"
+  },
+  "fontSize": {
+    "message": "Font size"
+  },
+  "fontFamily": {
+    "message": "Font family"
+  },
+  "customWebFontCss": {
+    "message": "Custom web font CSS"
+  },
+  "customWebFontGuide": {
+    "message": "Choose a font on Noonnu, then copy the \"Use as web font\" section into the text box below."
+  },
+  "textColor": {
+    "message": "Text color"
+  },
+  "shadowEnabled": {
+    "message": "Use shadow"
+  },
+  "shadowColor": {
+    "message": "Shadow color"
+  },
+  "shadowBlur": {
+    "message": "Shadow blur"
+  },
+  "shadowDistance": {
+    "message": "Shadow distance"
+  },
+  "outlineEnabled": {
+    "message": "Use outline"
+  },
+  "outlineColor": {
+    "message": "Outline color"
+  },
+  "outlineWidth": {
+    "message": "Outline width"
+  },
+  "backgroundColor": {
+    "message": "Background color"
+  },
+  "pendingBackgroundColor": {
+    "message": "Temporary/fallback background color"
+  },
+  "backgroundOpacity": {
+    "message": "Background opacity"
+  },
+  "localCheckTitle": {
+    "message": "How to check Custom LLM"
+  },
+  "openRouterNitro": {
+    "message": "Use Nitro (prefer faster providers)"
+  },
+  "saved": {
+    "message": "Settings saved."
+  },
+  "saveFailed": {
+    "message": "Failed to save settings"
+  },
+  "testing": {
+    "message": "Sending a test request to the selected provider..."
+  },
+  "loadingModels": {
+    "message": "Loading model list..."
+  },
+  "modelsLoaded": {
+    "message": "Model list loaded."
+  },
+  "recommendedModelTesting": {
+    "message": "$provider$: Selected recommended model $model$. Testing connection...",
+    "placeholders": {
+      "provider": {
+        "content": "$1",
+        "example": "provider"
+      },
+      "model": {
+        "content": "$2",
+        "example": "model"
+      }
+    }
+  },
+  "modelsLoadedAndTested": {
+    "message": "$provider$: Selected $model$ and passed the connection test ($count$ models)",
+    "placeholders": {
+      "provider": {
+        "content": "$1",
+        "example": "provider"
+      },
+      "model": {
+        "content": "$2",
+        "example": "model"
+      },
+      "count": {
+        "content": "$3",
+        "example": "count"
+      }
+    }
+  },
+  "modelsLoadedTestFailed": {
+    "message": "$provider$: Selected $model$, but the connection test failed - $error$",
+    "placeholders": {
+      "provider": {
+        "content": "$1",
+        "example": "provider"
+      },
+      "model": {
+        "content": "$2",
+        "example": "model"
+      },
+      "error": {
+        "content": "$3",
+        "example": "error"
+      }
+    }
+  },
+  "localModelSelected": {
+    "message": "$provider$: Selected $model$ ($count$ models, connection test not run)",
+    "placeholders": {
+      "provider": {
+        "content": "$1",
+        "example": "provider"
+      },
+      "model": {
+        "content": "$2",
+        "example": "model"
+      },
+      "count": {
+        "content": "$3",
+        "example": "count"
+      }
+    }
+  },
+  "modelsLoadFailed": {
+    "message": "Failed to load model list"
+  },
+  "fetchModels": {
+    "message": "Fetch models"
+  },
+  "testFailed": {
+    "message": "Test failed"
+  },
+  "response": {
+    "message": "response"
+  },
+  "resetDone": {
+    "message": "All settings reset."
+  },
+  "sectionResetDone": {
+    "message": "Section settings reset."
+  },
+  "cacheCleared": {
+    "message": "Translation cache cleared."
+  },
+  "cacheClearFailed": {
+    "message": "Failed to clear cache"
+  },
+  "loadFailed": {
+    "message": "Failed to load settings"
+  },
+  "customLanguage": {
+    "message": "Custom language"
+  },
+  "providerTestRequired": {
+    "message": "No provider has passed the connection test."
+  },
+  "activeProviderGuide": {
+    "message": "Google Translate is always available. Other providers become selectable after a successful connection test."
+  },
+  "backupRestoreTitle": {
+    "message": "Back Up / Restore Current Settings"
+  },
+  "backupRestoreDescription": {
+    "message": "Back up or restore current settings, including API keys, in an encrypted file. The backup password is not stored, so keep it safe."
+  },
+  "backupSeedLabel": {
+    "message": "Backup password"
+  },
+  "backupSeedConfirmLabel": {
+    "message": "Confirm backup password"
+  },
+  "backupPasswordDialogTitle": {
+    "message": "Backup Password"
+  },
+  "backupSeedPlaceholder": {
+    "message": "8+ letters, numbers, and special characters"
+  },
+  "backupSeedGuide": {
+    "message": "Use at least 8 characters with one letter, one number, and one special character. Regular spaces are allowed inside the password."
+  },
+  "backupSettings": {
+    "message": "Back Up Settings"
+  },
+  "restoreSettings": {
+    "message": "Restore Settings"
+  },
+  "backupCreating": {
+    "message": "Encrypting settings and creating the backup file..."
+  },
+  "backupComplete": {
+    "message": "Encrypted settings backup saved."
+  },
+  "restoreReading": {
+    "message": "Decrypting the backup file and restoring settings..."
+  },
+  "restoreComplete": {
+    "message": "Backup settings restored."
+  },
+  "restoreTestKeysConfirm": {
+    "message": "Test the connection validity of API keys in the restored settings now?\nOne minimal connection request will be sent to each provider."
+  },
+  "restoreTestingKey": {
+    "message": "Testing API key connection ($current$/$total$): $provider$",
+    "placeholders": {
+      "current": {
+        "content": "$1",
+        "example": "current"
+      },
+      "total": {
+        "content": "$2",
+        "example": "total"
+      },
+      "provider": {
+        "content": "$3",
+        "example": "provider"
+      }
+    }
+  },
+  "restoreKeyTestComplete": {
+    "message": "Settings restored and API keys tested: $success$/$total$ succeeded, $failed$ failed",
+    "placeholders": {
+      "success": {
+        "content": "$1",
+        "example": "success"
+      },
+      "total": {
+        "content": "$2",
+        "example": "total"
+      },
+      "failed": {
+        "content": "$3",
+        "example": "failed"
+      }
+    }
+  },
+  "restoreKeyTestSuccessItem": {
+    "message": "✓ $provider$: Succeeded",
+    "placeholders": {
+      "provider": {
+        "content": "$1",
+        "example": "provider"
+      }
+    }
+  },
+  "restoreKeyTestFailureItem": {
+    "message": "✕ $provider$: Failed - $error$",
+    "placeholders": {
+      "provider": {
+        "content": "$1",
+        "example": "provider"
+      },
+      "error": {
+        "content": "$2",
+        "example": "error"
+      }
+    }
+  },
+  "restoreNoKeysToTest": {
+    "message": "Settings restored. There are no API keys to test."
+  },
+  "backupFailed": {
+    "message": "Settings backup failed"
+  },
+  "restoreFailed": {
+    "message": "Settings restore failed"
+  },
+  "restoreConfirm": {
+    "message": "Replace the current settings with the backup file?"
+  },
+  "backupFileTooLarge": {
+    "message": "The backup file must be 5 MB or smaller."
+  },
+  "backupInvalidJson": {
+    "message": "The selected file is not valid backup JSON."
+  },
+  "backupUnsupportedFormat": {
+    "message": "This backup file format is not supported."
+  },
+  "backupDecryptFailed": {
+    "message": "The backup password is incorrect or the backup file is damaged."
+  },
+  "backupInvalidSettings": {
+    "message": "The settings data in the backup is invalid."
+  },
+  "backupSeedMinLength": {
+    "message": "The backup password must be at least 8 characters."
+  },
+  "backupSeedLetter": {
+    "message": "Include at least one English letter in the backup password."
+  },
+  "backupSeedNumber": {
+    "message": "Include at least one number in the backup password."
+  },
+  "backupSeedSpecial": {
+    "message": "Include at least one special character in the backup password."
+  },
+  "backupSeedWhitespace": {
+    "message": "Leading or trailing spaces, tabs, and line breaks are not allowed in the backup password."
+  },
+  "backupSeedMismatch": {
+    "message": "The backup passwords do not match."
+  },
+  "backupPasswordTitle": {
+    "message": "Settings backup password"
+  },
+  "restorePasswordTitle": {
+    "message": "Settings restore password"
+  },
+  "backupPasswordDescription": {
+    "message": "The backup password is not stored. You will need the same password to restore the backup file."
+  },
+  "cancel": {
+    "message": "Cancel"
+  },
+  "confirm": {
+    "message": "Continue"
+  },
+  "extensionName": {
+    "message": "AI Subtitle Translator"
+  },
+  "extensionDescription": {
+    "message": "Translate Udemy, YouTube, NVIDIA Academy, and Vimeo subtitles with full-context LLM providers."
+  },
+  "optionsPageTitle": {
+    "message": "AI Subtitle Translator Settings"
+  },
+  "systemPromptAriaLabel": {
+    "message": "System prompt"
+  },
+  "styleNatural": {
+    "message": "Natural - Context-aware natural translation"
+  },
+  "styleLecture": {
+    "message": "Lecture - Explanatory translation for courses and tutorials"
+  },
+  "styleTechnical": {
+    "message": "Technical - Keep technical terms consistent"
+  },
+  "styleCustom": {
+    "message": "Custom 1 - Custom translation style 1"
+  },
+  "styleCustom2": {
+    "message": "Custom 2 - Custom translation style 2"
+  },
+  "popupTitle": {
+    "message": "AI Subtitle Translator"
+  },
+  "popupHeading": {
+    "message": "AI Subtitle Translation"
+  },
+  "popupProvider": {
+    "message": "Provider"
+  },
+  "popupTargetLanguage": {
+    "message": "Target language"
+  },
+  "popupPlatformToggles": {
+    "message": "Enable platforms"
+  },
+  "supportedSites": {
+    "message": "Supported sites"
+  },
+  "popupOpenSettings": {
+    "message": "Open settings"
+  },
+  "popupSaved": {
+    "message": "Saved."
+  },
+  "popupLoadFailed": {
+    "message": "Failed to load: $error$",
+    "placeholders": {
+      "error": {
+        "content": "$1",
+        "example": "error"
+      }
+    }
+  },
+  "contentMenuTitle": {
+    "message": "AST translation menu"
+  },
+  "contentToggleSubtitles": {
+    "message": "AI Subtitle Translation"
+  },
+  "contentSourceCaptions": {
+    "message": "Source subtitles"
+  },
+  "contentAutoGenerated": {
+    "message": "auto-generated"
+  },
+  "contentOpenSettings": {
+    "message": "Open settings"
+  },
+  "contentProviderFailed": {
+    "message": "Could not change provider: $error$",
+    "placeholders": {
+      "error": {
+        "content": "$1",
+        "example": "error"
+      }
+    }
+  },
+  "contentTranslationPreparing": {
+    "message": "Preparing translated subtitles"
+  },
+  "contentQuotaFallback": {
+    "message": "API quota exceeded. Falling back to Google Translate."
+  },
+  "contentMissingUdemy": {
+    "message": "Could not find Udemy lecture information."
+  },
+  "contentMissingYoutube": {
+    "message": "Could not find YouTube video information."
+  },
+  "contentMissingNvidia": {
+    "message": "Could not find NVIDIA Academy caption information."
+  },
+  "contentMissingVimeo": {
+    "message": "Could not find Vimeo caption information."
+  },
+  "contentCaptionsLoadFailed": {
+    "message": "Could not load subtitles: $error$",
+    "placeholders": {
+      "error": {
+        "content": "$1",
+        "example": "error"
+      }
+    }
+  },
+  "customWebFontSettings": {
+    "message": "[Custom web font settings]"
+  },
+  "durationMinutes": {
+    "message": "$minutes$ min",
+    "placeholders": {
+      "minutes": {
+        "content": "$1",
+        "example": "minutes"
+      }
+    }
+  },
+  "localLlmBaseUrlComment": {
+    "message": "# Enter only the part before /chat/completions in Base URL."
+  },
+  "localLlmRequestUrl": {
+    "message": "# Current request URL: $url$",
+    "placeholders": {
+      "url": {
+        "content": "$1",
+        "example": "url"
+      }
+    }
+  },
+  "customLlmPermissionDenied": {
+    "message": "Custom LLM server access permission is required. Allow the permission request and try again."
+  },
+  "fieldBaseUrl": {
+    "message": "Base URL"
+  },
+  "fieldApiKey": {
+    "message": "API Key"
+  },
+  "fieldApiKeyOptional": {
+    "message": "API Key (optional)"
+  },
+  "fieldPlan": {
+    "message": "Plan"
+  },
+  "fieldModel": {
+    "message": "Model"
+  },
+  "fieldTemperature": {
+    "message": "Temperature"
+  },
+  "fieldMaxOutputTokens": {
+    "message": "Max output tokens"
+  },
+  "fieldAnthropicVersion": {
+    "message": "Anthropic version"
+  },
+  "fieldHttpReferer": {
+    "message": "HTTP Referer"
+  },
+  "fieldXTitle": {
+    "message": "X-Title"
+  },
+  "modelExample": {
+    "message": "e.g. $model$",
+    "placeholders": {
+      "model": {
+        "content": "$1",
+        "example": "model"
+      }
+    }
+  },
+  "providerGuideGoogleTranslate": {
+    "message": "Default translation engine. Uses the Google Translate endpoint without an API key."
+  },
+  "providerGuideDeepl": {
+    "message": "DeepL API provider. Find the API key on the DeepL account API keys page, then configure the endpoint for your Free or Pro plan. The Free plan has monthly character usage limits."
+  },
+  "providerGuideOpenai": {
+    "message": "Uses the OpenAI Responses API. Create an API key in the OpenAI Platform API keys page, then enter a model available to your account. Usage limits and pricing can vary by account, model, and tier."
+  },
+  "providerGuideAnthropic": {
+    "message": "Uses the Anthropic Messages API. Create an API key in the Claude Platform keys page. Requests include the anthropic-version header. Usage limits and pricing can vary by account, model, and tier."
+  },
+  "providerGuideGoogle": {
+    "message": "Uses the Google AI Gemini generateContent API. You can create an API key in Google AI Studio, and the key is sent as a URL query parameter. Rate limits and pricing can vary by project, model, and tier."
+  },
+  "providerGuideOpenrouter": {
+    "message": "Uses OpenRouter's OpenAI-compatible chat/completions API. Create an API key in the OpenRouter keys page. The free plan and free-model API usage are rate limited."
+  },
+  "providerGuideNvidiaNim": {
+    "message": "Uses NVIDIA NIM's OpenAI-compatible chat/completions API. Create an API key in the NVIDIA API keys page. NVIDIA API Catalog provides free endpoints for development/prototyping, with model/account usage limits that can apply."
+  },
+  "providerGuideLocal": {
+    "message": "Uses the OpenAI-compatible chat/completions format. localhost and 127.0.0.1 can use HTTP or HTTPS; custom servers must use HTTPS. For a custom HTTPS server, approve access to that domain when you fetch models or test the connection. Subtitle text and the API key, if entered, are sent directly to this server. In Base URL, enter only the part before /chat/completions. Example: http://localhost:1234/v1"
+  }
+}
