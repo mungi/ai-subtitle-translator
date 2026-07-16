@@ -46,6 +46,22 @@ test("Japanese UI defaults subtitle font to Noto Sans JP", () => {
   }
 });
 
+test("Korean UI defaults Custom 1 to the star-instructor banmal guidance", () => {
+  const previousChrome = globalThis.chrome;
+  globalThis.chrome = {
+    i18n: {
+      getUILanguage: () => "ko"
+    }
+  };
+
+  try {
+    const settings = normalizeSettings();
+    assert.match(settings.customSystemPrompt, /When the target language is 한국어, use 반말 강의체 by default/);
+  } finally {
+    globalThis.chrome = previousChrome;
+  }
+});
+
 test("non-Korean and non-Japanese UI defaults subtitle font to Arial", () => {
   const previousChrome = globalThis.chrome;
   globalThis.chrome = {

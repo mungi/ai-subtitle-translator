@@ -247,6 +247,7 @@ test("section reset handlers reset only their own settings group", () => {
   assert.match(optionsJs, /function captureCurrentFormState\(\)/);
   assert.match(optionsJs, /async function resetGeneralSettingsSection\(\)/);
   assert.match(optionsJs, /activeProvider: DEFAULT_SETTINGS\.activeProvider/);
+  assert.match(optionsJs, /customSystemPrompt: buildDefaultCustomStyleSystemPrompt\(getBrowserTargetLanguage\(\)\)/);
   assert.match(optionsJs, /maxChunkDurationSeconds: DEFAULT_SETTINGS\.maxChunkDurationSeconds/);
   assert.match(optionsJs, /async function resetProviderSettingsSection\(\)/);
   assert.match(optionsJs, /settings\.providers = clone\(DEFAULT_SETTINGS\.providers\);/);

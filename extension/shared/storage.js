@@ -39,6 +39,7 @@ function clone(value) {
 function getDefaultSettingsForUiLanguage() {
   const defaults = clone(DEFAULT_SETTINGS);
   const uiLanguage = getBrowserTargetLanguage();
+  defaults.customSystemPrompt = buildDefaultCustomStyleSystemPrompt(uiLanguage);
   if (uiLanguage === "ja") {
     const notoSansJp = WEB_FONT_PRESETS.find((preset) => preset.id === "noto-sans-jp");
     defaults.subtitleStyle.fontPreset = notoSansJp.id;
@@ -87,6 +88,7 @@ export function getBrowserTargetLanguage() {
 
 export function normalizeSettings(settings = {}) {
   const defaults = getDefaultSettingsForUiLanguage();
+  const targetLanguage = settings.targetLanguage || defaults.targetLanguage || getBrowserTargetLanguage();
   const providers = {};
 
   for (const [id, provider] of Object.entries(PROVIDERS)) {
@@ -129,9 +131,9 @@ export function normalizeSettings(settings = {}) {
     providers,
     providerTestStatus,
     maxChunkDurationSeconds: normalizeChunkDurationSeconds(settings.maxChunkDurationSeconds, defaults.maxChunkDurationSeconds),
-    targetLanguage: settings.targetLanguage || defaults.targetLanguage || getBrowserTargetLanguage(),
+    targetLanguage,
     activeProvider,
-    customSystemPrompt: extractStyleSystemPrompt(settings.customSystemPrompt || defaults.customSystemPrompt || buildDefaultCustomStyleSystemPrompt()),
+    customSystemPrompt: extractStyleSystemPrompt(settings.customSystemPrompt || defaults.customSystemPrompt || buildDefaultCustomStyleSystemPrompt(targetLanguage)),
     custom2SystemPrompt: extractStyleSystemPrompt(settings.custom2SystemPrompt || defaults.custom2SystemPrompt || buildDefaultCustom2StyleSystemPrompt())
   };
 }

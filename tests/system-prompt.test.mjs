@@ -65,13 +65,29 @@ test("Custom 2 falls back to its default prompt when no saved prompt exists yet"
   assert.match(prompt, /Style: Friendly beginner teacher\./);
 });
 
-test("default custom system prompt is target-language neutral star instructor style", () => {
+test("default Custom 1 prompt adds Korean star-instructor endings only for Korean", () => {
   assert.equal(DEFAULT_SETTINGS.customSystemPrompt, buildDefaultCustomStyleSystemPrompt());
   assert.match(DEFAULT_SETTINGS.customSystemPrompt, /Style: Star instructor lecture\./);
   assert.match(DEFAULT_SETTINGS.customSystemPrompt, /target language specified by the system prompt/);
   assert.match(DEFAULT_SETTINGS.customSystemPrompt, /informal, direct speech/);
   assert.match(DEFAULT_SETTINGS.customSystemPrompt, /natural informal, direct lecture register/);
-  assert.doesNotMatch(DEFAULT_SETTINGS.customSystemPrompt, /When the target language is|한국어|반말|존댓말/);
+
+  const koreanPrompt = buildDefaultCustomStyleSystemPrompt("ko");
+  assert.match(koreanPrompt, /When the target language is 한국어, use 반말 강의체 by default/);
+  assert.match(koreanPrompt, /~야, ~해, ~거든, ~지, ~보자, and ~하면 돼/);
+
+  const englishPrompt = buildDefaultCustomStyleSystemPrompt("en");
+  assert.doesNotMatch(englishPrompt, /When the target language is|한국어|반말|존댓말/);
+});
+
+test("Custom 1 applies Korean star-instructor endings to the unchanged generic default", () => {
+  const prompt = buildSystemPromptFromSettings({
+    translationStyle: "custom",
+    customSystemPrompt: buildDefaultCustomStyleSystemPrompt(),
+    targetLanguage: "ko"
+  });
+
+  assert.match(prompt, /When the target language is 한국어, use 반말 강의체 by default/);
 });
 
 test("default Custom 2 system prompt is the friendly beginner teacher style", () => {

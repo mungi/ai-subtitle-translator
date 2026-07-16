@@ -635,7 +635,7 @@ function readGeneralSettings() {
   const customStyleConfig = customStylePromptConfigs[settings.translationStyle];
   if (customStyleConfig) {
     settings[customStyleConfig.settingKey] = extractStyleSystemPrompt(systemPromptTextarea.value)
-      || customStyleConfig.buildDefaultPrompt();
+      || customStyleConfig.buildDefaultPrompt(settings.targetLanguage || getBrowserTargetLanguage());
   }
   settings.maxChunkDurationSeconds = getChunkDurationMinutes() * 60;
   settings.cacheTranslations = cacheTranslationsInput.checked;
@@ -729,7 +729,7 @@ function updateSystemPromptTextarea() {
 
   if (isCustom) {
     if (!settings[customStyleConfig.settingKey]) {
-      settings[customStyleConfig.settingKey] = customStyleConfig.buildDefaultPrompt();
+      settings[customStyleConfig.settingKey] = customStyleConfig.buildDefaultPrompt(settings.targetLanguage || getBrowserTargetLanguage());
     }
     systemPromptTextarea.value = extractStyleSystemPrompt(settings[customStyleConfig.settingKey]);
     return;
@@ -1337,7 +1337,7 @@ async function resetGeneralSettingsSection() {
     activeProvider: DEFAULT_SETTINGS.activeProvider,
     targetLanguage: DEFAULT_SETTINGS.targetLanguage,
     translationStyle: DEFAULT_SETTINGS.translationStyle,
-    customSystemPrompt: DEFAULT_SETTINGS.customSystemPrompt,
+    customSystemPrompt: buildDefaultCustomStyleSystemPrompt(getBrowserTargetLanguage()),
     custom2SystemPrompt: DEFAULT_SETTINGS.custom2SystemPrompt,
     maxChunkDurationSeconds: DEFAULT_SETTINGS.maxChunkDurationSeconds,
     cacheTranslations: DEFAULT_SETTINGS.cacheTranslations

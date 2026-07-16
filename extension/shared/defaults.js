@@ -284,6 +284,8 @@ const DEFAULT_CUSTOM_STYLE_SYSTEM_PROMPT = [
   "Avoid celebrity catchphrases, excessive slang, forced humor, rude wording, or overdramatic hype. Keep each cue short enough to read comfortably as subtitles."
 ].join("\n");
 
+const KOREAN_STAR_INSTRUCTOR_STYLE_PROMPT = "When the target language is 한국어, use 반말 강의체 by default: crisp endings such as ~야, ~해, ~거든, ~지, ~보자, and ~하면 돼. Make it sound like a sharp 일타 강사 explaining the point on a whiteboard.";
+
 const DEFAULT_CUSTOM_2_STYLE_SYSTEM_PROMPT = [
   "Style: Friendly beginner teacher.",
   "",
@@ -313,7 +315,10 @@ export function buildStyleSystemPrompt(styleId = "lecture") {
   return STYLE_SYSTEM_PROMPT_LINES[normalizedStyleId].join("\n");
 }
 
-export function buildDefaultCustomStyleSystemPrompt() {
+export function buildDefaultCustomStyleSystemPrompt(targetLanguage) {
+  if (String(targetLanguage || "").trim() === "ko") {
+    return [DEFAULT_CUSTOM_STYLE_SYSTEM_PROMPT, KOREAN_STAR_INSTRUCTOR_STYLE_PROMPT].join("\n");
+  }
   return DEFAULT_CUSTOM_STYLE_SYSTEM_PROMPT;
 }
 
@@ -353,15 +358,20 @@ export function buildPresetSystemPrompt(styleId = "lecture", targetLanguage = "k
 export function buildSystemPromptFromSettings(settings = {}) {
   if (isCustomTranslationStyle(settings.translationStyle)) {
     const promptSettingKey = getCustomSystemPromptSettingKey(settings.translationStyle);
+    const targetLanguage = normalizeTargetLanguageForPrompt(settings.targetLanguage);
     const defaultCustomSystemPrompt = settings.translationStyle === "custom2"
       ? buildDefaultCustom2StyleSystemPrompt()
-      : buildDefaultCustomStyleSystemPrompt();
+      : buildDefaultCustomStyleSystemPrompt(targetLanguage);
     const customSystemPrompt = extractStyleSystemPrompt(settings[promptSettingKey] || defaultCustomSystemPrompt);
-    if (customSystemPrompt) {
+    const resolvedCustomSystemPrompt = settings.translationStyle === "custom"
+      && customSystemPrompt === buildDefaultCustomStyleSystemPrompt()
+      ? buildDefaultCustomStyleSystemPrompt(targetLanguage)
+      : customSystemPrompt;
+    if (resolvedCustomSystemPrompt) {
       return [
         ...COMMON_SYSTEM_PROMPT_LINES,
-        customSystemPrompt,
-        `Target language: ${normalizeTargetLanguageForPrompt(settings.targetLanguage)}.`
+        resolvedCustomSystemPrompt,
+        `Target language: ${targetLanguage}.`
       ].join("\n");
     }
   }
