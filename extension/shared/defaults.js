@@ -390,7 +390,7 @@ export const DEFAULT_SETTINGS = {
   subtitleStyle: {
     positionX: 50,
     positionY: 78,
-    fontSize: 30,
+    fontSize: 35,
     fontPreset: "gowun-batang",
     fontFamily: "'GounBatang', serif",
     webFontCss: WEB_FONT_PRESETS.find((preset) => preset.id === "gowun-batang").css,

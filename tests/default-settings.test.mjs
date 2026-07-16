@@ -16,7 +16,7 @@ test("NVIDIA Academy and Vimeo subtitle support are enabled by default", () => {
 
 test("default translation style and subtitle appearance match the intended initial setup", () => {
   assert.equal(DEFAULT_SETTINGS.translationStyle, "custom");
-  assert.equal(DEFAULT_SETTINGS.subtitleStyle.fontSize, 30);
+  assert.equal(DEFAULT_SETTINGS.subtitleStyle.fontSize, 35);
   assert.equal(DEFAULT_SETTINGS.subtitleStyle.fontPreset, "gowun-batang");
   assert.equal(DEFAULT_SETTINGS.subtitleStyle.fontFamily, "'GounBatang', serif");
   assert.match(DEFAULT_SETTINGS.subtitleStyle.webFontCss, /GowunBatang-Regular\.woff/);
