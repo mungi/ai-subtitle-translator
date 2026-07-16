@@ -785,6 +785,27 @@ test("toolbar button opens a platform-styled provider menu before toggling AST",
   assert.ok(sentMessages.some((message) => message.type === "ast.openOptions"));
 });
 
+test("YouTube provider menu stops quietly after the extension context is invalidated", async () => {
+  const { context, controls } = createYoutubeHarness();
+  const source = readFileSync("extension/content/content-script.js", "utf8");
+
+  vm.runInNewContext(source, context, { filename: "extension/content/content-script.js" });
+  await flushPromises();
+
+  assert.ok(controls.querySelector("#ast-toolbar-button"));
+  context.chrome.i18n.getMessage = () => {
+    throw new Error("Extension context invalidated");
+  };
+  delete context.chrome.runtime.id;
+
+  await assert.doesNotReject(() => context.toggleProviderMenu("youtube"));
+  assert.equal(
+    context.document.getElementById("ast-provider-menu")?.hidden,
+    true,
+    "expected an invalidated content script not to reopen its provider menu"
+  );
+});
+
 test("AST source and translation style submenus only open on hover", () => {
   const contentScript = readFileSync("extension/content/content-script.js", "utf8");
   const contentCss = readFileSync("extension/content/content-style.css", "utf8");

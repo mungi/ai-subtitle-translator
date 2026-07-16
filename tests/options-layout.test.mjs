@@ -254,7 +254,8 @@ test("section reset handlers reset only their own settings group", () => {
   assert.match(optionsJs, /async function resetFallbackSettingsSection\(\)/);
   assert.match(optionsJs, /settings\.fallback = clone\(DEFAULT_SETTINGS\.fallback\);/);
   assert.match(optionsJs, /async function resetSubtitleStyleSettingsSection\(\)/);
-  assert.match(optionsJs, /settings\.subtitleStyle = clone\(DEFAULT_SETTINGS\.subtitleStyle\);/);
+  assert.match(optionsJs, /getSettings, normalizeSettings, resetSettings, saveSettings/);
+  assert.match(optionsJs, /settings\.subtitleStyle = clone\(normalizeSettings\(\)\.subtitleStyle\);/);
   assert.match(optionsJs, /subtitleStylePreview\.textContent = getDefaultPreviewText\(\);/);
 });
 

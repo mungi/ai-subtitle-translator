@@ -8,7 +8,7 @@ import { SIMPLE_GOOGLE_GUIDE_LINKS, stageSimpleGoogleApiKey, captureActiveGoogle
 import { createEncryptedSettingsBackup, decryptSettingsBackup, settingsBackupInternals, validateBackupSeed } from "../shared/settings-backup.js";
 import { getExtensionUiLanguage, getMessage } from "../shared/i18n.js";
 import { getCustomLlmPermissionOrigin } from "../shared/provider-security.js";
-import { getBrowserTargetLanguage, getSettings, resetSettings, saveSettings } from "../shared/storage.js";
+import { getBrowserTargetLanguage, getSettings, normalizeSettings, resetSettings, saveSettings } from "../shared/storage.js";
 
 const uiLanguage = getExtensionUiLanguage();
 const STYLE_MESSAGE_KEYS = {
@@ -1364,7 +1364,7 @@ async function resetFallbackSettingsSection() {
 async function resetSubtitleStyleSettingsSection() {
   await flushAutomaticSave();
   captureCurrentFormState();
-  settings.subtitleStyle = clone(DEFAULT_SETTINGS.subtitleStyle);
+  settings.subtitleStyle = clone(normalizeSettings().subtitleStyle);
   subtitleStylePreview.textContent = getDefaultPreviewText();
   await persistSectionReset();
 }

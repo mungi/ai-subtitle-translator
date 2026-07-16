@@ -106,7 +106,15 @@ function isVimeoPlatform(platform) {
 }
 
 function contentText(key, substitutions) {
-  return chrome?.i18n?.getMessage?.(key, substitutions) || key;
+  try {
+    return chrome?.i18n?.getMessage?.(key, substitutions) || key;
+  } catch (error) {
+    if (isExtensionContextInvalidated(error)) {
+      disposeContentScript();
+      return key;
+    }
+    throw error;
+  }
 }
 
 function getAvailableProviders(settings = {}) {
@@ -478,7 +486,7 @@ async function refreshSourceCaptionTracks(platform) {
 
 async function toggleProviderMenu(platform) {
   const menu = ensureProviderMenu(platform);
-  if (!menu) return;
+  if (!menu || subtitleState.disposed) return;
   if (!menu.hidden) {
     closeProviderMenu();
     return;
