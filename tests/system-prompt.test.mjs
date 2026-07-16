@@ -52,7 +52,7 @@ test("Custom 2 uses its own friendly beginner teacher prompt", () => {
 
   assert.match(prompt, /Style: Friendly beginner teacher\./);
   assert.match(prompt, /patient and friendly teacher/);
-  assert.match(prompt, /친근한 존댓말 강의체/);
+  assert.match(prompt, /warm, polite lecture register/);
   assert.match(prompt, /Target language: ko\./);
 });
 
@@ -70,15 +70,16 @@ test("default custom system prompt is target-language neutral star instructor st
   assert.match(DEFAULT_SETTINGS.customSystemPrompt, /Style: Star instructor lecture\./);
   assert.match(DEFAULT_SETTINGS.customSystemPrompt, /target language specified by the system prompt/);
   assert.match(DEFAULT_SETTINGS.customSystemPrompt, /informal, direct speech/);
-  assert.match(DEFAULT_SETTINGS.customSystemPrompt, /When the target language is 한국어, use 반말 강의체 by default/);
-  assert.doesNotMatch(DEFAULT_SETTINGS.customSystemPrompt, /\bKorean\b/);
+  assert.match(DEFAULT_SETTINGS.customSystemPrompt, /natural informal, direct lecture register/);
+  assert.doesNotMatch(DEFAULT_SETTINGS.customSystemPrompt, /When the target language is|한국어|반말|존댓말/);
 });
 
 test("default Custom 2 system prompt is the friendly beginner teacher style", () => {
   assert.equal(DEFAULT_SETTINGS.custom2SystemPrompt, buildDefaultCustom2StyleSystemPrompt());
   assert.match(DEFAULT_SETTINGS.custom2SystemPrompt, /Style: Friendly beginner teacher\./);
   assert.match(DEFAULT_SETTINGS.custom2SystemPrompt, /Friendly beginner teacher/);
-  assert.match(DEFAULT_SETTINGS.custom2SystemPrompt, /~예요, ~하면 돼요/);
+  assert.match(DEFAULT_SETTINGS.custom2SystemPrompt, /warm, polite lecture register/);
+  assert.doesNotMatch(DEFAULT_SETTINGS.custom2SystemPrompt, /When the target language is|한국어|반말|존댓말/);
 });
 
 test("style prompt extraction hides shared prompt lines for settings UI", () => {
