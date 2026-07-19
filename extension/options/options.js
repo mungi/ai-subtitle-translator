@@ -93,7 +93,7 @@ const providerFieldDefs = {
     ["model", "fieldModel", "openai/gpt-5-mini", "model-select"],
     ["baseUrl", "fieldBaseUrl", "https://openrouter.ai/api/v1"],
     ["siteUrl", "fieldHttpReferer", "https://example.com"],
-    ["appTitle", "fieldXTitle", "AI Subtitle Translator"],
+    ["appTitle", "fieldXTitle", "AST - AI Subtitle Translator"],
     ["temperature", "fieldTemperature", "0.2", "number"],
     ["maxTokens", "fieldMaxOutputTokens", "8192", "number"]
   ],
@@ -471,7 +471,7 @@ async function chooseSettingsBackupFile() {
       multiple: false,
       excludeAcceptAllOption: true,
       types: [{
-        description: "AI Subtitle Translator settings backup",
+        description: "AST - AI Subtitle Translator settings backup",
         accept: {
           "application/x-astbackup": [".astbackup"]
         }

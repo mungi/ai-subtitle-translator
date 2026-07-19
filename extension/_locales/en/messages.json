@@ -1,6 +1,6 @@
 {
   "title": {
-    "message": "AI Subtitle Translator Settings"
+    "message": "AST - AI Subtitle Translator Settings"
   },
   "subtitle": {
     "message": "Configure the provider that translates Udemy, YouTube, NVIDIA Academy, and Vimeo subtitles with full document context."
@@ -468,13 +468,13 @@
     "message": "Continue"
   },
   "extensionName": {
-    "message": "AI Subtitle Translator"
+    "message": "AST - AI Subtitle Translator"
   },
   "extensionDescription": {
     "message": "Translate Udemy, YouTube, NVIDIA Academy, and Vimeo subtitles with full-context LLM providers."
   },
   "optionsPageTitle": {
-    "message": "AI Subtitle Translator Settings"
+    "message": "AST - AI Subtitle Translator Settings"
   },
   "systemPromptAriaLabel": {
     "message": "System prompt"
@@ -495,7 +495,7 @@
     "message": "Custom 2 - Custom translation style 2"
   },
   "popupTitle": {
-    "message": "AI Subtitle Translator"
+    "message": "AST - AI Subtitle Translator"
   },
   "popupHeading": {
     "message": "AI Subtitle Translation"

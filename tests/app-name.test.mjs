@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import { PROVIDERS } from "../extension/shared/defaults.js";
 
-const APP_NAME = "AI Subtitle Translator";
+const APP_NAME = "AST - AI Subtitle Translator";
 const OLD_APP_NAME = "LLM Subtitle Translator";
 const PREVIOUS_APP_NAME = ["Context", "Subtitle", "Translator"].join(" ");
 
@@ -20,7 +20,7 @@ const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
 const chromeStoreKo = readFileSync(new URL("../docs/chrome-web-store-ko.md", import.meta.url), "utf8");
 const chromeStoreEn = readFileSync(new URL("../docs/chrome-web-store-en.md", import.meta.url), "utf8");
 
-test("extension app name uses AI Subtitle Translator", () => {
+test("extension app name uses AST - AI Subtitle Translator", () => {
   assert.equal(manifest.default_locale, "en");
   assert.equal(manifest.name, "__MSG_extensionName__");
   assert.equal(englishMessages.extensionName.message, APP_NAME);

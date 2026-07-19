@@ -468,7 +468,7 @@
     "message": "続行"
   },
   "extensionName": {
-    "message": "AI Subtitle Translator"
+    "message": "AST - AI Subtitle Translator"
   },
   "extensionDescription": {
     "message": "文脈全体を活用する LLM プロバイダーで Udemy、YouTube、NVIDIA Academy、Vimeo の字幕を翻訳します。"
@@ -495,7 +495,7 @@
     "message": "Custom 2 - カスタム翻訳スタイル 2"
   },
   "popupTitle": {
-    "message": "AI Subtitle Translator"
+    "message": "AST - AI Subtitle Translator"
   },
   "popupHeading": {
     "message": "AI字幕翻訳"

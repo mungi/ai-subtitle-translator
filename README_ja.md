@@ -1,4 +1,4 @@
-# AI Subtitle Translator
+# AST - AI Subtitle Translator
 
 [한국어](README.md) · [English](README_en.md) · [日本語](README_ja.md)
 

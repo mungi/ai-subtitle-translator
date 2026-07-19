@@ -1,14 +1,14 @@
-# AI Subtitle Translator - Chrome Web Store Listing
+# AST - AI Subtitle Translator - Chrome Web Store Listing
 
 ## Store Listing Basics
 
-- Product name: AI Subtitle Translator
+- Product name: AST - AI Subtitle Translator
 - One-line positioning: A Chrome extension that translates Udemy, YouTube, NVIDIA Academy, and Vimeo subtitles and displays them over the video.
 - Short description: Read Udemy, YouTube, NVIDIA Academy, and Vimeo subtitles more naturally with AI context-aware translation and fast temporary translation.
 
 ## Detailed Description
 
-AI Subtitle Translator translates subtitles from Udemy courses, YouTube videos, NVIDIA Academy courses, and Vimeo videos into your target language, directly on top of the video.
+AST - AI Subtitle Translator translates subtitles from Udemy courses, YouTube videos, NVIDIA Academy courses, and Vimeo videos into your target language, directly on top of the video.
 
 Use Google Translate to check subtitles quickly, or choose an AI provider such as OpenAI, Anthropic, or Google AI for translations that consider the flow of the whole video. Source subtitles or fast temporary translations remain visible while the AI translation is being prepared.
 

@@ -1,10 +1,10 @@
-# AI Subtitle Translator Privacy Policy
+# AST - AI Subtitle Translator Privacy Policy
 
 [한국어](PRIVACY.md) · [English](PRIVACY_en.md) · [日本語](PRIVACY_ja.md)
 
 Effective date: July 15, 2026
 
-AI Subtitle Translator is a Chrome extension that translates subtitles from Udemy, YouTube, NVIDIA Academy, and Vimeo through a translation service selected by the user. The developer does not operate a separate backend server and does not collect user data for advertising, tracking, or analytics.
+AST - AI Subtitle Translator is a Chrome extension that translates subtitles from Udemy, YouTube, NVIDIA Academy, and Vimeo through a translation service selected by the user. The developer does not operate a separate backend server and does not collect user data for advertising, tracking, or analytics.
 
 ## Data handled
 

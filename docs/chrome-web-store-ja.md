@@ -1,14 +1,14 @@
-# AI Subtitle Translator - Chrome ウェブストア紹介文
+# AST - AI Subtitle Translator - Chrome ウェブストア紹介文
 
 ## ストア掲載の基本情報
 
-- 商品名: AI Subtitle Translator
+- 商品名: AST - AI Subtitle Translator
 - 一言紹介: Udemy、YouTube、NVIDIA Academy、Vimeo の字幕を目的の言語に翻訳し、動画の上に表示する Chrome 拡張機能です。
 - 短い説明: AI による文脈を考慮した翻訳と高速な一時翻訳で、Udemy・YouTube・NVIDIA Academy・Vimeo の字幕をより自然に読めます。
 
 ## 詳細説明
 
-AI Subtitle Translator は、Udemy 講座、YouTube 動画、NVIDIA Academy 講座、Vimeo 動画の字幕を目的の言語に翻訳し、動画の上に直接表示します。
+AST - AI Subtitle Translator は、Udemy 講座、YouTube 動画、NVIDIA Academy 講座、Vimeo 動画の字幕を目的の言語に翻訳し、動画の上に直接表示します。
 
 Google Translate で字幕をすばやく確認したり、OpenAI、Anthropic、Google AI などの AI プロバイダーを選んで動画全体の流れを考慮した翻訳を表示したりできます。AI 翻訳の準備中は、元の字幕または高速な一時翻訳が先に表示されます。
 

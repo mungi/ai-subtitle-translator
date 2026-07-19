@@ -468,7 +468,7 @@
     "message": "확인"
   },
   "extensionName": {
-    "message": "AI Subtitle Translator"
+    "message": "AST - AI Subtitle Translator"
   },
   "extensionDescription": {
     "message": "전체 문맥 LLM provider로 Udemy, YouTube, NVIDIA Academy, Vimeo 자막을 번역합니다."
@@ -495,7 +495,7 @@
     "message": "Custom 2 - 사용자 번역 스타일 2"
   },
   "popupTitle": {
-    "message": "AI Subtitle Translator"
+    "message": "AST - AI Subtitle Translator"
   },
   "popupHeading": {
     "message": "AI 자막 번역"

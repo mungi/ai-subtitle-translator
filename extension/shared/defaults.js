@@ -54,7 +54,7 @@ export const PROVIDERS = {
     nitro: true,
     disableReasoning: true,
     siteUrl: "",
-    appTitle: "AI Subtitle Translator",
+    appTitle: "AST - AI Subtitle Translator",
     temperature: 0.2,
     maxTokens: 8192
   },

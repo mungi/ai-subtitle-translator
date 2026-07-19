@@ -1,7 +1,7 @@
 const translations = {
   ko: {
     metaDescription: "Udemy와 YouTube 자막을 원하는 언어로 번역해 영상 위에 표시하는 Chrome 확장 프로그램",
-    brandHome: "AI Subtitle Translator 홈", mainNavigation: "주요 메뉴", languageLabel: "언어 선택",
+    brandHome: "AST - AI Subtitle Translator 홈", mainNavigation: "주요 메뉴", languageLabel: "언어 선택",
     navFeatures: "기능", navHowItWorks: "사용 방법", navSupport: "지원", navPrivacy: "개인정보", heroImageAlt: "강의 영상 위에 한국어와 영어 자막이 표시된 노트북",
     heroCopy: "AI provider를 선택하면 LLM이 영상 전체의 흐름을 반영해 자막을 번역합니다. 사용자 프롬프트로 원하는 말투와 번역 스타일도 직접 지정하세요.",
     install: "Chrome 웹 스토어에서 설치", viewHowItWorks: "사용 방법 보기", viewSupport: "지원 범위", featuresEyebrow: "주요 기능", featuresTitle: "자막을 더 편하게 읽는 방법",
@@ -16,7 +16,7 @@ const translations = {
   },
   en: {
     metaDescription: "A Chrome extension that translates Udemy and YouTube subtitles into your language and displays them over video.",
-    brandHome: "AI Subtitle Translator home", mainNavigation: "Main navigation", languageLabel: "Select language",
+    brandHome: "AST - AI Subtitle Translator home", mainNavigation: "Main navigation", languageLabel: "Select language",
     navFeatures: "Features", navHowItWorks: "How it works", navSupport: "Support", navPrivacy: "Privacy", heroImageAlt: "A laptop showing Korean and English subtitles over a course video",
     heroCopy: "Choose an AI provider to have an LLM translate subtitles with the full video context in mind. Use a custom prompt to set the tone and translation style you want.",
     install: "Install from Chrome Web Store", viewHowItWorks: "See how it works", viewSupport: "Supported platforms", featuresEyebrow: "WHAT IT DOES", featuresTitle: "A better way to follow subtitles",
@@ -31,7 +31,7 @@ const translations = {
   },
   ja: {
     metaDescription: "Udemy と YouTube の字幕を目的の言語に翻訳し、動画上に表示する Chrome 拡張機能です。",
-    brandHome: "AI Subtitle Translator ホーム", mainNavigation: "メインナビゲーション", languageLabel: "言語を選択",
+    brandHome: "AST - AI Subtitle Translator ホーム", mainNavigation: "メインナビゲーション", languageLabel: "言語を選択",
     navFeatures: "機能", navHowItWorks: "使い方", navSupport: "対応環境", navPrivacy: "プライバシー", heroImageAlt: "講座動画上に韓国語と英語の字幕が表示されたノートパソコン",
     heroCopy: "AI プロバイダーを選ぶと、LLM が動画全体の流れを踏まえて字幕を翻訳します。カスタムプロンプトで好みの話し方や翻訳スタイルも直接指定できます。",
     install: "Chrome ウェブストアからインストール", viewHowItWorks: "使い方を見る", viewSupport: "対応環境を見る", featuresEyebrow: "主な機能", featuresTitle: "字幕をもっと快適に読む方法",
@@ -89,7 +89,7 @@ function setLanguage(language) {
   const copy = translations[selectedLanguage];
 
   document.documentElement.lang = selectedLanguage;
-  document.title = "AI Subtitle Translator";
+  document.title = "AST - AI Subtitle Translator";
   document.querySelector('meta[name="description"]').content = copy.metaDescription;
   document.querySelectorAll("[data-i18n]").forEach((element) => {
     element.textContent = copy[element.dataset.i18n];

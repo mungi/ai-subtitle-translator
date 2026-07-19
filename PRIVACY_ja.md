@@ -1,10 +1,10 @@
-# AI Subtitle Translator プライバシーポリシー
+# AST - AI Subtitle Translator プライバシーポリシー
 
 [한국어](PRIVACY.md) · [English](PRIVACY_en.md) · [日本語](PRIVACY_ja.md)
 
 施行日: 2026年7月15日
 
-AI Subtitle Translator は、Udemy、YouTube、NVIDIA Academy、Vimeo の字幕をユーザーが選択した翻訳サービスで翻訳する Chrome 拡張機能です。開発者は独自の backend server を運用せず、広告、追跡、分析を目的としてユーザーデータを収集しません。
+AST - AI Subtitle Translator は、Udemy、YouTube、NVIDIA Academy、Vimeo の字幕をユーザーが選択した翻訳サービスで翻訳する Chrome 拡張機能です。開発者は独自の backend server を運用せず、広告、追跡、分析を目的としてユーザーデータを収集しません。
 
 ## 取り扱うデータ
 
