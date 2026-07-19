@@ -78,3 +78,7 @@ npm run check
 ```
 
 生成される `release/ai-subtitle-translator-v<タグ>.zip` は、GitHub Release のアセットおよび Chrome Web Store のパッケージとして使用します。
+
+## ライセンス
+
+このプロジェクトは [MIT License](LICENSE) の下で提供されます。

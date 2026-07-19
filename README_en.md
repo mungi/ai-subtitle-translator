@@ -78,3 +78,7 @@ Create the Chrome Web Store ZIP package while the release tag points at the curr
 ```
 
 The generated `release/ai-subtitle-translator-v<tag>.zip` file is used as the GitHub Release asset and Chrome Web Store package.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).

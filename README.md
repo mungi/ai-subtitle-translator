@@ -78,3 +78,7 @@ Chrome Web Store에 올릴 ZIP 패키지는 릴리즈 태그가 현재 커밋을
 ```
 
 생성된 파일은 `release/ai-subtitle-translator-v<태그>.zip`이며, GitHub Release asset과 Chrome Web Store 패키지로 사용합니다.
+
+## 라이선스
+
+이 프로젝트는 [MIT License](LICENSE)를 따릅니다.
