@@ -6,6 +6,11 @@
 - One-line positioning: A Chrome extension that translates Udemy, YouTube, NVIDIA Academy, and Vimeo subtitles and displays them over the video.
 - Short description: Read Udemy, YouTube, NVIDIA Academy, and Vimeo subtitles more naturally with AI context-aware translation and fast temporary translation.
 
+## Chrome Web Store Upload Images
+
+- [marquee-promo-tile.png](marquee-promo-tile.png): 1400×560 promotional marquee image
+- [small-promo-tile.png](small-promo-tile.png): 440×280 small promotional tile image
+
 ## Detailed Description
 
 AST - AI Subtitle Translator translates subtitles from Udemy courses, YouTube videos, NVIDIA Academy courses, and Vimeo videos into your target language, directly on top of the video.

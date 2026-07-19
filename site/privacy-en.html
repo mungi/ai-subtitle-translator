@@ -25,21 +25,21 @@
     <main class="policy-page">
       <aside class="policy-meta">
         <p class="eyebrow">PRIVACY POLICY</p>
-        <p>Effective date<br><strong>July 13, 2026</strong></p>
+        <p>Effective date<br><strong>July 15, 2026</strong></p>
         <a class="text-link" href="index.html">Back to the product page <span aria-hidden="true">&rarr;</span></a>
       </aside>
       <article class="policy-document">
         <header class="policy-title">
-          <p class="eyebrow">AI SUBTITLE TRANSLATOR</p>
+          <p class="eyebrow">AST - AI Subtitle Translator</p>
           <h1>Privacy Policy</h1>
-          <p>AST - AI Subtitle Translator is a Chrome extension that translates subtitles from Udemy and YouTube through a translation service selected by the user. The developer does not operate a separate backend server and does not collect user data for advertising, tracking, or analytics.</p>
+          <p>AST - AI Subtitle Translator is a Chrome extension that translates subtitles from Udemy, YouTube, NVIDIA Academy, and Vimeo through a translation service selected by the user. The developer does not operate a separate backend server and does not collect user data for advertising, tracking, or analytics.</p>
         </header>
 
         <section aria-labelledby="data-en">
           <span class="policy-number">01</span>
           <h2 id="data-en">Data handled</h2>
           <ul>
-            <li>Subtitle text and cue timing from Udemy and YouTube</li>
+            <li>Subtitle text and cue timing from Udemy, YouTube, NVIDIA Academy, and Vimeo</li>
             <li>URLs, video IDs, course IDs, lecture IDs, and subtitle language information needed to identify the current video or lecture</li>
             <li>Translation provider API keys, endpoints, models, translation settings, and subtitle settings entered by the user</li>
             <li>Cached translation results and encrypted settings backup files created by the user</li>
@@ -68,9 +68,9 @@
           <span class="policy-number">04</span>
           <h2 id="transfer-en">External transmission</h2>
           <ul>
-            <li>Subtitle text and translation settings may be sent to the user-selected Google Translate, DeepL, OpenAI, Anthropic, Google AI, OpenRouter, NVIDIA NIM, or Local LLM endpoint.</li>
+            <li>Subtitle text and translation settings may be sent to the user-selected Google Translate, DeepL, OpenAI, Anthropic, Google AI, OpenRouter, NVIDIA NIM, or Custom LLM endpoint.</li>
             <li>API keys are sent directly to the selected provider when authentication is required. They are not sent to a developer-operated server.</li>
-            <li>Requests to retrieve Udemy and YouTube subtitles may include video or lecture identifiers and the user's login cookies. The extension does not separately store cookie values.</li>
+            <li>Requests to retrieve captions from supported sites may include video or lecture identifiers and the user's login cookies. The extension does not separately store cookie values.</li>
             <li>When a default or custom web font is used, font requests may be sent to Google Fonts, jsDelivr, or a font host specified in user-provided CSS.</li>
             <li>Data handled by each external service is governed by that service's privacy policy and terms.</li>
           </ul>
@@ -81,7 +81,7 @@
           <h2 id="permission-en">Permissions</h2>
           <ul>
             <li><code>storage</code>: Stores settings, encrypted API keys, and translation cache entries locally.</li>
-            <li>Host permissions: Retrieve Udemy and YouTube subtitles, contact the selected translation provider, and connect to a user-configured Local LLM.</li>
+            <li>Host permissions: Retrieve subtitles from Udemy, YouTube, NVIDIA Academy, and Vimeo, contact the selected translation provider, and connect to Custom LLM on <code>localhost</code> or <code>127.0.0.1</code>. A custom HTTPS Custom LLM domain is accessed only after the user approves it while fetching models or testing the connection.</li>
           </ul>
         </section>
 
@@ -94,7 +94,7 @@
         <section aria-labelledby="security-en">
           <span class="policy-number">07</span>
           <h2 id="security-en">Security</h2>
-          <p>All remote provider requests use HTTPS. As an explicit exception, a Local LLM running on the user's own computer may use an HTTP endpoint on <code>localhost</code> or <code>127.0.0.1</code>. Base URLs for hosted providers are restricted to each provider's official HTTPS origin, and redirect responses are not followed automatically.</p>
+          <p>All remote provider requests use HTTPS. Custom LLM supports both a local LLM running on the user's computer and a user-configured server. A local LLM may use an HTTP endpoint on <code>localhost</code> or <code>127.0.0.1</code>; a custom server requires HTTPS and the user's runtime domain-access approval. Base URLs for hosted providers are restricted to each provider's official HTTPS origin, and redirect responses are not followed automatically.</p>
         </section>
 
         <section aria-labelledby="contact-en">
@@ -107,7 +107,7 @@
 
     <footer class="policy-footer">
       <a href="index.html">AST - AI Subtitle Translator</a>
-      <span>Translate Udemy and YouTube subtitles into your language</span>
+      <span>Translate Udemy, YouTube, NVIDIA Academy, and Vimeo subtitles into your language</span>
     </footer>
   </body>
 </html>

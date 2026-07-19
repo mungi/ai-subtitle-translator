@@ -67,7 +67,7 @@ npm test
 npm run check
 ```
 
-設計と実装の詳細は、[Design.md](Design.md)、[CONTEXT.md](CONTEXT.md)、[TASKS.md](TASKS.md)をご覧ください。
+設計と実装の詳細は、[Design.md](Design.md)、[コード分析](docs/code-analysis.md)、[TASKS.md](TASKS.md)をご覧ください。
 
 ## リリースパッケージ
 

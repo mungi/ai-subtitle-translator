@@ -67,7 +67,7 @@ npm test
 npm run check
 ```
 
-추가 설계와 구현 정보는 [Design.md](Design.md), [CONTEXT.md](CONTEXT.md), [TASKS.md](TASKS.md)에서 확인할 수 있습니다.
+추가 설계와 구현 정보는 [Design.md](Design.md), [코드 분석](docs/code-analysis.md), [TASKS.md](TASKS.md)에서 확인할 수 있습니다.
 
 ## 릴리즈 패키지
 

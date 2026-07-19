@@ -67,7 +67,7 @@ npm test
 npm run check
 ```
 
-For design and implementation details, see [Design.md](Design.md), [CONTEXT.md](CONTEXT.md), and [TASKS.md](TASKS.md).
+For design and implementation details, see [Design.md](Design.md), [code analysis](docs/code-analysis.md), and [TASKS.md](TASKS.md).
 
 ## Release package
 

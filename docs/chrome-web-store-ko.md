@@ -6,6 +6,11 @@
 - 한 줄 소개: Udemy, YouTube, NVIDIA Academy, Vimeo 자막을 원하는 언어로 번역해 영상 위에 표시하는 Chrome 확장입니다.
 - 짧은 설명: AI 문맥 번역과 빠른 임시 번역으로 Udemy·YouTube·NVIDIA Academy·Vimeo 자막을 더 자연스럽게 읽으세요.
 
+## Chrome Web Store 업로드 이미지
+
+- [marquee-promo-tile.png](marquee-promo-tile.png): 1400×560 프로모션 marquee 이미지
+- [small-promo-tile.png](small-promo-tile.png): 440×280 작은 프로모션 타일 이미지
+
 ## 상세 설명
 
 AST - AI Subtitle Translator는 Udemy 강의, YouTube 영상, NVIDIA Academy 강의, Vimeo 영상의 자막을 원하는 언어로 번역해 영상 위에 보여줍니다.

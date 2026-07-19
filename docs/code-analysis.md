@@ -35,6 +35,16 @@ extension/
 
 현재 가장 큰 파일은 `content/content-script.js`입니다. 자막 수집 요청 준비, YouTube 페이지 내부 fallback, UI 렌더링, 드래그/resize, 진행 상태 반영이 한 파일에 모여 있어 변경 시 회귀 범위가 넓습니다. 반면 번역과 provider request 계층은 `shared/` 아래로 비교적 잘 분리되어 있습니다.
 
+## 현재 구현 범위
+
+- Udemy, YouTube, NVIDIA Academy, Vimeo의 자막 track을 수집하고 영어 source track을 우선 선택합니다.
+- Google Translate, DeepL, OpenAI, Anthropic, Google AI, OpenRouter, NVIDIA NIM, Custom LLM을 번역 provider로 지원합니다.
+- 원문 또는 임시 번역을 먼저 표시하고, 선택한 최종 provider의 cue별 번역 결과로 교체합니다.
+- 옵션 화면에서 provider, 번역 스타일, 자막 모양, 암호화된 API key 저장, 설정 백업·복구를 관리합니다.
+- API key는 AES-GCM vault에 저장하고, content script에는 비밀 정보를 제외한 공개 설정만 전달합니다.
+
+실제 브라우저·외부 provider 검증 항목은 [TASKS.md](../TASKS.md)를 따릅니다.
+
 ## 내부 데이터 모델
 
 모든 자막은 먼저 아래 cue 형태로 정규화됩니다.
