@@ -116,6 +116,11 @@ test("background message sender validation separates extension pages and content
     url: "https://vimeo.com/1191467672",
     tab: { id: 4, url: "https://vimeo.com/1191467672" }
   };
+  const tedSender = {
+    id: "extension-id",
+    url: "https://www.ted.com/talks/example_talk",
+    tab: { id: 5, url: "https://www.ted.com/talks/example_talk" }
+  };
 
   assert.deepEqual(messageContracts.validateMessageSender(
     { type: "llm.listModels" }, extensionSender, "extension-id"
@@ -143,6 +148,9 @@ test("background message sender validation separates extension pages and content
   ), { ok: true });
   assert.deepEqual(messageContracts.validateMessageSender(
     { type: "captions.vimeo.fetchTranscript" }, vimeoPageSender, "extension-id"
+  ), { ok: true });
+  assert.deepEqual(messageContracts.validateMessageSender(
+    { type: "captions.ted.fetchTranscript" }, tedSender, "extension-id"
   ), { ok: true });
   assert.deepEqual(messageContracts.validateMessageSender(
     { type: "captions.vimeo.fetchTranscript" }, {

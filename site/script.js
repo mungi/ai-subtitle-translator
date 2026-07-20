@@ -47,30 +47,30 @@ const translations = {
 };
 
 Object.assign(translations.ko, {
-  metaDescription: "Udemy, YouTube, NVIDIA Academy, Vimeo 자막을 원하는 언어로 번역해 영상 위에 표시하는 Chrome 확장 프로그램",
-  heroEyebrow: "FOR UDEMY, YOUTUBE, NVIDIA ACADEMY & VIMEO",
-  featureOneCopy: "Udemy, YouTube, NVIDIA Academy, Vimeo 플레이어 위에 자막을 표시합니다. AST 메뉴에서 자막을 켜고 끄고, 원본 자막 언어와 번역 스타일을 바로 선택할 수 있습니다.",
-  stepThree: "Udemy 강의, YouTube 영상, NVIDIA Academy 강의 또는 Vimeo 영상을 엽니다.",
-  supportCopy: "Udemy 강의 플레이어, YouTube 영상 페이지, NVIDIA Academy 강의, Vimeo 영상을 지원합니다. 영상에서 제공하는 수동 또는 자동 생성 자막이 필요합니다.",
-  footerCopy: "Udemy, YouTube, NVIDIA Academy, Vimeo 자막을 원하는 언어로"
+  metaDescription: "Udemy, YouTube, TED, NVIDIA Academy, Vimeo 자막을 원하는 언어로 번역해 영상 위에 표시하는 Chrome 확장 프로그램",
+  heroEyebrow: "FOR UDEMY, YOUTUBE, TED, NVIDIA ACADEMY & VIMEO",
+  featureOneCopy: "Udemy, YouTube, TED, NVIDIA Academy, Vimeo 플레이어 위에 자막을 표시합니다. AST 메뉴에서 자막을 켜고 끄고, 원본 자막 언어와 번역 스타일을 바로 선택할 수 있습니다.",
+  stepThree: "Udemy 강의, YouTube 영상, TED 영상, NVIDIA Academy 강의 또는 Vimeo 영상을 엽니다.",
+  supportCopy: "Udemy 강의 플레이어, YouTube 영상 페이지, TED 영상 페이지, NVIDIA Academy 강의, Vimeo 영상을 지원합니다. 영상에서 제공하는 수동 또는 자동 생성 자막이 필요합니다.",
+  footerCopy: "Udemy, YouTube, TED, NVIDIA Academy, Vimeo 자막을 원하는 언어로"
 });
 
 Object.assign(translations.en, {
-  metaDescription: "A Chrome extension that translates subtitles from Udemy, YouTube, NVIDIA Academy, and Vimeo into your language and displays them over video.",
-  heroEyebrow: "FOR UDEMY, YOUTUBE, NVIDIA ACADEMY & VIMEO",
-  featureOneCopy: "Show subtitles directly over Udemy, YouTube, NVIDIA Academy, and Vimeo players. Use the AST menu to turn subtitles on or off and choose a source subtitle language or translation style.",
-  stepThree: "Open a Udemy course, YouTube video, NVIDIA Academy course, or Vimeo video.",
-  supportCopy: "Supports Udemy course players, YouTube video pages, NVIDIA Academy courses, and Vimeo videos. Videos need manually created or automatically generated captions.",
-  footerCopy: "Udemy, YouTube, NVIDIA Academy, and Vimeo subtitles in your language"
+  metaDescription: "A Chrome extension that translates subtitles from Udemy, YouTube, TED, NVIDIA Academy, and Vimeo into your language and displays them over video.",
+  heroEyebrow: "FOR UDEMY, YOUTUBE, TED, NVIDIA ACADEMY & VIMEO",
+  featureOneCopy: "Show subtitles directly over Udemy, YouTube, TED, NVIDIA Academy, and Vimeo players. Use the AST menu to turn subtitles on or off and choose a source subtitle language or translation style.",
+  stepThree: "Open a Udemy course, YouTube video, TED video, NVIDIA Academy course, or Vimeo video.",
+  supportCopy: "Supports Udemy course players, YouTube video pages, TED video pages, NVIDIA Academy courses, and Vimeo videos. Videos need manually created or automatically generated captions.",
+  footerCopy: "Udemy, YouTube, TED, NVIDIA Academy, and Vimeo subtitles in your language"
 });
 
 Object.assign(translations.ja, {
-  metaDescription: "Udemy、YouTube、NVIDIA Academy、Vimeo の字幕を目的の言語に翻訳し、動画上に表示する Chrome 拡張機能です。",
-  heroEyebrow: "FOR UDEMY, YOUTUBE, NVIDIA ACADEMY & VIMEO",
-  featureOneCopy: "Udemy、YouTube、NVIDIA Academy、Vimeo のプレーヤー上に字幕を表示します。AST メニューから字幕のオン・オフ、元字幕の言語、翻訳スタイルをその場で選べます。",
-  stepThree: "Udemy 講座、YouTube 動画、NVIDIA Academy 講座、または Vimeo 動画を開きます。",
-  supportCopy: "Udemy 講座プレーヤー、YouTube 動画ページ、NVIDIA Academy 講座、Vimeo 動画に対応しています。動画には手動字幕または自動生成字幕が必要です。",
-  footerCopy: "Udemy、YouTube、NVIDIA Academy、Vimeo の字幕を目的の言語で"
+  metaDescription: "Udemy、YouTube、TED、NVIDIA Academy、Vimeo の字幕を目的の言語に翻訳し、動画上に表示する Chrome 拡張機能です。",
+  heroEyebrow: "FOR UDEMY, YOUTUBE, TED, NVIDIA ACADEMY & VIMEO",
+  featureOneCopy: "Udemy、YouTube、TED、NVIDIA Academy、Vimeo のプレーヤー上に字幕を表示します。AST メニューから字幕のオン・オフ、元字幕の言語、翻訳スタイルをその場で選べます。",
+  stepThree: "Udemy 講座、YouTube 動画、TED 動画、NVIDIA Academy 講座、または Vimeo 動画を開きます。",
+  supportCopy: "Udemy 講座プレーヤー、YouTube 動画ページ、TED 動画ページ、NVIDIA Academy 講座、Vimeo 動画に対応しています。動画には手動字幕または自動生成字幕が必要です。",
+  footerCopy: "Udemy、YouTube、TED、NVIDIA Academy、Vimeo の字幕を目的の言語で"
 });
 
 const supportedLanguages = Object.keys(translations);

@@ -5,6 +5,7 @@ import { getSettings } from "./storage.js";
 import { decodeXmlEntities, normalizeCue, validateCues } from "./subtitles.js";
 
 const TRANSLATION_CACHE_KEY = "translationCache";
+const TRANSLATION_CACHE_VERSION = "v2";
 export const TRANSLATION_CACHE_MAX_ENTRIES = 30;
 export const TRANSLATION_CACHE_MAX_BYTES = 4 * 1024 * 1024;
 const DEFAULT_MAX_CUE_CHARS_PER_CHUNK = 24000;
@@ -348,6 +349,28 @@ function sanitizeTranslatedDocument(document = {}) {
   };
 }
 
+function getReusableCachedTranslation(sourceDocument, cachedDocument, provider) {
+  if (!cachedDocument || cachedDocument.fallbackProviderId) return null;
+  if (cachedDocument.providerId && cachedDocument.providerId !== provider.id) return null;
+
+  const sanitized = sanitizeTranslatedDocument(cachedDocument);
+  if (!Array.isArray(sourceDocument?.cues) || sanitized.cues.length !== sourceDocument.cues.length) return null;
+  if (!validateCues(sanitized.cues).ok) return null;
+
+  for (let index = 0; index < sourceDocument.cues.length; index += 1) {
+    const sourceCue = sourceDocument.cues[index];
+    const cachedCue = sanitized.cues[index];
+    if (String(cachedCue.id) !== String(sourceCue.id)
+      || cachedCue.start !== Number(sourceCue.start)
+      || cachedCue.end !== Number(sourceCue.end)
+      || !cachedCue.text) {
+      return null;
+    }
+  }
+
+  return sanitized;
+}
+
 function mergeTranslations(document, translations) {
   const cues = createTranslatedCues(document, translations);
   const validation = validateCues(cues);
@@ -368,14 +391,15 @@ function buildCacheKey(document, settings, provider) {
   const cueSignature = document.cues
     .map((cue) => `${cue.id}:${cue.start}:${cue.end}:${cue.text}`)
     .join("|");
+  const usesTranslationStyle = provider.apiStyle !== "google-translate" && provider.apiStyle !== "deepl";
   return [
-    "v1",
+    TRANSLATION_CACHE_VERSION,
     document.platform,
     document.videoId,
     document.sourceLanguage,
     settings.targetLanguage,
-    settings.translationStyle,
-    isCustomTranslationStyle(settings.translationStyle)
+    usesTranslationStyle ? settings.translationStyle : "",
+    usesTranslationStyle && isCustomTranslationStyle(settings.translationStyle)
       ? String(hashString(settings[getCustomSystemPromptSettingKey(settings.translationStyle)] || ""))
       : "",
     provider.id,
@@ -711,15 +735,20 @@ function splitGoogleCueTranslations(text, expectedCount) {
 }
 
 async function translateGoogleText(text, document, settings, provider) {
-  const params = new URLSearchParams({
+  const formData = new URLSearchParams({
     client: "gtx",
     sl: normalizeSourceLanguage(document.sourceLanguage || settings.sourceLanguage || "en"),
     tl: normalizeTargetLanguage(settings.targetLanguage),
     dt: "t",
     q: text
   });
-  const response = await fetch(`${provider.baseUrl}?${params.toString()}`, {
-    redirect: "error"
+  const response = await fetch(provider.baseUrl, {
+    method: "POST",
+    redirect: "error",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
+    },
+    body: formData
   });
   const body = await response.json().catch(() => null);
 
@@ -930,9 +959,10 @@ export async function translateSubtitleDocument(document, {
 
   if (settings.cacheTranslations && !forceNoCache) {
     const cached = await readCachedTranslation(cacheKey);
-    if (cached?.document) {
+    const cachedDocument = getReusableCachedTranslation(document, cached?.document, provider);
+    if (cachedDocument) {
       return {
-        ...sanitizeTranslatedDocument(cached.document),
+        ...cachedDocument,
         cacheHit: true
       };
     }
@@ -958,11 +988,7 @@ export async function translateSubtitleDocument(document, {
       if (!allowFallback || !isQuotaExceededError(error)) {
         throw error;
       }
-      const fallbackResult = await translateWithFallbackProvider(document, settings, provider, error, { onProgress });
-      if (settings.cacheTranslations && !forceNoCache) {
-        await writeCachedTranslation(cacheKey, fallbackResult);
-      }
-      return fallbackResult;
+      return translateWithFallbackProvider(document, settings, provider, error, { onProgress });
     }
   }
 
@@ -990,11 +1016,7 @@ export async function translateSubtitleDocument(document, {
     return result;
   } catch (error) {
     if (!allowFallback) throw error;
-    const fallbackResult = await translateWithFallbackProvider(document, settings, provider, error, { onProgress });
-    if (settings.cacheTranslations && !forceNoCache) {
-      await writeCachedTranslation(cacheKey, fallbackResult);
-    }
-    return fallbackResult;
+    return translateWithFallbackProvider(document, settings, provider, error, { onProgress });
   }
 
 }
@@ -1017,6 +1039,7 @@ export const translationInternals = {
   createTranslatedCues,
   sanitizeTranslatedText,
   sanitizeTranslatedDocument,
+  getReusableCachedTranslation,
   mergeTranslations,
   buildCacheKey,
   estimateJsonBytes,

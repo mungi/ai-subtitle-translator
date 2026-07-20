@@ -3,7 +3,7 @@
     "message": "AI 字幕翻訳設定"
   },
   "subtitle": {
-    "message": "Udemy、YouTube、NVIDIA Academy、Vimeo の字幕を文脈全体に基づいて翻訳するプロバイダーを設定します。"
+    "message": "Udemy、YouTube、TED、NVIDIA Academy、Vimeo の字幕を文脈全体に基づいて翻訳するプロバイダーを設定します。"
   },
   "testProvider": {
     "message": "接続をテスト"
@@ -471,7 +471,7 @@
     "message": "AST - AI Subtitle Translator"
   },
   "extensionDescription": {
-    "message": "文脈全体を活用する LLM プロバイダーで Udemy、YouTube、NVIDIA Academy、Vimeo の字幕を翻訳します。"
+    "message": "文脈全体を活用する LLM プロバイダーで Udemy、YouTube、TED、NVIDIA Academy、Vimeo の字幕を翻訳します。"
   },
   "optionsPageTitle": {
     "message": "AI 字幕翻訳設定"
@@ -554,6 +554,9 @@
   "contentTranslationPreparing": {
     "message": "翻訳字幕を準備中"
   },
+  "contentCaptionsUnavailable": {
+    "message": "この動画には翻訳可能な原文字幕が提供されていません。"
+  },
   "contentQuotaFallback": {
     "message": "API クォータを超過したため、Google Translate に切り替えます。"
   },
@@ -568,6 +571,9 @@
   },
   "contentMissingVimeo": {
     "message": "Vimeo の字幕情報を見つけられませんでした。"
+  },
+  "contentMissingTed": {
+    "message": "TED の字幕情報を見つけられませんでした。"
   },
   "contentCaptionsLoadFailed": {
     "message": "字幕を読み込めませんでした: $error$",

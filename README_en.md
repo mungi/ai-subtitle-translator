@@ -2,7 +2,7 @@
 
 [한국어](README.md) · [English](README_en.md) · [日本語](README_ja.md)
 
-A Chrome Manifest V3 extension that translates subtitles from Udemy, YouTube, NVIDIA Academy, and Vimeo and displays them over the video. Use Google Translate right away, or connect an LLM provider for context-aware translations.
+A Chrome Manifest V3 extension that translates subtitles from Udemy, YouTube, TED, NVIDIA Academy, and Vimeo and displays them over the video. Use Google Translate right away, or connect an LLM provider for context-aware translations.
 
 Product page: <https://mungi.github.io/ai-subtitle-translator/>
 
@@ -10,7 +10,7 @@ Chrome 102 or later is required.
 
 ## Key features
 
-- Collects subtitles from Udemy, YouTube, NVIDIA Academy, and Vimeo and displays the original or translated subtitles.
+- Collects subtitles from Udemy, YouTube, TED, NVIDIA Academy, and Vimeo and displays the original or translated subtitles.
 - Lets you choose a source subtitle language and translation style directly from the AST menu.
 - Supports Google Translate, DeepL, OpenAI, Anthropic, Google AI, OpenRouter, NVIDIA NIM, and Custom LLM.
 - Uses the full subtitle context and current playback position for LLM translation, splitting long videos into manageable parts.
@@ -36,7 +36,7 @@ Chrome 102 or later is required.
 
 ## Usage
 
-1. Open a Udemy course, YouTube video, NVIDIA Academy course, or Vimeo video with subtitles.
+1. Open a Udemy course, YouTube video, TED video, NVIDIA Academy course, or Vimeo video with subtitles.
 2. Select the AST icon in the video toolbar to enable subtitles.
 3. Choose a source subtitle language, translation provider, and translation style from the menu, or open the settings page.
 

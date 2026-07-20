@@ -3,8 +3,8 @@
 ## 스토어 등록 기본 문구
 
 - 제품명: AST - AI Subtitle Translator
-- 한 줄 소개: Udemy, YouTube, NVIDIA Academy, Vimeo 자막을 원하는 언어로 번역해 영상 위에 표시하는 Chrome 확장입니다.
-- 짧은 설명: AI 문맥 번역과 빠른 임시 번역으로 Udemy·YouTube·NVIDIA Academy·Vimeo 자막을 더 자연스럽게 읽으세요.
+- 한 줄 소개: Udemy, YouTube, TED, NVIDIA Academy, Vimeo 자막을 원하는 언어로 번역해 영상 위에 표시하는 Chrome 확장입니다.
+- 짧은 설명: AI 문맥 번역과 빠른 임시 번역으로 Udemy·YouTube·TED·NVIDIA Academy·Vimeo 자막을 더 자연스럽게 읽으세요.
 
 ## Chrome Web Store 업로드 이미지
 
@@ -13,7 +13,7 @@
 
 ## 상세 설명
 
-AST - AI Subtitle Translator는 Udemy 강의, YouTube 영상, NVIDIA Academy 강의, Vimeo 영상의 자막을 원하는 언어로 번역해 영상 위에 보여줍니다.
+AST - AI Subtitle Translator는 Udemy 강의, YouTube 영상, TED 영상, NVIDIA Academy 강의, Vimeo 영상의 자막을 원하는 언어로 번역해 영상 위에 보여줍니다.
 
 Google Translate로 빠르게 자막을 확인하거나, OpenAI, Anthropic, Google AI 등 AI 번역 provider를 선택해 영상 전체 흐름을 고려한 번역을 볼 수 있습니다. AI 번역이 준비되는 동안에는 원문 또는 빠른 번역 자막이 먼저 표시됩니다.
 
@@ -21,7 +21,7 @@ Google Translate로 빠르게 자막을 확인하거나, OpenAI, Anthropic, Goog
 
 ## 주요 기능
 
-- Udemy 강의, YouTube 영상, NVIDIA Academy 강의, Vimeo 영상 자막 번역
+- Udemy 강의, YouTube 영상, TED 영상, NVIDIA Academy 강의, Vimeo 영상 자막 번역
 - 영상에서 제공하는 원본 자막 언어 선택
 - 원문 흐름을 고려한 AI 문맥 번역
 - Google Translate를 이용한 빠른 임시 번역
@@ -36,17 +36,17 @@ Google Translate로 빠르게 자막을 확인하거나, OpenAI, Anthropic, Goog
 
 ## 지원 사이트와 번역 Provider
 
-- 지원 사이트: Udemy 강의 플레이어, YouTube 영상 페이지, NVIDIA Academy 강의, Vimeo 영상 페이지
+- 지원 사이트: Udemy 강의 플레이어, YouTube 영상 페이지, TED 영상 페이지, NVIDIA Academy 강의, Vimeo 영상 페이지
 - 번역 Provider: Google Translate, DeepL, OpenAI, Anthropic, Google AI, OpenRouter, NVIDIA NIM, Custom LLM
 - 영상의 AST 메뉴에서 자막 켜기/끄기, 원본 자막 언어·번역 Provider·번역 스타일 선택, 설정 열기
 
-Udemy에서는 수강 권한이 있는 강의의 자막이 필요하며, YouTube, NVIDIA Academy, Vimeo에서는 영상이 제공하는 자막이 필요합니다.
+Udemy에서는 수강 권한이 있는 강의의 자막이 필요하며, YouTube, TED, NVIDIA Academy, Vimeo에서는 영상이 제공하는 자막이 필요합니다.
 
 ## 사용 방법
 
 1. 확장 프로그램을 설치하고 Options 페이지에서 목표 언어와 번역 provider를 설정합니다.
 2. API key가 필요한 provider를 사용할 경우, 해당 provider에서 발급한 API key를 입력합니다.
-3. Udemy 강의, YouTube 영상, NVIDIA Academy 강의 또는 Vimeo 영상을 열고 영상 컨트롤 바의 자막 번역 아이콘을 누릅니다. 필요하면 메뉴에서 원본 자막 언어와 번역 스타일을 바꿉니다.
+3. Udemy 강의, YouTube 영상, TED 영상, NVIDIA Academy 강의 또는 Vimeo 영상을 열고 영상 컨트롤 바의 자막 번역 아이콘을 누릅니다. 필요하면 메뉴에서 원본 자막 언어와 번역 스타일을 바꿉니다.
 4. 필요에 따라 Options 페이지에서 자막 스타일을 조절합니다.
 
 ## 처음 시작할 때 권장 설정

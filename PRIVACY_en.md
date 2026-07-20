@@ -2,13 +2,13 @@
 
 [한국어](PRIVACY.md) · [English](PRIVACY_en.md) · [日本語](PRIVACY_ja.md)
 
-Effective date: July 15, 2026
+Effective date: July 21, 2026
 
-AST - AI Subtitle Translator is a Chrome extension that translates subtitles from Udemy, YouTube, NVIDIA Academy, and Vimeo through a translation service selected by the user. The developer does not operate a separate backend server and does not collect user data for advertising, tracking, or analytics.
+AST - AI Subtitle Translator is a Chrome extension that translates subtitles from Udemy, YouTube, TED, NVIDIA Academy, and Vimeo through a translation service selected by the user. The developer does not operate a separate backend server and does not collect user data for advertising, tracking, or analytics.
 
 ## Data handled
 
-- Subtitle text and cue timing from Udemy, YouTube, NVIDIA Academy, and Vimeo
+- Subtitle text and cue timing from Udemy, YouTube, TED, NVIDIA Academy, and Vimeo
 - URLs, video IDs, course IDs, lecture IDs, and subtitle language information needed to identify the current video or lecture
 - Translation provider API keys, endpoints, models, translation settings, and subtitle settings entered by the user
 - Cached translation results and encrypted settings backup files created by the user
@@ -36,7 +36,7 @@ This data is used only to retrieve subtitles, request translations, display tran
 ## Permissions
 
 - `storage`: Stores settings, encrypted API keys, and translation cache entries locally.
-- Host permissions: Retrieve subtitles from Udemy, YouTube, NVIDIA Academy, and Vimeo, contact the selected translation provider, and connect to Custom LLM on `localhost` or `127.0.0.1`. A custom HTTPS Custom LLM domain is accessed only after the user approves it while fetching models or testing the connection.
+- Host permissions: Retrieve subtitles from Udemy, YouTube, TED, NVIDIA Academy, and Vimeo, contact the selected translation provider, and connect to Custom LLM on `localhost` or `127.0.0.1`. A custom HTTPS Custom LLM domain is accessed only after the user approves it while fetching models or testing the connection.
 
 ## Google API Limited Use
 

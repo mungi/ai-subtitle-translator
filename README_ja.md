@@ -2,7 +2,7 @@
 
 [한국어](README.md) · [English](README_en.md) · [日本語](README_ja.md)
 
-Udemy、YouTube、NVIDIA Academy、Vimeo の字幕を翻訳し、動画上に表示する Chrome Manifest V3 拡張機能です。すぐに Google Translate を使用することも、LLM プロバイダーを接続して文脈を反映した翻訳を利用することもできます。
+Udemy、YouTube、TED、NVIDIA Academy、Vimeo の字幕を翻訳し、動画上に表示する Chrome Manifest V3 拡張機能です。すぐに Google Translate を使用することも、LLM プロバイダーを接続して文脈を反映した翻訳を利用することもできます。
 
 紹介サイト: <https://mungi.github.io/ai-subtitle-translator/>
 
@@ -10,7 +10,7 @@ Chrome 102 以降が必要です。
 
 ## 主な機能
 
-- Udemy、YouTube、NVIDIA Academy、Vimeo から字幕を取得し、原文または翻訳字幕を表示します。
+- Udemy、YouTube、TED、NVIDIA Academy、Vimeo から字幕を取得し、原文または翻訳字幕を表示します。
 - AST メニューから、現在の動画で提供されている元字幕の言語と翻訳スタイルを直接選択できます。
 - Google Translate、DeepL、OpenAI、Anthropic、Google AI、OpenRouter、NVIDIA NIM、Custom LLM に対応しています。
 - LLM 翻訳では字幕全体の文脈と現在の再生位置を考慮し、長い動画は分割して処理します。
@@ -36,7 +36,7 @@ Chrome 102 以降が必要です。
 
 ## 使用方法
 
-1. 字幕がある Udemy 講義、YouTube 動画、NVIDIA Academy 講義、または Vimeo 動画を開きます。
+1. 字幕がある Udemy 講義、YouTube 動画、TED 動画、NVIDIA Academy 講義、または Vimeo 動画を開きます。
 2. 動画ツールバーの AST アイコンを選択して字幕を有効にします。
 3. メニューで元字幕の言語、翻訳プロバイダー、翻訳スタイルを選択するか、設定画面を開きます。
 

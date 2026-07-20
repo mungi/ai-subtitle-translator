@@ -104,6 +104,28 @@
   border-radius: 4px;
 }
 
+.ast-ted-control {
+  box-sizing: border-box;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  padding-left: 8px;
+}
+
+.ast-ted-toolbar-button {
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  border-radius: 0;
+  opacity: 1;
+}
+
+.ast-ted-toolbar-button .ast-toolbar-icon {
+  transform: translateY(2px);
+}
+
 .ast-floating-toolbar {
   position: fixed;
   top: 72px;
@@ -346,7 +368,8 @@
 }
 
 .ast-provider-menu-nvidia,
-.ast-provider-menu-vimeo {
+.ast-provider-menu-vimeo,
+.ast-provider-menu-ted {
   --ast-source-caption-menu-background: rgba(15, 23, 42, 0.94);
   right: 12px;
   bottom: 56px;
@@ -357,8 +380,16 @@
   font-family: Arial, sans-serif;
 }
 
+.ast-provider-menu-ted {
+  color: #f7f8fa !important;
+  -webkit-text-fill-color: #f7f8fa !important;
+  line-height: 20px !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+}
+
 .ast-provider-menu-nvidia .ast-provider-menu-item,
-.ast-provider-menu-vimeo .ast-provider-menu-item {
+.ast-provider-menu-vimeo .ast-provider-menu-item,
+.ast-provider-menu-ted .ast-provider-menu-item {
   min-height: 36px;
   padding: 0 12px;
   border-radius: 6px;
@@ -366,15 +397,27 @@
   font-weight: 500;
 }
 
+.ast-provider-menu-ted .ast-provider-menu-item,
+.ast-provider-menu-ted .ast-provider-menu-label {
+  color: #f7f8fa !important;
+  -webkit-text-fill-color: #f7f8fa !important;
+  line-height: 20px !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
 .ast-provider-menu-nvidia .ast-provider-menu-item:hover,
 .ast-provider-menu-nvidia .ast-provider-menu-item:focus-visible,
 .ast-provider-menu-vimeo .ast-provider-menu-item:hover,
-.ast-provider-menu-vimeo .ast-provider-menu-item:focus-visible {
+.ast-provider-menu-vimeo .ast-provider-menu-item:focus-visible,
+.ast-provider-menu-ted .ast-provider-menu-item:hover,
+.ast-provider-menu-ted .ast-provider-menu-item:focus-visible {
   background: rgba(255, 255, 255, 0.16);
 }
 
 .ast-provider-menu-nvidia .ast-provider-menu-separator,
-.ast-provider-menu-vimeo .ast-provider-menu-separator {
+.ast-provider-menu-vimeo .ast-provider-menu-separator,
+.ast-provider-menu-ted .ast-provider-menu-separator {
   margin: 4px 8px;
 }
 

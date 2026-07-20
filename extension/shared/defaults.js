@@ -394,6 +394,7 @@ export const DEFAULT_SETTINGS = {
   platforms: {
     udemy: true,
     youtube: true,
+    ted: true,
     nvidia: true,
     vimeo: true
   },

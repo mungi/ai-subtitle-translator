@@ -21,3 +21,11 @@ test("manifest grants Vimeo page and player access", () => {
   assert.ok(manifest.content_scripts[0].matches.includes("https://www.vimeo.com/*"));
   assert.ok(manifest.content_scripts[0].matches.includes("https://player.vimeo.com/video/*"));
 });
+
+test("manifest grants TED talk and HLS caption access", () => {
+  assert.ok(manifest.host_permissions.includes("https://ted.com/*"));
+  assert.ok(manifest.host_permissions.includes("https://www.ted.com/*"));
+  assert.ok(manifest.host_permissions.includes("https://hls.ted.com/*"));
+  assert.ok(manifest.content_scripts[0].matches.includes("https://ted.com/talks/*"));
+  assert.ok(manifest.content_scripts[0].matches.includes("https://www.ted.com/talks/*"));
+});

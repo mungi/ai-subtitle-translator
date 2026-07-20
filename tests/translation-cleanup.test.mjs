@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { PROVIDERS } from "../extension/shared/defaults.js";
+import { normalizeSettings } from "../extension/shared/storage.js";
 import { translateSubtitleDocument, translationInternals } from "../extension/shared/translation.js";
 
 const sourceDocument = {
@@ -31,6 +33,192 @@ test("Custom 2 prompt changes use a distinct translation cache key", () => {
   }, provider);
 
   assert.notEqual(firstKey, secondKey);
+});
+
+test("machine translation cache keys do not change with the LLM translation style", () => {
+  for (const apiStyle of ["google-translate", "deepl"]) {
+    const provider = { id: apiStyle, apiStyle, model: "" };
+    const naturalKey = translationInternals.buildCacheKey(sourceDocument, {
+      targetLanguage: "ko",
+      translationStyle: "natural"
+    }, provider);
+    const technicalKey = translationInternals.buildCacheKey(sourceDocument, {
+      targetLanguage: "ko",
+      translationStyle: "technical"
+    }, provider);
+
+    assert.equal(naturalKey, technicalKey);
+  }
+});
+
+test("translation cache v2 rejects incomplete or timing-mismatched cached documents", () => {
+  const provider = { id: "google", apiStyle: "google-generate-content", model: "gemini-test" };
+  const cacheKey = translationInternals.buildCacheKey(sourceDocument, {
+    targetLanguage: "ko",
+    translationStyle: "technical"
+  }, provider);
+
+  assert.match(cacheKey, /^v2:/);
+  assert.equal(translationInternals.getReusableCachedTranslation(sourceDocument, {
+    ...sourceDocument,
+    providerId: "google",
+    cues: []
+  }, provider), null);
+  assert.equal(translationInternals.getReusableCachedTranslation(sourceDocument, {
+    ...sourceDocument,
+    providerId: "google",
+    cues: [{ ...sourceDocument.cues[0], end: sourceDocument.cues[0].end + 1, text: "캐시 번역" }]
+  }, provider), null);
+});
+
+test("cached Google Translate fallback does not suppress a later Google AI request", async () => {
+  const originalChrome = globalThis.chrome;
+  const originalFetch = globalThis.fetch;
+  const rawSettings = {
+    activeProvider: "google",
+    targetLanguage: "ko",
+    translationStyle: "technical",
+    cacheTranslations: true,
+    providerTestStatus: { google: "success" },
+    providers: {
+      google: {
+        ...PROVIDERS.google,
+        apiKey: "google-key"
+      }
+    }
+  };
+  const normalizedSettings = normalizeSettings(rawSettings);
+  const cacheKey = translationInternals.buildCacheKey(
+    sourceDocument,
+    normalizedSettings,
+    normalizedSettings.providers.google
+  );
+  const stored = {
+    llmSettings: rawSettings,
+    translationCache: {
+      [cacheKey]: {
+        createdAt: new Date().toISOString(),
+        document: {
+          ...sourceDocument,
+          providerId: "google",
+          fallbackProviderId: "googleTranslate",
+          cues: [{ ...sourceDocument.cues[0], text: "이전 구글 번역" }]
+        }
+      }
+    }
+  };
+  const requestHosts = [];
+
+  globalThis.chrome = {
+    runtime: { id: "test-extension" },
+    i18n: { getUILanguage: () => "ko" },
+    storage: {
+      local: {
+        get: async () => stored,
+        set: async (patch) => Object.assign(stored, patch),
+        remove: async () => {}
+      }
+    }
+  };
+  globalThis.fetch = async (url) => {
+    requestHosts.push(new URL(String(url)).host);
+    return {
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      json: async () => ({
+        candidates: [{
+          content: {
+            parts: [{
+              text: JSON.stringify({
+                translations: [{ id: "cue-1", text: "제미나이 번역" }]
+              })
+            }]
+          }
+        }]
+      })
+    };
+  };
+
+  try {
+    const translated = await translateSubtitleDocument(sourceDocument, { providerId: "google" });
+
+    assert.deepEqual(requestHosts, ["generativelanguage.googleapis.com"]);
+    assert.equal(translated.providerId, "google");
+    assert.equal(translated.fallbackProviderId, undefined);
+    assert.equal(translated.cacheHit, false);
+    assert.equal(translated.cues[0].text, "제미나이 번역");
+  } finally {
+    globalThis.chrome = originalChrome;
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("a complete Google AI translation cache is returned without another network request", async () => {
+  const originalChrome = globalThis.chrome;
+  const originalFetch = globalThis.fetch;
+  const rawSettings = {
+    activeProvider: "google",
+    targetLanguage: "ko",
+    translationStyle: "technical",
+    cacheTranslations: true,
+    providerTestStatus: { google: "success" },
+    providers: {
+      google: {
+        ...PROVIDERS.google,
+        apiKey: "google-key"
+      }
+    }
+  };
+  const normalizedSettings = normalizeSettings(rawSettings);
+  const cacheKey = translationInternals.buildCacheKey(
+    sourceDocument,
+    normalizedSettings,
+    normalizedSettings.providers.google
+  );
+  const stored = {
+    llmSettings: rawSettings,
+    translationCache: {
+      [cacheKey]: {
+        createdAt: new Date().toISOString(),
+        document: {
+          ...sourceDocument,
+          providerId: "google",
+          cues: [{ ...sourceDocument.cues[0], text: "캐시된 제미나이 번역" }]
+        }
+      }
+    }
+  };
+  let fetchCount = 0;
+
+  globalThis.chrome = {
+    runtime: { id: "test-extension" },
+    i18n: { getUILanguage: () => "ko" },
+    storage: {
+      local: {
+        get: async () => stored,
+        set: async (patch) => Object.assign(stored, patch),
+        remove: async () => {}
+      }
+    }
+  };
+  globalThis.fetch = async () => {
+    fetchCount += 1;
+    throw new Error("A successful cache hit must not issue a network request.");
+  };
+
+  try {
+    const translated = await translateSubtitleDocument(sourceDocument, { providerId: "google" });
+
+    assert.equal(fetchCount, 0);
+    assert.equal(translated.providerId, "google");
+    assert.equal(translated.fallbackProviderId, undefined);
+    assert.equal(translated.cacheHit, true);
+    assert.equal(translated.cues[0].text, "캐시된 제미나이 번역");
+  } finally {
+    globalThis.chrome = originalChrome;
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test("translated cue text decodes HTML entities without replacing decoded characters", () => {
@@ -818,6 +1006,54 @@ test("DeepL translation keeps each request body under the API size limit", async
       `expected all request bodies to stay within 128 KiB, got ${requestBodyByteLengths.join(", ")}`
     );
     assert.equal(translations.length, 8);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Google Translate sends subtitle text as a POST form instead of a redirect-prone query URL", async () => {
+  const originalFetch = globalThis.fetch;
+  let capturedRequest;
+
+  globalThis.fetch = async (url, init = {}) => {
+    capturedRequest = { url: String(url), init };
+    return {
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      json: async () => [[[`첫 번째 번역\n\n두 번째 번역`]]]
+    };
+  };
+
+  try {
+    const document = {
+      ...sourceDocument,
+      cues: [
+        { id: "cue-1", start: 0, end: 1, text: "First subtitle" },
+        { id: "cue-2", start: 1, end: 2, text: "Second subtitle" }
+      ]
+    };
+    const translations = await translationInternals.translateCuesWithGoogle(document, {
+      targetLanguage: "ko",
+      sourceLanguage: "en"
+    }, {
+      apiStyle: "google-translate",
+      baseUrl: "https://translate.googleapis.com/translate_a/single"
+    });
+
+    assert.equal(capturedRequest.url, "https://translate.googleapis.com/translate_a/single");
+    assert.equal(capturedRequest.init.method, "POST");
+    assert.equal(capturedRequest.init.redirect, "error");
+    assert.equal(
+      capturedRequest.init.headers["Content-Type"],
+      "application/x-www-form-urlencoded;charset=UTF-8"
+    );
+    const body = new URLSearchParams(capturedRequest.init.body.toString());
+    assert.equal(body.get("client"), "gtx");
+    assert.equal(body.get("sl"), "en");
+    assert.equal(body.get("tl"), "ko");
+    assert.equal(body.get("q"), "\n\nFirst subtitle\n\nSecond subtitle");
+    assert.deepEqual(translations.map((item) => item.text), ["첫 번째 번역", "두 번째 번역"]);
   } finally {
     globalThis.fetch = originalFetch;
   }

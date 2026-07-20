@@ -29,6 +29,8 @@
       "matches": [
         "https://*.udemy.com/course/*/learn/*",
         "https://www.youtube.com/*",
+        "https://ted.com/talks/*",
+        "https://www.ted.com/talks/*",
         "https://www.nvidia.com/*/training/academy/course-player/*",
         "https://vimeo.com/*",
         "https://www.vimeo.com/*",
@@ -47,6 +49,9 @@
     "https://*.udemy.com/*",
     "https://*.udemycdn.com/*",
     "https://www.youtube.com/*",
+    "https://ted.com/*",
+    "https://www.ted.com/*",
+    "https://hls.ted.com/*",
     "https://www.nvidia.com/*",
     "https://vimeo.com/*",
     "https://www.vimeo.com/*",

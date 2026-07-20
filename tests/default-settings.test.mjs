@@ -14,6 +14,11 @@ test("NVIDIA Academy and Vimeo subtitle support are enabled by default", () => {
   assert.equal(normalizeSettings({ platforms: { vimeo: false } }).platforms.vimeo, false);
 });
 
+test("TED subtitle support is enabled by default", () => {
+  assert.equal(DEFAULT_SETTINGS.platforms.ted, true);
+  assert.equal(normalizeSettings({ platforms: { ted: false } }).platforms.ted, false);
+});
+
 test("default translation style and subtitle appearance match the intended initial setup", () => {
   assert.equal(DEFAULT_SETTINGS.translationStyle, "custom");
   assert.equal(DEFAULT_SETTINGS.subtitleStyle.fontSize, 35);

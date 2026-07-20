@@ -13,6 +13,7 @@ extension/
   platforms/
     youtube-captions.js             YouTube track/cue 수집과 fallback
     udemy-captions.js               Udemy caption API와 WebVTT 수집
+    ted-captions.js                 TED HLS track 검증과 WebVTT 수집
     vimeo-captions.js               Vimeo 계열 caption URL 검증과 WebVTT 수집
   shared/
     subtitles.js                    내부 cue/document 표준화와 WebVTT 파서
@@ -37,7 +38,7 @@ extension/
 
 ## 현재 구현 범위
 
-- Udemy, YouTube, NVIDIA Academy, Vimeo의 자막 track을 수집하고 영어 source track을 우선 선택합니다.
+- Udemy, YouTube, TED, NVIDIA Academy, Vimeo의 자막 track을 수집하고 영어 source track을 우선 선택합니다.
 - Google Translate, DeepL, OpenAI, Anthropic, Google AI, OpenRouter, NVIDIA NIM, Custom LLM을 번역 provider로 지원합니다.
 - 원문 또는 임시 번역을 먼저 표시하고, 선택한 최종 provider의 cue별 번역 결과로 교체합니다.
 - 옵션 화면에서 provider, 번역 스타일, 자막 모양, 암호화된 API key 저장, 설정 백업·복구를 관리합니다.
@@ -58,7 +59,7 @@ type SubtitleCue = {
 };
 
 type SubtitleDocument = {
-  platform: "youtube" | "udemy" | "nvidia" | "vimeo" | "test";
+  platform: "youtube" | "udemy" | "ted" | "nvidia" | "vimeo" | "test";
   videoId: string;
   sourceLanguage: string;
   cues: SubtitleCue[];
@@ -69,7 +70,7 @@ type SubtitleDocument = {
 
 ## 런타임 흐름
 
-1. `content/content-script.js`가 현재 host로 `youtube`, `udemy`, `nvidia`, `vimeo`를 감지합니다.
+1. `content/content-script.js`가 현재 host로 `youtube`, `udemy`, `ted`, `nvidia`, `vimeo`를 감지합니다.
 2. 영상 컨트롤 영역에 `ast-toolbar-button`을 주입합니다. 버튼은 플랫폼별 독립 AST provider 메뉴를 엽니다.
 3. 사용자가 메뉴에서 AST를 켜거나 provider를 선택하면 현재 플랫폼 handler가 session key와 video element를 확인합니다.
 4. content script가 background service worker로 `captions.*.fetchTranscript` 메시지를 보냅니다.
@@ -86,6 +87,8 @@ type SubtitleDocument = {
 | --- | --- | --- | --- |
 | `captions.youtube.fetchTranscript` | content | background | YouTube track/cue 수집 |
 | `captions.udemy.fetchTranscript` | content | background | Udemy caption URL/WebVTT 수집 |
+| `captions.ted.listTracks` | content | background | TED HLS subtitle track 목록 수집 |
+| `captions.ted.fetchTranscript` | content | background | TED caption WebVTT 수집 |
 | `captions.vimeo.fetchTranscript` | content | background | NVIDIA Academy/Vimeo caption WebVTT 수집 |
 | `translation.translateDocument` | content | background | provider 번역 실행 |
 | `translation.progress` | background | content | chunk/cue 진행분 반영 |
@@ -121,6 +124,10 @@ type SubtitleDocument = {
 ```
 
 caption URL의 WebVTT를 받아 `parseWebVtt`로 cue를 생성합니다. 로그인 쿠키와 수강 권한에 의존하므로 실제 QA가 필요합니다.
+
+### TED
+
+`platforms/ted-captions.js`는 TED 페이지의 `__NEXT_DATA__`에서 찾은 HLS master manifest를 `hls.ted.com` HTTPS 경로로 제한합니다. Manifest의 `EXT-X-MEDIA` subtitle 항목을 언어 track으로 만들고 각 `subtitles/{language}/full.vtt`를 읽어 표준 cue로 정규화합니다.
 
 ### NVIDIA Academy와 Vimeo
 
@@ -159,7 +166,7 @@ CST에서 AST로 명칭을 바꾼 현재 초기 개발 단계에서는 storage n
 
 `content/content-script.js`가 담당하는 UI 책임은 다음과 같습니다.
 
-- Udemy/YouTube/NVIDIA Academy/Vimeo toolbar target 탐색
+- Udemy/YouTube/TED/NVIDIA Academy/Vimeo toolbar target 탐색
 - SVG 기반 툴바 버튼과 플랫폼별 독립 provider 메뉴 삽입
 - 문서 캡처 단계에서 다른 플레이어 툴바 아이콘 상호작용을 감지해 AST 메뉴를 닫고 메뉴 겹침 방지
 - 현재 재생 위치 우선 provider 전환, 선택 저장, request ID 기반 이전 번역 격리
@@ -196,6 +203,7 @@ npm run check
 주요 커버리지:
 
 - YouTube caption track 선택, timedtext format fallback, transcript panel fallback
+- TED HLS manifest track 파싱, caption URL 검증과 WebVTT 수집
 - Vimeo/NVIDIA Academy caption URL 검증과 WebVTT 수집
 - content script의 YouTube toolbar, translation message sequencing, progress 상태, overlay mount/style
 - Google Translate/LLM 응답 정리, cue count/time 보존, fallback
@@ -213,6 +221,7 @@ npm run check
 | 새 provider 추가 | `defaults.js`, `provider-request.js`, `service-worker.js`, `options.js`, `manifest.json` | `provider-request`, `background-service-worker`, `options-layout`, `manifest` |
 | YouTube 수집 수정 | `platforms/youtube-captions.js`, `content/content-script.js` | `youtube-captions`, `content-script-youtube` |
 | Udemy 수집 수정 | `platforms/udemy-captions.js`, `content/content-script.js` | WebVTT/수동 Udemy QA 추가 필요 |
+| TED 수집 수정 | `platforms/ted-captions.js`, `content/content-script.js` | `ted-captions`, `ted-content`, 수동 TED QA |
 | Vimeo/NVIDIA Academy 수집 수정 | `platforms/vimeo-captions.js`, `content/content-script.js` | `vimeo-captions`, `content-script-youtube`, 수동 Vimeo/NVIDIA QA |
 | subtitle model 변경 | `subtitles.js`, `translation.js`, 플랫폼 수집기, content render | `youtube-captions`, `translation-cleanup`, `content-script-youtube` |
 | overlay 스타일 변경 | `content-script.js`, `content-style.css`, `defaults.js`, `options.js` | `content-script-youtube`, `options-layout`, `default-settings` |

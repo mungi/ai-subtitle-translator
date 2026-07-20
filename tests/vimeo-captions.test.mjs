@@ -117,7 +117,7 @@ test("NVIDIA Academy and Vimeo use Vimeo's bottom control bar and a visible prov
   assert.match(contentScript, /host === "vimeo\.com" \|\| host === "www\.vimeo\.com"/);
   assert.match(contentScript, /\(\?:\^\|\\\/\)\(\\d\+\)/);
   assert.match(contentScript, /if \(isVimeoPlatform\(platform\)\) return getVimeoVideoId\(\)/);
-  assert.match(contentScript, /platform !== "udemy" && !isVimeoPlatform\(platform\) && installed/);
+  assert.match(contentScript, /platform !== "udemy" && platform !== "ted" && !isVimeoPlatform\(platform\) && installed/);
   assert.match(contentScript, /platform\.vimeo\.getContext/);
   assert.match(contentScript, /platform: "vimeo"/);
   assert.match(contentStyle, /\.ast-provider-menu-nvidia/);

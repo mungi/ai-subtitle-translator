@@ -175,6 +175,7 @@ const simpleGoogleTestLockedControls = [
 const platformToggleInputs = {
   udemy: document.getElementById("toggleUdemy"),
   youtube: document.getElementById("toggleYoutube"),
+  ted: document.getElementById("toggleTed"),
   nvidia: document.getElementById("toggleNvidia"),
   vimeo: document.getElementById("toggleVimeo")
 };

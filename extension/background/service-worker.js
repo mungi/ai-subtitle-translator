@@ -8,6 +8,7 @@ import { translateSubtitleDocument } from "../shared/translation.js";
 import { fetchYoutubeCaptionTracks, fetchYoutubeTranscript } from "../platforms/youtube-captions.js";
 import { fetchUdemyCaptionTracks, fetchUdemyTranscript } from "../platforms/udemy-captions.js";
 import { fetchVimeoTranscript } from "../platforms/vimeo-captions.js";
+import { fetchTedCaptionTracks, fetchTedTranscript } from "../platforms/ted-captions.js";
 
 const TEST_SYSTEM_PROMPT = "You are a concise API connection tester. Reply with only the word OK.";
 const TEST_INPUT = "Return OK if you can read this message.";
@@ -63,9 +64,16 @@ const HTTP_STATUS_REASONS = {
 };
 
 const storageAccessReady = restrictLocalStorageAccess();
+let settingsMutationQueue = Promise.resolve();
 void storageAccessReady.catch((error) => {
   console.error("[AST] Could not restrict extension storage access:", error);
 });
+
+export function enqueueSettingsMutation(operation) {
+  const result = settingsMutationQueue.catch(() => {}).then(operation);
+  settingsMutationQueue = result.then(() => undefined, () => undefined);
+  return result;
+}
 
 async function broadcastPublicSettings() {
   if (!chrome.tabs?.query) return;
@@ -73,6 +81,8 @@ async function broadcastPublicSettings() {
   const tabs = await chrome.tabs.query({
     url: [
       "https://www.youtube.com/*",
+      "https://ted.com/talks/*",
+      "https://www.ted.com/talks/*",
       "https://*.udemy.com/course/*/learn/*",
       "https://www.nvidia.com/*/training/academy/course-player/*"
     ]
@@ -327,27 +337,31 @@ async function testActiveProvider(providerId) {
   }
 }
 
-async function setActiveProvider(providerId) {
-  const settings = await getSettings();
-  const provider = settings.providers?.[providerId];
-  const available = provider?.apiStyle === "google-translate"
-    || settings.providerTestStatus?.[providerId] === "success";
-  if (!provider || !available) {
-    throw new Error(`Provider is not available: ${providerId}`);
-  }
-  settings.activeProvider = providerId;
-  await saveSettings(settings);
-  return { providerId };
+export function setActiveProvider(providerId) {
+  return enqueueSettingsMutation(async () => {
+    const settings = await getSettings();
+    const provider = settings.providers?.[providerId];
+    const available = provider?.apiStyle === "google-translate"
+      || settings.providerTestStatus?.[providerId] === "success";
+    if (!provider || !available) {
+      throw new Error(`Provider is not available: ${providerId}`);
+    }
+    settings.activeProvider = providerId;
+    await saveSettings(settings);
+    return { providerId };
+  });
 }
 
-async function setTranslationStyle(translationStyle) {
+export function setTranslationStyle(translationStyle) {
   if (!TRANSLATION_STYLES.some((style) => style.id === translationStyle)) {
-    throw new Error(`Unsupported translation style: ${translationStyle}`);
+    return Promise.reject(new Error(`Unsupported translation style: ${translationStyle}`));
   }
-  const settings = await getSettings();
-  settings.translationStyle = translationStyle;
-  await saveSettings(settings);
-  return { translationStyle };
+  return enqueueSettingsMutation(async () => {
+    const settings = await getSettings();
+    settings.translationStyle = translationStyle;
+    await saveSettings(settings);
+    return { translationStyle };
+  });
 }
 
 export function buildYoutubeTranscriptErrorResponse(error) {
@@ -372,7 +386,7 @@ function dispatchBackgroundMessage(message, sender, sendResponse) {
   }
 
   if (message?.type === "settings.updateSubtitleStyle") {
-    updateSubtitleStyleSettings(message.patch)
+    enqueueSettingsMutation(() => updateSubtitleStyleSettings(message.patch))
       .then((settings) => sendResponse({ ok: true, settings }))
       .catch((error) => sendResponse({ ok: false, error: error.message }));
     return true;
@@ -466,6 +480,27 @@ function dispatchBackgroundMessage(message, sender, sendResponse) {
       trackUrl: message.trackUrl,
       sourceLanguage: message.sourceLanguage,
       platform: message.platform
+    })
+      .then((document) => sendResponse({ ok: true, document }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.type === "captions.ted.listTracks") {
+    fetchTedCaptionTracks({
+      videoId: message.videoId,
+      manifestUrl: message.manifestUrl
+    })
+      .then((tracks) => sendResponse({ ok: true, tracks }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.type === "captions.ted.fetchTranscript") {
+    fetchTedTranscript({
+      videoId: message.videoId,
+      trackUrl: message.trackUrl,
+      sourceLanguage: message.sourceLanguage
     })
       .then((document) => sendResponse({ ok: true, document }))
       .catch((error) => sendResponse({ ok: false, error: error.message }));

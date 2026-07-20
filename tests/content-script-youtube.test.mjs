@@ -1092,6 +1092,156 @@ test("provider menu persists selection, starts at current time, and shows only i
   assert.equal(menu.children.some((item) => item.classList.values.has("pending")), false);
 });
 
+test("switching back to a previously used LLM provider allows its successful translation cache", async () => {
+  const harness = createYoutubeHarness({
+    settings: {
+      activeProvider: "google",
+      providerTestStatus: {
+        google: "success",
+        deepl: "success"
+      }
+    }
+  });
+  const source = readFileSync("extension/content/content-script.js", "utf8");
+
+  vm.runInNewContext(source, harness.context, { filename: "extension/content/content-script.js" });
+  await flushPromises();
+
+  const button = harness.controls.querySelector("#ast-toolbar-button");
+  await clickAstToggle(button);
+
+  const menu = harness.context.document.getElementById("ast-provider-menu");
+  menu.children.find((item) => item.dataset.providerId === "deepl")
+    .dispatchEvent({ type: "click", stopPropagation: () => {} });
+  await flushPromises();
+
+  menu.children.find((item) => item.dataset.providerId === "google")
+    .dispatchEvent({ type: "click", stopPropagation: () => {} });
+  await flushPromises();
+
+  const finalRequests = harness.sentMessages.filter((message) => (
+    message.type === "translation.translateDocument" && message.mode === "final"
+  ));
+  assert.deepEqual(
+    finalRequests.map(({ providerId, forceNoCache }) => ({ providerId, forceNoCache })),
+    [
+      { providerId: "google", forceNoCache: false },
+      { providerId: "deepl", forceNoCache: false },
+      { providerId: "google", forceNoCache: false }
+    ]
+  );
+});
+
+test("changing an LLM translation style allows a successful cache for that style", async () => {
+  const harness = createYoutubeHarness({
+    settings: {
+      activeProvider: "google",
+      translationStyle: "natural",
+      providerTestStatus: { google: "success" }
+    }
+  });
+  const source = readFileSync("extension/content/content-script.js", "utf8");
+
+  vm.runInNewContext(source, harness.context, { filename: "extension/content/content-script.js" });
+  await flushPromises();
+
+  const button = harness.controls.querySelector("#ast-toolbar-button");
+  await clickAstToggle(button);
+
+  const menu = harness.context.document.getElementById("ast-provider-menu");
+  const styleSubmenu = menu.children.find((item) => item.className === "ast-translation-style-submenu");
+  styleSubmenu.children[1].children[2]
+    .dispatchEvent({ type: "click", stopPropagation: () => {} });
+  await flushPromises();
+
+  const finalRequests = harness.sentMessages.filter((message) => (
+    message.type === "translation.translateDocument" && message.mode === "final"
+  ));
+  assert.equal(finalRequests.length, 2);
+  assert.equal(finalRequests[0].forceNoCache, false);
+  assert.equal(finalRequests[1].providerId, "google");
+  assert.equal(finalRequests[1].forceNoCache, false);
+});
+
+test("a cached LLM result replaces temporary subtitles and keeps the completed UI state", async () => {
+  let resolveCachedFinal;
+  const cachedFinalResponse = new Promise((resolve) => {
+    resolveCachedFinal = resolve;
+  });
+  const pendingTemporaryResponse = new Promise(() => {});
+  const harness = createYoutubeHarness({
+    settings: {
+      activeProvider: "google",
+      providerTestStatus: { google: "success" }
+    },
+    sendMessage(message, { transcriptDocument }) {
+      if (message.type === "captions.youtube.fetchTranscript") {
+        return { ok: true, document: transcriptDocument };
+      }
+      if (message.type === "translation.translateDocument" && message.mode === "temporary") {
+        return pendingTemporaryResponse;
+      }
+      if (message.type === "translation.translateDocument" && message.mode === "final") {
+        return cachedFinalResponse;
+      }
+      return { ok: true };
+    }
+  });
+  const source = readFileSync("extension/content/content-script.js", "utf8");
+
+  vm.runInNewContext(source, harness.context, { filename: "extension/content/content-script.js" });
+  await flushPromises();
+
+  const button = harness.controls.querySelector("#ast-toolbar-button");
+  await clickAstToggle(button);
+  const overlay = harness.moviePlayer.querySelector("#ast-subtitle-overlay");
+  const temporaryRequest = harness.sentMessages.find((message) => (
+    message.type === "translation.translateDocument" && message.mode === "temporary"
+  ));
+  harness.runtimeMessageListeners[0]({
+    type: "translation.progress",
+    videoId: "abc123def45",
+    mode: "temporary",
+    requestId: temporaryRequest.requestId,
+    progress: {
+      cues: [{ id: "yt-0", start: 0, end: 5, text: "임시 번역" }]
+    }
+  });
+  assert.equal(overlay.textContent, "임시 번역");
+  assert.equal(button.classList.values.has("temporary"), true);
+
+  resolveCachedFinal({
+    ok: true,
+    document: {
+      platform: "youtube",
+      videoId: "abc123def45",
+      sourceLanguage: "en",
+      providerId: "google",
+      cacheHit: true,
+      cues: [{ id: "yt-0", start: 0, end: 5, text: "캐시된 최종 번역" }]
+    }
+  });
+  await flushPromises();
+
+  assert.equal(overlay.textContent, "캐시된 최종 번역");
+  assert.equal(button.classList.values.has("temporary"), false);
+  assert.equal(button.classList.values.has("complete"), true);
+  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.5)");
+
+  harness.runtimeMessageListeners[0]({
+    type: "translation.progress",
+    videoId: "abc123def45",
+    mode: "temporary",
+    requestId: temporaryRequest.requestId,
+    progress: {
+      cues: [{ id: "yt-0", start: 0, end: 5, text: "늦은 임시 번역" }]
+    }
+  });
+
+  assert.equal(overlay.textContent, "캐시된 최종 번역");
+  assert.equal(button.classList.values.has("complete"), true);
+});
+
 test("provider menu normalizes an infinite video time before the final translation request", async () => {
   let finishTranslation;
   const translationResponse = new Promise((resolve) => {
@@ -1156,6 +1306,110 @@ test("YouTube toolbar button fetches transcript through the background worker", 
   );
 });
 
+test("videos without captions turn AST off, hide the preparing overlay, and show a toast", async () => {
+  const { context, controls, moviePlayer } = createYoutubeHarness({
+    sendMessage(message) {
+      if (message.type === "captions.youtube.fetchTranscript") {
+        return {
+          ok: false,
+          error: "No YouTube captions are available for this video."
+        };
+      }
+      return { ok: true };
+    }
+  });
+  const source = readFileSync("extension/content/content-script.js", "utf8");
+
+  vm.runInNewContext(source, context, { filename: "extension/content/content-script.js" });
+  await flushPromises();
+
+  const button = controls.querySelector("#ast-toolbar-button");
+  await clickAstToggle(button);
+
+  const overlay = moviePlayer.querySelector("#ast-subtitle-overlay");
+  const toast = moviePlayer.querySelector("#ast-toast");
+  assert.ok(overlay, "expected the preparing overlay to have been created");
+  assert.equal(overlay.hidden, true);
+  assert.equal(overlay.dataset.disabled, "true");
+  assert.ok(toast, "expected an unavailable-captions toast");
+  assert.equal(toast.textContent, "이 영상에는 번역할 수 있는 원본 자막이 제공되지 않습니다.");
+  assert.equal(button.getAttribute("aria-pressed"), "false");
+  assert.equal(button.classList.values.has("active"), false);
+  assert.equal(button.classList.values.has("loading"), false);
+  assert.equal(button.classList.values.has("temporary"), false);
+  assert.equal(button.classList.values.has("current"), false);
+  assert.equal(button.classList.values.has("complete"), false);
+  assert.equal(button.classList.values.has("fallback"), false);
+  const menu = moviePlayer.querySelector("#ast-provider-menu");
+  const toggleItem = menu.children.find((item) => item.className.includes("ast-provider-toggle-item"));
+  assert.equal(toggleItem.getAttribute("aria-checked"), "false");
+});
+
+test("async caption-list unavailable errors also clear the preparing state", async () => {
+  const { context, controls, moviePlayer, video } = createYoutubeHarness();
+  const source = readFileSync("extension/content/content-script.js", "utf8");
+
+  vm.runInNewContext(source, context, { filename: "extension/content/content-script.js" });
+  await flushPromises();
+
+  const button = controls.querySelector("#ast-toolbar-button");
+  context.showOverlayMessage(video, "번역 자막 준비 중");
+  context.setButtonState(true, true);
+
+  const loaded = await context.loadPlatformSubtitleOverlay({
+    platform: "ted",
+    findVideo: () => video,
+    async buildTranscriptRequest() {
+      throw new Error("No TED captions are available for this video.");
+    }
+  });
+
+  assert.equal(loaded, false);
+  assert.equal(moviePlayer.querySelector("#ast-subtitle-overlay").hidden, true);
+  assert.equal(
+    moviePlayer.querySelector("#ast-toast").textContent,
+    "이 영상에는 번역할 수 있는 원본 자막이 제공되지 않습니다."
+  );
+  assert.equal(button.getAttribute("aria-pressed"), "false");
+  assert.equal(button.classList.values.has("loading"), false);
+});
+
+test("TED uses its player session key when applying a cached final translation", async () => {
+  const harness = createYoutubeHarness();
+  const manifestUrl = "https://hls.ted.com/project_masters/11819/manifest.m3u8";
+  harness.context.location.hostname = "www.ted.com";
+  harness.context.location.href = "https://www.ted.com/talks/test_talk";
+  harness.context.location.pathname = "/talks/test_talk";
+  harness.context.location.search = "";
+  harness.context.performance = { getEntriesByType: () => [] };
+
+  const nextData = new FakeElement("script");
+  nextData.id = "__NEXT_DATA__";
+  nextData.textContent = JSON.stringify({
+    props: {
+      pageProps: {
+        videoData: {
+          playerData: {
+            id: 11819,
+            slug: "test_talk",
+            nativeLanguage: "en",
+            resources: { hls: { stream: manifestUrl } }
+          }
+        }
+      }
+    }
+  });
+  harness.context.document.body.append(nextData);
+
+  const source = readFileSync("extension/content/content-script.js", "utf8");
+  vm.runInNewContext(source, harness.context, { filename: "extension/content/content-script.js" });
+  await flushPromises();
+
+  const sessionKey = `11819:${manifestUrl}`;
+  assert.equal(harness.context.getCurrentSessionKey("ted"), sessionKey);
+  assert.equal(harness.context.isCurrentSession("ted", sessionKey), true);
+});
+
 test("YouTube Google provider sends one final translation request without temporary duplicate", async () => {
   const { context, controls, sentMessages } = createYoutubeHarness();
   const source = readFileSync("extension/content/content-script.js", "utf8");
@@ -1171,6 +1425,34 @@ test("YouTube Google provider sends one final translation request without tempor
   const translationMessages = sentMessages.filter((message) => message.type === "translation.translateDocument");
   assert.deepEqual(translationMessages.map((message) => message.mode), ["final"]);
   assert.equal(translationMessages[0].providerId, "googleTranslate");
+});
+
+test("machine providers save LLM style choices without retranslating subtitles", async () => {
+  const { context, controls, moviePlayer, sentMessages } = createYoutubeHarness();
+  const source = readFileSync("extension/content/content-script.js", "utf8");
+
+  vm.runInNewContext(source, context, { filename: "extension/content/content-script.js" });
+  await flushPromises();
+
+  await clickAstToggle(controls.querySelector("#ast-toolbar-button"));
+  const translationCount = sentMessages
+    .filter((message) => message.type === "translation.translateDocument").length;
+  const menu = moviePlayer.querySelector("#ast-provider-menu");
+  const styleSubmenu = menu.children.find((item) => item.className === "ast-translation-style-submenu");
+  const technicalItem = styleSubmenu.children[1].children[2];
+
+  technicalItem.dispatchEvent({ type: "click", stopPropagation: () => {} });
+  await flushPromises();
+
+  assert.ok(sentMessages.some((message) => (
+    message.type === "settings.setTranslationStyle" && message.translationStyle === "technical"
+  )));
+  assert.equal(
+    sentMessages.filter((message) => message.type === "translation.translateDocument").length,
+    translationCount
+  );
+  const refreshedStyleSubmenu = menu.children.find((item) => item.className === "ast-translation-style-submenu");
+  assert.equal(refreshedStyleSubmenu.children[0].children[0].textContent, "번역 스타일: Technical");
 });
 
 test("YouTube LLM provider sends temporary Google and final LLM translation requests", async () => {

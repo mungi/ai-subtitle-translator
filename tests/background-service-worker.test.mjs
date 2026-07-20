@@ -75,6 +75,39 @@ test("YouTube transcript errors include page retry metadata when available", asy
   });
 });
 
+test("provider and translation-style mutations are serialized without losing either selection", async () => {
+  let llmSettings = {
+    activeProvider: "googleTranslate",
+    translationStyle: "custom",
+    providerTestStatus: { google: "success" }
+  };
+  globalThis.chrome = {
+    runtime: {
+      id: "test-extension",
+      onMessage: { addListener: () => {} }
+    },
+    storage: {
+      local: {
+        get: async () => ({ llmSettings: structuredClone(llmSettings) }),
+        set: async (patch) => {
+          if (patch.llmSettings) llmSettings = structuredClone(patch.llmSettings);
+        },
+        remove: async () => {},
+        setAccessLevel: async () => {}
+      }
+    }
+  };
+
+  const { setActiveProvider, setTranslationStyle } = await import("../extension/background/service-worker.js");
+  await Promise.all([
+    setActiveProvider("google"),
+    setTranslationStyle("technical")
+  ]);
+
+  assert.equal(llmSettings.activeProvider, "google");
+  assert.equal(llmSettings.translationStyle, "technical");
+});
+
 test("NVIDIA NIM model listing uses the OpenAI-compatible models endpoint", async () => {
   globalThis.chrome = {
     runtime: {

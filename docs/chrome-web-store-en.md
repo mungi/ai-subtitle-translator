@@ -3,8 +3,8 @@
 ## Store Listing Basics
 
 - Product name: AST - AI Subtitle Translator
-- One-line positioning: A Chrome extension that translates Udemy, YouTube, NVIDIA Academy, and Vimeo subtitles and displays them over the video.
-- Short description: Read Udemy, YouTube, NVIDIA Academy, and Vimeo subtitles more naturally with AI context-aware translation and fast temporary translation.
+- One-line positioning: A Chrome extension that translates Udemy, YouTube, TED, NVIDIA Academy, and Vimeo subtitles and displays them over the video.
+- Short description: Read Udemy, YouTube, TED, NVIDIA Academy, and Vimeo subtitles more naturally with AI context-aware translation and fast temporary translation.
 
 ## Chrome Web Store Upload Images
 
@@ -13,7 +13,7 @@
 
 ## Detailed Description
 
-AST - AI Subtitle Translator translates subtitles from Udemy courses, YouTube videos, NVIDIA Academy courses, and Vimeo videos into your target language, directly on top of the video.
+AST - AI Subtitle Translator translates subtitles from Udemy courses, YouTube videos, TED videos, NVIDIA Academy courses, and Vimeo videos into your target language, directly on top of the video.
 
 Use Google Translate to check subtitles quickly, or choose an AI provider such as OpenAI, Anthropic, or Google AI for translations that consider the flow of the whole video. Source subtitles or fast temporary translations remain visible while the AI translation is being prepared.
 
@@ -21,7 +21,7 @@ Open the AST menu from the AST icon in the video controls to turn subtitles on o
 
 ## Key Features
 
-- Subtitle translation for Udemy courses, YouTube videos, NVIDIA Academy courses, and Vimeo videos
+- Subtitle translation for Udemy courses, YouTube videos, TED videos, NVIDIA Academy courses, and Vimeo videos
 - Source subtitle language selection from the tracks provided by the video
 - AI context-aware translations that follow the video flow
 - Fast temporary translation with Google Translate
@@ -36,17 +36,17 @@ Open the AST menu from the AST icon in the video controls to turn subtitles on o
 
 ## Supported Sites And Providers
 
-- Supported sites: Udemy course player, YouTube video pages, NVIDIA Academy courses, and Vimeo video pages
+- Supported sites: Udemy course player, YouTube video pages, TED video pages, NVIDIA Academy courses, and Vimeo video pages
 - Translation providers: Google Translate, DeepL, OpenAI, Anthropic, Google AI, OpenRouter, NVIDIA NIM, and Custom LLM
 - Turn AST on or off, choose a source subtitle language, translation provider, or translation style, and open settings from the in-player AST menu
 
-Udemy requires captions for a course the user can access. YouTube, NVIDIA Academy, and Vimeo require captions provided by the video.
+Udemy requires captions for a course the user can access. YouTube, TED, NVIDIA Academy, and Vimeo require captions provided by the video.
 
 ## How To Use
 
 1. Install the extension and set a target language and translation provider in the Options page.
 2. For providers that require one, enter an API key created with that provider.
-3. Open a Udemy course, YouTube video, NVIDIA Academy course, or Vimeo video and click the subtitle translation icon in the video controls. Choose another source subtitle language or translation style from the menu when needed.
+3. Open a Udemy course, YouTube video, TED video, NVIDIA Academy course, or Vimeo video and click the subtitle translation icon in the video controls. Choose another source subtitle language or translation style from the menu when needed.
 4. Adjust the subtitle style in the Options page as needed.
 
 ## Recommended First Setup

@@ -14,6 +14,8 @@ const BACKGROUND_MESSAGE_TYPES = new Set([
   "captions.udemy.listTracks",
   "captions.udemy.fetchTranscript",
   "captions.vimeo.fetchTranscript",
+  "captions.ted.listTracks",
+  "captions.ted.fetchTranscript",
   "platform.nvidia.isCoursePlayer",
   "platform.vimeo.getContext",
   "translation.translateDocument",
@@ -38,6 +40,8 @@ const CONTENT_SCRIPT_MESSAGE_TYPES = new Set([
   "captions.udemy.listTracks",
   "captions.udemy.fetchTranscript",
   "captions.vimeo.fetchTranscript",
+  "captions.ted.listTracks",
+  "captions.ted.fetchTranscript",
   "platform.nvidia.isCoursePlayer",
   "platform.vimeo.getContext",
   "translation.translateDocument"
@@ -104,6 +108,7 @@ function isSupportedContentUrl(value, tabUrl) {
     if (url.hostname === "www.youtube.com" || url.hostname === "udemy.com" || url.hostname.endsWith(".udemy.com")) {
       return true;
     }
+    if (["ted.com", "www.ted.com"].includes(url.hostname) && url.pathname.startsWith("/talks/")) return true;
     if (isNvidiaAcademyCourseUrl(url.href)) return true;
     if (isVimeoPageUrl(url.href) && isVimeoPageUrl(tabUrl)) return true;
     return url.hostname === "player.vimeo.com"
@@ -199,6 +204,15 @@ export function validateBackgroundMessage(message) {
         error = "platform must be nvidia or vimeo.";
       }
       break;
+    case "captions.ted.listTracks":
+      if (!isNonEmptyValue(message.videoId)) error = "videoId is required.";
+      else if (!isNonEmptyValue(message.manifestUrl)) error = "manifestUrl is required.";
+      break;
+    case "captions.ted.fetchTranscript":
+      if (!isNonEmptyValue(message.videoId)) error = "videoId is required.";
+      else if (!isNonEmptyValue(message.trackUrl)) error = "trackUrl is required.";
+      else if (!isOptionalString(message.sourceLanguage)) error = "sourceLanguage must be a string.";
+      break;
     case "translation.translateDocument":
       error = validateSubtitleDocument(message.document);
       if (!error && !isOptionalString(message.providerId)) error = "providerId must be a string.";
@@ -208,6 +222,9 @@ export function validateBackgroundMessage(message) {
       if (!error && message.initialStartTime !== undefined
         && (!Number.isFinite(message.initialStartTime) || message.initialStartTime < 0)) {
         error = "initialStartTime must be a non-negative finite number.";
+      }
+      if (!error && message.forceNoCache !== undefined && typeof message.forceNoCache !== "boolean") {
+        error = "forceNoCache must be a boolean.";
       }
       if (!error && !isOptionalString(message.requestId)) error = "requestId must be a string.";
       break;

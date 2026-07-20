@@ -3,7 +3,7 @@
     "message": "AST - AI Subtitle Translator Settings"
   },
   "subtitle": {
-    "message": "Configure the provider that translates Udemy, YouTube, NVIDIA Academy, and Vimeo subtitles with full document context."
+    "message": "Configure the provider that translates Udemy, YouTube, TED, NVIDIA Academy, and Vimeo subtitles with full document context."
   },
   "testProvider": {
     "message": "Test connection"
@@ -471,7 +471,7 @@
     "message": "AST - AI Subtitle Translator"
   },
   "extensionDescription": {
-    "message": "Translate Udemy, YouTube, NVIDIA Academy, and Vimeo subtitles with full-context LLM providers."
+    "message": "Translate Udemy, YouTube, TED, NVIDIA Academy, and Vimeo subtitles with full-context LLM providers."
   },
   "optionsPageTitle": {
     "message": "AST - AI Subtitle Translator Settings"
@@ -554,6 +554,9 @@
   "contentTranslationPreparing": {
     "message": "Preparing translated subtitles"
   },
+  "contentCaptionsUnavailable": {
+    "message": "This video does not provide source captions that can be translated."
+  },
   "contentQuotaFallback": {
     "message": "API quota exceeded. Falling back to Google Translate."
   },
@@ -568,6 +571,9 @@
   },
   "contentMissingVimeo": {
     "message": "Could not find Vimeo caption information."
+  },
+  "contentMissingTed": {
+    "message": "Could not find TED caption information."
   },
   "contentCaptionsLoadFailed": {
     "message": "Could not load subtitles: $error$",

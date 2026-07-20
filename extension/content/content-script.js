@@ -1,4 +1,5 @@
 const BUTTON_ID = "ast-toolbar-button";
+const TED_CONTROL_ID = "ast-ted-control";
 const FLOATING_TOOLBAR_ID = "ast-floating-toolbar";
 const PROVIDER_MENU_ID = "ast-provider-menu";
 const OVERLAY_ID = "ast-subtitle-overlay";
@@ -69,6 +70,7 @@ const subtitleState = {
   availableProviders: [],
   translationGeneration: 0,
   translationRequestSequence: 0,
+  translationStyleSelectionGeneration: 0,
   activeFinalRequestId: "",
   activeTemporaryRequestId: "",
   pendingProviderId: "",
@@ -85,6 +87,7 @@ const subtitleState = {
   disposed: false
 };
 let crossFrameProviderMenuOpen = false;
+let tedPlayerContextCache = null;
 const CAPTION_SVG = `
 <svg class="ast-toolbar-icon" viewBox="0 0 1240 1240" width="24" height="24" aria-hidden="true" focusable="false">
   <path class="ast-toolbar-icon-bg" d="M330 110H910Q1100 110 1100 327V797Q1100 969 910 969H850V1109Q850 1132 818 1119L680 969H330Q140 969 140 797V327Q140 110 330 110Z"/>
@@ -96,6 +99,7 @@ function detectPlatform() {
   const host = location.hostname;
   if (host.includes("youtube.com")) return "youtube";
   if (host.includes("udemy.com")) return "udemy";
+  if ((host === "ted.com" || host === "www.ted.com") && location.pathname.startsWith("/talks/")) return "ted";
   if (host === "player.vimeo.com") return "vimeo";
   if ((host === "vimeo.com" || host === "www.vimeo.com") && getVimeoVideoId()) return "vimeo";
   return null;
@@ -179,6 +183,12 @@ function findToolbarTarget(platform, { allowFloatingToolbar = true } = {}) {
     return document.querySelector("#movie_player .ytp-right-controls");
   }
 
+  if (platform === "ted") {
+    return document.querySelector("#media-fullscreen-button-desktop")?.closest("media-control-bar")
+      || document.querySelector("#video-player-container #media-control-bar, #media-control-bar")
+      || (allowFloatingToolbar ? ensureFloatingToolbar() : null);
+  }
+
   if (isVimeoPlatform(platform)) {
     return findVimeoPlayerControls()
       || (allowFloatingToolbar ? ensureFloatingToolbar() : null);
@@ -239,6 +249,10 @@ function clearElement(element) {
 function getProviderMenuHost(platform) {
   if (platform === "youtube") {
     return document.querySelector("#movie_player");
+  }
+  if (platform === "ted") {
+    return document.querySelector("#video-player-container")
+      || findOverlayHost(platform, findVideoElement(platform));
   }
   if (isVimeoPlatform(platform)) {
     return document.querySelector(".vp-player-ui-overlays")
@@ -547,6 +561,10 @@ function findVideoElement(platform) {
     return document.querySelector("#movie_player video, video");
   }
 
+  if (platform === "ted") {
+    return document.querySelector("#video-player-container video#video, video#video");
+  }
+
   if (isVimeoPlatform(platform)) {
     return document.querySelector("video");
   }
@@ -557,6 +575,10 @@ function findVideoElement(platform) {
 function findOverlayHost(platform, video) {
   if (platform === "youtube") {
     return document.querySelector("#movie_player") || video?.parentElement || null;
+  }
+
+  if (platform === "ted") {
+    return document.querySelector("#video-player-container") || video?.parentElement || null;
   }
 
   if (isVimeoPlatform(platform)) {
@@ -593,6 +615,75 @@ function getYoutubeVideoId() {
 function getVimeoVideoId() {
   const match = location.pathname.match(/(?:^|\/)(\d+)(?:\/[a-zA-Z0-9_-]+)?\/?$/);
   return match?.[1] || null;
+}
+
+function getTedTalkSlug() {
+  const match = location.pathname.match(/^\/talks\/([^/?#]+)/);
+  return match?.[1] || null;
+}
+
+function parseTedPlayerData(value) {
+  if (value && typeof value === "object") return value;
+  if (typeof value !== "string" || !value.trim()) return null;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
+function getTedManifestResourceUrl() {
+  const resources = performance.getEntriesByType?.("resource") || [];
+  for (let index = resources.length - 1; index >= 0; index -= 1) {
+    try {
+      const url = new URL(resources[index]?.name || "");
+      if (url.protocol === "https:"
+        && url.hostname === "hls.ted.com"
+        && /^\/project_masters\/[^/]+\/manifest\.m3u8$/.test(url.pathname)) {
+        return url.href;
+      }
+    } catch {
+      // Ignore resource entries that are not valid URLs.
+    }
+  }
+  return null;
+}
+
+function getTedPlayerContext() {
+  const talkSlug = getTedTalkSlug();
+  let videoData = null;
+  try {
+    const nextDataText = document.getElementById("__NEXT_DATA__")?.textContent;
+    videoData = nextDataText ? JSON.parse(nextDataText)?.props?.pageProps?.videoData : null;
+  } catch {
+    videoData = null;
+  }
+
+  const playerData = parseTedPlayerData(videoData?.playerData)
+    || parseTedPlayerData(videoData?.acmePlayerData);
+  const playerMatchesPage = !playerData?.slug || !talkSlug || playerData.slug === talkSlug;
+  const embeddedManifestUrl = playerMatchesPage && (playerData?.resources?.hls?.stream || videoData?.hlsUrl);
+  const resourceManifestUrl = getTedManifestResourceUrl();
+  if (!embeddedManifestUrl
+    && talkSlug
+    && tedPlayerContextCache?.slug
+    && tedPlayerContextCache.slug !== talkSlug
+    && resourceManifestUrl === tedPlayerContextCache.manifestUrl) {
+    return null;
+  }
+  const manifestUrl = embeddedManifestUrl || resourceManifestUrl;
+  const videoId = (playerMatchesPage && (playerData?.id || videoData?.id)) || talkSlug;
+
+  if (!videoId || !manifestUrl) return null;
+  const context = {
+    videoId: String(videoId),
+    manifestUrl: String(manifestUrl),
+    sourceLanguage: String((playerMatchesPage && playerData?.nativeLanguage) || "en"),
+    slug: talkSlug || String(playerData?.slug || ""),
+    sessionKey: `${String(videoId)}:${String(manifestUrl)}`
+  };
+  tedPlayerContextCache = context;
+  return context;
 }
 
 function parseJsonObjectAfter(text, marker, startIndex = 0) {
@@ -1314,6 +1405,7 @@ async function fetchYoutubeTranscriptPanelDocumentOnPage(retry) {
 function getCurrentSessionKey(platform) {
   if (platform === "youtube") return getYoutubeVideoId();
   if (platform === "udemy") return getUdemyLectureId();
+  if (platform === "ted") return getTedPlayerContext()?.sessionKey || getTedTalkSlug();
   if (isVimeoPlatform(platform)) return getVimeoVideoId();
   return null;
 }
@@ -1839,6 +1931,32 @@ function showToast(message, video = subtitleState.currentVideo) {
   }
 }
 
+function isCaptionsUnavailableError(value) {
+  const errorCode = String(value?.errorCode || value?.code || "");
+  if (errorCode === "CAPTIONS_UNAVAILABLE") return true;
+
+  const message = String(value?.error || value?.message || value || "").trim();
+  return /^No (?:usable )?(?:(?:YouTube|Udemy|TED|Vimeo) )?captions?(?: tracks?)?.*\b(?:available|found)\b/i
+    .test(message);
+}
+
+function requireCaptionTrack(track) {
+  if (track) return track;
+  const error = new Error("No captions are available for this video.");
+  error.code = "CAPTIONS_UNAVAILABLE";
+  throw error;
+}
+
+function disableSubtitlesForUnavailableCaptions(video) {
+  subtitleState.enabled = false;
+  subtitleState.loading = false;
+  invalidateTranslationRequests();
+  setTranslationPhase("off");
+  setOverlayVisible(video, false);
+  removeUdemyTranscriptTranslationElements();
+  showToast(contentText("contentCaptionsUnavailable"), video);
+}
+
 function showQuotaFallbackToast(detail = {}) {
   if (detail.fallbackReason !== "quota_exceeded") return;
   const key = `${subtitleState.currentVideoId}:${detail.fallbackProviderId || "googleTranslate"}:${detail.fallbackReason}`;
@@ -2219,6 +2337,9 @@ function createButton(platform) {
   if (isVimeoPlatform(platform)) {
     button.classList.add("ast-vimeo-toolbar-button");
   }
+  if (platform === "ted") {
+    button.classList.add("ast-ted-toolbar-button");
+  }
   button.innerHTML = CAPTION_SVG;
   button.addEventListener("click", (event) => {
     event.stopPropagation();
@@ -2226,6 +2347,37 @@ function createButton(platform) {
     toggleProviderMenu(platform);
   });
   return button;
+}
+
+function getDirectToolbarChild(target, descendant) {
+  let node = descendant;
+  while (node?.parentElement && node.parentElement !== target) {
+    node = node.parentElement;
+  }
+  return node?.parentElement === target ? node : null;
+}
+
+function mountToolbarButton(target, button, platform) {
+  if (platform !== "ted") {
+    target.append(button);
+    return;
+  }
+
+  let control = document.getElementById(TED_CONTROL_ID);
+  if (!control || control.parentElement !== target) {
+    control = document.createElement("div");
+    control.id = TED_CONTROL_ID;
+    control.className = "ast-ted-control";
+  }
+  control.append(button);
+
+  const fullscreenButton = target.querySelector("#media-fullscreen-button-desktop");
+  const fullscreenControl = getDirectToolbarChild(target, fullscreenButton);
+  if (fullscreenControl && fullscreenControl !== control && target.insertBefore) {
+    target.insertBefore(control, fullscreenControl);
+  } else {
+    target.append(control);
+  }
 }
 
 function ensureButton(platform, options = {}) {
@@ -2236,7 +2388,7 @@ function ensureButton(platform, options = {}) {
   if (existing) return true;
   const existingAnywhere = document.getElementById(BUTTON_ID);
   if (existingAnywhere) {
-    target.append(existingAnywhere);
+    mountToolbarButton(target, existingAnywhere, platform);
     const floatingToolbar = document.getElementById(FLOATING_TOOLBAR_ID);
     if (floatingToolbar && floatingToolbar !== target && floatingToolbar.children.length === 0) {
       floatingToolbar.remove();
@@ -2245,7 +2397,7 @@ function ensureButton(platform, options = {}) {
   }
 
   const button = createButton(platform);
-  target.append(button);
+  mountToolbarButton(target, button, platform);
   return true;
 }
 
@@ -2258,7 +2410,7 @@ function shouldAllowFloatingToolbar(platform) {
 function watch(platform) {
   const allowFloatingToolbar = shouldAllowFloatingToolbar(platform);
   const installed = ensureButton(platform, { allowFloatingToolbar });
-  if (platform !== "udemy" && !isVimeoPlatform(platform) && installed) return;
+  if (platform !== "udemy" && platform !== "ted" && !isVimeoPlatform(platform) && installed) return;
 
   const observer = new MutationObserver(() => {
     ensureButton(platform, { allowFloatingToolbar: shouldAllowFloatingToolbar(platform) });
@@ -2346,6 +2498,10 @@ async function translateDocument(document, {
       disposeContentScript();
       return null;
     }
+    const activeRequestId = mode === "temporary"
+      ? subtitleState.activeTemporaryRequestId
+      : subtitleState.activeFinalRequestId;
+    if (requestId && requestId !== activeRequestId) return null;
     console.warn(`[AST] Failed to translate subtitles (${mode}):`, response?.error || "Unknown error");
     return null;
   }
@@ -2452,6 +2608,7 @@ function startFinalTranslation(document, platform, sessionKey, video, providerId
   }).then((translatedDocument) => {
     if (requestId !== subtitleState.activeFinalRequestId) return;
     if (!subtitleState.enabled || !isCurrentSession(platform, sessionKey) || !translatedDocument?.cues?.length) return;
+    subtitleState.activeTemporaryRequestId = "";
     showQuotaFallbackToast(translatedDocument);
     trackFinalTranslatedCues(translatedDocument.cues);
     applyTranslatedCues(video, translatedDocument.cues);
@@ -2531,10 +2688,13 @@ async function selectMenuProvider(platform, providerId) {
 async function selectTranslationStyle(platform, styleId) {
   if (!Object.hasOwn(TRANSLATION_STYLE_MESSAGE_KEYS, styleId) || subtitleState.loading) return;
 
+  subtitleState.translationStyleSelectionGeneration += 1;
+  const selectionGeneration = subtitleState.translationStyleSelectionGeneration;
   const response = await sendRuntimeMessage({
     type: "settings.setTranslationStyle",
     translationStyle: styleId
   });
+  if (selectionGeneration !== subtitleState.translationStyleSelectionGeneration) return;
   if (!response?.ok) {
     showToast(contentText("contentProviderFailed", [response?.error || "Unknown error"]));
     return;
@@ -2547,7 +2707,9 @@ async function selectTranslationStyle(platform, styleId) {
     && subtitleState.currentSessionKey === handler?.getSessionKey();
   renderProviderMenu(platform);
 
-  if (subtitleState.enabled && reusableDocument) {
+  if (subtitleState.enabled
+    && reusableDocument
+    && !isMachineTranslationProvider(subtitleState.activeProviderId)) {
     startProviderTranslation(
       subtitleState.currentDocument,
       platform,
@@ -2691,6 +2853,58 @@ const platformHandlers = {
       return fetchYoutubeTranscriptPanelDocumentOnPage(retry);
     }
   },
+  ted: {
+    platform: "ted",
+    loadingMessage: contentText("contentTranslationPreparing"),
+    getSessionKey: () => getTedPlayerContext()?.sessionKey || getTedTalkSlug(),
+    findVideo: () => findVideoElement("ted"),
+    async listCaptionTracks() {
+      const context = getTedPlayerContext();
+      if (!context) return [];
+      const response = await sendRuntimeMessage({
+        type: "captions.ted.listTracks",
+        videoId: context.videoId,
+        manifestUrl: context.manifestUrl
+      });
+      if (!response?.ok) throw new Error(response?.error || "Could not load TED caption tracks.");
+      return (response.tracks || [])
+        .map((track) => createSourceCaptionTrack(track, {
+          id: track.trackUrl,
+          languageCode: track.languageCode,
+          trackUrl: track.trackUrl
+        }))
+        .filter(Boolean);
+    },
+    async buildTranscriptRequest() {
+      const context = getTedPlayerContext();
+      const video = this.findVideo();
+
+      if (!context || !video) {
+        console.warn("[AST] Missing TED caption data:", {
+          videoId: context?.videoId || null,
+          hasVideo: Boolean(video),
+          url: location.href
+        });
+        if (video) showOverlayMessage(video, contentText("contentMissingTed"), "error");
+        return null;
+      }
+      const track = requireCaptionTrack(
+        getSelectedSourceCaptionTrack(this.platform, context.sessionKey)
+          || setSourceCaptionTracks(this.platform, context.sessionKey, await this.listCaptionTracks())
+      );
+
+      return {
+        sessionKey: context.sessionKey,
+        video,
+        message: {
+          type: "captions.ted.fetchTranscript",
+          videoId: context.videoId,
+          sourceLanguage: track.languageCode || context.sourceLanguage,
+          trackUrl: track.trackUrl
+        }
+      };
+    }
+  },
   nvidia: {
     platform: "nvidia",
     loadingMessage: contentText("contentTranslationPreparing"),
@@ -2709,19 +2923,20 @@ const platformHandlers = {
     async buildTranscriptRequest() {
       const videoId = getVimeoVideoId();
       const video = this.findVideo();
-      const track = getSelectedSourceCaptionTrack(this.platform, videoId)
-        || setSourceCaptionTracks(this.platform, videoId, await this.listCaptionTracks());
 
-      if (!videoId || !video || !track) {
+      if (!videoId || !video) {
         console.warn("[AST] Missing NVIDIA Academy Vimeo caption data:", {
           videoId: videoId || null,
           hasVideo: Boolean(video),
-          hasTrack: Boolean(track),
           url: location.href
         });
         if (video) showOverlayMessage(video, contentText("contentMissingNvidia"), "error");
         return null;
       }
+      const track = requireCaptionTrack(
+        getSelectedSourceCaptionTrack(this.platform, videoId)
+          || setSourceCaptionTracks(this.platform, videoId, await this.listCaptionTracks())
+      );
 
       return {
         sessionKey: videoId,
@@ -2754,19 +2969,20 @@ const platformHandlers = {
     async buildTranscriptRequest() {
       const videoId = getVimeoVideoId();
       const video = this.findVideo();
-      const track = getSelectedSourceCaptionTrack(this.platform, videoId)
-        || setSourceCaptionTracks(this.platform, videoId, await this.listCaptionTracks());
 
-      if (!videoId || !video || !track) {
+      if (!videoId || !video) {
         console.warn("[AST] Missing Vimeo caption data:", {
           videoId: videoId || null,
           hasVideo: Boolean(video),
-          hasTrack: Boolean(track),
           url: location.href
         });
         if (video) showOverlayMessage(video, contentText("contentMissingVimeo"), "error");
         return null;
       }
+      const track = requireCaptionTrack(
+        getSelectedSourceCaptionTrack(this.platform, videoId)
+          || setSourceCaptionTracks(this.platform, videoId, await this.listCaptionTracks())
+      );
 
       return {
         sessionKey: videoId,
@@ -2786,8 +3002,17 @@ const platformHandlers = {
 async function loadPlatformSubtitleOverlay(handler, options = {}) {
   if (subtitleState.disposed) return false;
 
-  const pendingRequest = handler.buildTranscriptRequest(options);
-  const request = pendingRequest?.then ? await pendingRequest : pendingRequest;
+  let request;
+  try {
+    const pendingRequest = handler.buildTranscriptRequest(options);
+    request = pendingRequest?.then ? await pendingRequest : pendingRequest;
+  } catch (error) {
+    if (isCaptionsUnavailableError(error)) {
+      disableSubtitlesForUnavailableCaptions(handler.findVideo());
+      return false;
+    }
+    throw error;
+  }
   if (!request) return false;
 
   let response = await sendRuntimeMessage(request.message);
@@ -2807,6 +3032,10 @@ async function loadPlatformSubtitleOverlay(handler, options = {}) {
     }
   }
   if (!response?.ok) {
+    if (isCaptionsUnavailableError(response)) {
+      disableSubtitlesForUnavailableCaptions(request.video);
+      return false;
+    }
     console.warn(`[AST] Failed to load ${handler.platform} subtitles:`, response?.error || "Unknown error");
     showOverlayMessage(request.video, contentText("contentCaptionsLoadFailed", [response?.error || "Unknown error"]), "error");
     return false;

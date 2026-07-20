@@ -4,7 +4,7 @@
 
 ## 목표
 
-Udemy, YouTube, NVIDIA Academy, Vimeo의 자막을 수집하고, 전체 subtitle 문맥을 활용해 자연스러운 번역 자막을 제공한다. 빠른 표시를 위해 Google Translate cue 번역을 먼저 보여주고, LLM/DeepL 등 최종 provider 번역이 완료되면 교체한다.
+Udemy, YouTube, TED, NVIDIA Academy, Vimeo의 자막을 수집하고, 전체 subtitle 문맥을 활용해 자연스러운 번역 자막을 제공한다. 빠른 표시를 위해 Google Translate cue 번역을 먼저 보여주고, LLM/DeepL 등 최종 provider 번역이 완료되면 교체한다.
 
 ## 구현 구조
 
@@ -19,6 +19,7 @@ extension/
   platforms/
     youtube-captions.js
     udemy-captions.js
+    ted-captions.js
   shared/
     defaults.js
     message-contracts.js
@@ -42,7 +43,7 @@ type SubtitleCue = {
 };
 
 type SubtitleDocument = {
-  platform: "youtube" | "udemy" | "nvidia" | "vimeo" | "test";
+  platform: "youtube" | "udemy" | "ted" | "nvidia" | "vimeo" | "test";
   videoId: string;
   sourceLanguage: string;
   cues: SubtitleCue[];
@@ -53,6 +54,7 @@ type SubtitleDocument = {
 
 - YouTube: watch 페이지에서 player config/caption track을 찾아 transcript XML을 수집한다.
 - Udemy: course/lecture id를 추출하고 `/api-2.0/users/me/subscribed-courses/{courseId}/lectures/{lectureId}/?fields[asset]=captions`에서 caption URL을 가져온다.
+- TED: HLS master manifest에서 subtitle track을 찾고 TED HLS의 WebVTT를 수집한다.
 - NVIDIA Academy와 Vimeo: Vimeo player의 caption track을 찾아 WebVTT를 수집한다.
 - 기본 source language는 영어 track을 우선 선택한다.
 
@@ -131,7 +133,7 @@ background service worker는 처리 대상 메시지의 필수 payload를 네트
 - 영상 컨트롤의 AST 아이콘은 자막을 바로 토글하지 않고 provider 메뉴를 연다.
 - 메뉴 맨 위에서 AST를 켜고 끄며, 가운데에는 Google Translate와 연결 테스트에 성공한 provider를 표시하고, 맨 아래에서 설정을 연다. Google Translate와 DeepL도 사용자가 원하면 최종 provider로 선택할 수 있다.
 - Provider 선택은 `activeProvider`에 저장하고 현재 재생 시각을 `initialStartTime`으로 전달해 해당 위치부터 우선 번역한다. 비-Google provider의 번역 중에는 선택된 항목 앞에만 spinner를 표시한다.
-- Udemy, YouTube, NVIDIA Academy, Vimeo의 메뉴는 각 사이트의 시각 언어를 참고하되 DOM과 CSS는 `ast-provider-menu-*` 이름의 확장 자체 요소로 독립 구현한다.
+- Udemy, YouTube, TED, NVIDIA Academy, Vimeo의 메뉴는 각 사이트의 시각 언어를 참고하되 DOM과 CSS는 `ast-provider-menu-*` 이름의 확장 자체 요소로 독립 구현한다.
 - 다른 플레이어 툴바 아이콘이 click 전파를 중단하더라도 AST 메뉴가 겹치지 않도록, 문서 캡처 단계의 `pointerdown`과 `click`에서 AST 버튼·메뉴 외부 상호작용을 감지해 메뉴를 닫는다.
 - 번역 요청마다 request ID를 부여해 provider 전환 전에 시작한 progress나 최종 응답이 새 provider 결과를 덮어쓰지 않도록 한다.
 - 자막 오버레이는 absolute layer로 영상 위에 표시한다.

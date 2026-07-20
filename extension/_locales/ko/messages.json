@@ -3,7 +3,7 @@
     "message": "AI 자막 번역 설정"
   },
   "subtitle": {
-    "message": "Udemy, YouTube, NVIDIA Academy, Vimeo 자막을 전체 문맥 기반으로 번역할 provider를 설정합니다."
+    "message": "Udemy, YouTube, TED, NVIDIA Academy, Vimeo 자막을 전체 문맥 기반으로 번역할 provider를 설정합니다."
   },
   "testProvider": {
     "message": "연결 테스트"
@@ -471,7 +471,7 @@
     "message": "AST - AI Subtitle Translator"
   },
   "extensionDescription": {
-    "message": "전체 문맥 LLM provider로 Udemy, YouTube, NVIDIA Academy, Vimeo 자막을 번역합니다."
+    "message": "전체 문맥 LLM provider로 Udemy, YouTube, TED, NVIDIA Academy, Vimeo 자막을 번역합니다."
   },
   "optionsPageTitle": {
     "message": "AI 자막 번역 설정"
@@ -554,6 +554,9 @@
   "contentTranslationPreparing": {
     "message": "번역 자막 준비 중"
   },
+  "contentCaptionsUnavailable": {
+    "message": "이 영상에는 번역할 수 있는 원본 자막이 제공되지 않습니다."
+  },
   "contentQuotaFallback": {
     "message": "API 쿼터가 초과되어 Google Translate로 대체 번역합니다."
   },
@@ -568,6 +571,9 @@
   },
   "contentMissingVimeo": {
     "message": "Vimeo 자막 정보를 찾지 못했습니다."
+  },
+  "contentMissingTed": {
+    "message": "TED 자막 정보를 찾지 못했습니다."
   },
   "contentCaptionsLoadFailed": {
     "message": "자막을 불러오지 못했습니다: $error$",

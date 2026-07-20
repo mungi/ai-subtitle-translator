@@ -17,6 +17,7 @@
 - [ ] Udemy 실제 강의에서 자막 토글, 강의 전환, Google Translate와 LLM 최종 번역 교체를 확인한다.
 - [ ] YouTube 일반 자막과 자동 생성 자막 영상에서 자막 수집과 번역을 확인한다.
 - [ ] NVIDIA Academy와 Vimeo에서 Vimeo 자막 track 수집과 번역을 확인한다.
+- [ ] TED 영상에서 HLS 자막 track 수집, 원문 표시, 번역 표시를 확인한다.
 - [ ] 실제 API 키로 사용할 provider의 모델 목록 조회와 연결 테스트를 확인한다.
 - [ ] Custom LLM의 로컬 URL과 사용자 지정 HTTPS URL 권한 요청을 확인한다.
 

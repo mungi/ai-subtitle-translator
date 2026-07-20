@@ -15,6 +15,7 @@ test("background message validation accepts a valid translation request", () => 
     document: validDocument,
     providerId: "openai",
     mode: "final",
+    forceNoCache: false,
     initialStartTime: 12.5,
     requestId: "video-1:1:final:1"
   }), { handled: true, ok: true });
@@ -106,6 +107,23 @@ test("background message validation rejects incomplete platform requests", () =>
     handled: true,
     ok: false,
     error: "platform must be nvidia or vimeo."
+  });
+
+  assert.deepEqual(validateBackgroundMessage({
+    type: "captions.ted.listTracks",
+    videoId: "485565"
+  }), {
+    handled: true,
+    ok: false,
+    error: "manifestUrl is required."
+  });
+  assert.deepEqual(validateBackgroundMessage({
+    type: "captions.ted.fetchTranscript",
+    videoId: "485565"
+  }), {
+    handled: true,
+    ok: false,
+    error: "trackUrl is required."
   });
 });
 
