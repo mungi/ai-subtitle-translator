@@ -560,6 +560,12 @@
   "contentQuotaFallback": {
     "message": "API 쿼터가 초과되어 Google Translate로 대체 번역합니다."
   },
+  "contentRateLimitFallback": {
+    "message": "API 요청이 너무 많아 재시도에 실패했습니다. Google Translate로 대체 번역합니다."
+  },
+  "contentFallback": {
+    "message": "선택한 번역 Provider에서 번역하지 못해 Google Translate로 대체 번역합니다."
+  },
   "contentMissingUdemy": {
     "message": "Udemy 강의 정보를 찾지 못했습니다."
   },

@@ -742,6 +742,70 @@ test("LLM rate limit controller backs off exponentially and stops on the fourth 
   assert.equal(controller.rateLimitErrorCount, 4);
 });
 
+test("OpenAI insufficient quota responses are distinguished from generic 429 rate limits", () => {
+  assert.equal(translationInternals.isQuotaExceededError({
+    status: 429,
+    providerErrorType: "insufficient_quota",
+    providerErrorCode: "insufficient_quota",
+    message: "HTTP 429: billing limit reached"
+  }), true);
+  assert.equal(translationInternals.isQuotaExceededError({
+    status: 429,
+    message: "HTTP 429: Rate limit exceeded"
+  }), false);
+});
+
+test("OpenAI insufficient_quota response skips rate limit retries", async () => {
+  const originalFetch = globalThis.fetch;
+  const controller = translationInternals.createLlmRequestController({
+    waitForRateLimit: async () => assert.fail("quota errors must not enter rate limit backoff")
+  });
+  let requestCount = 0;
+
+  globalThis.fetch = async () => {
+    requestCount += 1;
+    return {
+      ok: false,
+      status: 429,
+      statusText: "Too Many Requests",
+      json: async () => ({
+        error: {
+          message: "You exceeded your current quota, please check your plan and billing details.",
+          type: "insufficient_quota",
+          param: null,
+          code: "insufficient_quota"
+        }
+      })
+    };
+  };
+
+  try {
+    await assert.rejects(
+      translationInternals.translateLlmChunkWithRetry({
+        id: "openai",
+        apiStyle: "openai-responses",
+        baseUrl: "https://api.openai.com/v1",
+        apiKey: "openai-key",
+        model: "gpt-test"
+      }, {
+        targetLanguage: "ko",
+        translationStyle: "natural"
+      }, {
+        ...sourceDocument,
+        chunkIndex: 0,
+        chunkCount: 1
+      }, [], controller),
+      (error) => error.status === 429
+        && error.providerErrorType === "insufficient_quota"
+        && error.providerErrorCode === "insufficient_quota"
+    );
+    assert.equal(requestCount, 1);
+    assert.equal(controller.rateLimitErrorCount, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("LLM serializes later requests after a 429 and retries the affected chunk", async () => {
   const originalChrome = globalThis.chrome;
   const originalFetch = globalThis.fetch;
@@ -1197,7 +1261,7 @@ test("provider connection mode reports DeepL quota errors without Google fallbac
   }
 });
 
-test("LLM falls back to Google Translate after four 429 responses", async () => {
+test("LLM rate limit falls back to Google Translate after four 429 responses", async () => {
   const originalChrome = globalThis.chrome;
   const originalFetch = globalThis.fetch;
   const originalSetTimeout = globalThis.setTimeout;
@@ -1257,7 +1321,7 @@ test("LLM falls back to Google Translate after four 429 responses", async () => 
         json: async () => ({
           error: {
             code: 429,
-            message: "You exceeded your current quota."
+            message: "Rate limit exceeded."
           }
         })
       };
@@ -1286,7 +1350,7 @@ test("LLM falls back to Google Translate after four 429 responses", async () => 
     ]);
     assert.equal(translated.providerId, "google");
     assert.equal(translated.fallbackProviderId, "googleTranslate");
-    assert.equal(translated.fallbackReason, "quota_exceeded");
+    assert.equal(translated.fallbackReason, "rate_limit_exceeded");
     assert.equal(translated.cues[0].text, "구글 번역");
   } finally {
     globalThis.chrome = originalChrome;
