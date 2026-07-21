@@ -19,6 +19,7 @@ const GOOGLE_TRANSLATE_PROVIDER_ID = "googleTranslate";
 const DEEPL_MAX_TEXTS_PER_REQUEST = 50;
 const DEEPL_MAX_REQUEST_BODY_BYTES = 128 * 1024;
 const QUOTA_EXCEEDED_FALLBACK_REASON = "quota_exceeded";
+const RATE_LIMIT_EXCEEDED_FALLBACK_REASON = "rate_limit_exceeded";
 const CONTEXT_CUE_COUNT = 8;
 const INITIAL_LLM_CHUNK_MAX_DURATION_SECONDS = 60;
 const INITIAL_LLM_CHUNK_MAX_CHARS = 1500;
@@ -480,6 +481,8 @@ async function fetchProviderJson(provider, payload) {
     const error = new Error(`HTTP ${response.status}: ${detail}`);
     error.status = response.status;
     error.providerId = provider.id;
+    error.providerErrorType = body.error?.type;
+    error.providerErrorCode = body.error?.code;
     throw error;
   }
 
@@ -606,8 +609,9 @@ async function translateLlmChunkWithRetry(provider, settings, chunk, contextBefo
 
     throw buildChunkTranslationError(analysis);
   } catch (error) {
-    if (isQuotaExceededError(error)) {
-      if (!isRateLimitError(error) || !requestController) throw error;
+    if (isQuotaExceededError(error)) throw error;
+    if (isRateLimitError(error)) {
+      if (!requestController) throw error;
       await requestController.recordRateLimitError(error);
       return translateLlmChunkWithRetry(provider, settings, chunk, contextBefore, requestController);
     }
@@ -899,8 +903,11 @@ async function translateWithMachineProvider(document, settings, provider, { onPr
 
 function isQuotaExceededError(error) {
   const message = String(error?.message || error || "").toLowerCase();
-  return error?.status === 429
-    || error?.status === 456
+  const providerErrorType = String(error?.providerErrorType || "").toLowerCase();
+  const providerErrorCode = String(error?.providerErrorCode || "").toLowerCase();
+  return Number(error?.status) === 456
+    || providerErrorType === "insufficient_quota"
+    || providerErrorCode === "insufficient_quota"
     || message.includes("quota exceeded")
     || message.includes("쿼터")
     || message.includes("quota");
@@ -916,6 +923,12 @@ function buildQuotaFallbackMessage(activeProvider, fallbackProvider) {
   return `${activeLabel} 쿼터가 초과되어 ${fallbackLabel}로 대체 번역합니다.`;
 }
 
+function buildRateLimitFallbackMessage(activeProvider, fallbackProvider) {
+  const activeLabel = activeProvider?.label || activeProvider?.id || "번역 provider";
+  const fallbackLabel = fallbackProvider?.label || fallbackProvider?.id || "Google Translate";
+  return `${activeLabel} 요청 한도 재시도에 실패하여 ${fallbackLabel}로 대체 번역합니다.`;
+}
+
 async function translateWithFallbackProvider(document, settings, activeProvider, originalError, { onProgress } = {}) {
   const quotaExceeded = isQuotaExceededError(originalError);
   const fallbackProviderId = GOOGLE_TRANSLATE_PROVIDER_ID;
@@ -923,8 +936,17 @@ async function translateWithFallbackProvider(document, settings, activeProvider,
   if (!fallbackProvider || fallbackProvider.id === activeProvider.id) {
     throw originalError;
   }
-  const fallbackReason = quotaExceeded ? QUOTA_EXCEEDED_FALLBACK_REASON : undefined;
-  const fallbackMessage = quotaExceeded ? buildQuotaFallbackMessage(activeProvider, fallbackProvider) : undefined;
+  const rateLimitExceeded = isRateLimitError(originalError);
+  const fallbackReason = quotaExceeded
+    ? QUOTA_EXCEEDED_FALLBACK_REASON
+    : rateLimitExceeded
+      ? RATE_LIMIT_EXCEEDED_FALLBACK_REASON
+      : undefined;
+  const fallbackMessage = quotaExceeded
+    ? buildQuotaFallbackMessage(activeProvider, fallbackProvider)
+    : rateLimitExceeded
+      ? buildRateLimitFallbackMessage(activeProvider, fallbackProvider)
+      : undefined;
 
   const translations = await translateWithMachineProvider(document, settings, fallbackProvider, {
     onProgress: onProgress

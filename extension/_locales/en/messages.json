@@ -560,6 +560,12 @@
   "contentQuotaFallback": {
     "message": "API quota exceeded. Falling back to Google Translate."
   },
+  "contentRateLimitFallback": {
+    "message": "Too many API requests. Retries failed, so translation is falling back to Google Translate."
+  },
+  "contentFallback": {
+    "message": "The selected translation provider failed. Falling back to Google Translate."
+  },
   "contentMissingUdemy": {
     "message": "Could not find Udemy lecture information."
   },

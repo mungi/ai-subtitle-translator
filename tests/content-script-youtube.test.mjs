@@ -334,6 +334,7 @@ function createYoutubeHarness(options = {}) {
   };
 
   const runtimeMessageListeners = [];
+  const intervalCallbacks = [];
   const storedSettings = {
     activeProvider: "googleTranslate",
     platforms: {
@@ -413,14 +414,17 @@ function createYoutubeHarness(options = {}) {
       position: "relative",
       backgroundColor: element?.computedBackgroundColor || "transparent"
     }),
-    setInterval: () => 0,
+    setInterval: (callback) => {
+      intervalCallbacks.push(callback);
+      return intervalCallbacks.length;
+    },
     clearInterval: () => {},
     URL,
     URLSearchParams,
     fetch: options.fetch
   };
 
-  return { context, controls, moviePlayer, video, runtimeMessageListeners, sentMessages };
+  return { context, controls, moviePlayer, video, runtimeMessageListeners, sentMessages, intervalCallbacks };
 }
 
 function createUdemyHarness(options = {}) {
@@ -1408,6 +1412,68 @@ test("TED uses its player session key when applying a cached final translation",
   const sessionKey = `11819:${manifestUrl}`;
   assert.equal(harness.context.getCurrentSessionKey("ted"), sessionKey);
   assert.equal(harness.context.isCurrentSession("ted", sessionKey), true);
+});
+
+test("TED reads the next autoplay manifest from current-page structured data", async () => {
+  const harness = createYoutubeHarness();
+  const manifestUrl = "https://hls.ted.com/project_masters/11854/manifest.m3u8?intro_master_id=9294";
+  harness.context.location.hostname = "www.ted.com";
+  harness.context.location.href = "https://www.ted.com/talks/rob_bredow_the_artist_driven_innovation_behind_the_films_we_love";
+  harness.context.location.pathname = "/talks/rob_bredow_the_artist_driven_innovation_behind_the_films_we_love";
+  harness.context.location.search = "";
+  harness.context.performance = { getEntriesByType: () => [] };
+
+  const structuredData = new FakeElement("script");
+  structuredData.textContent = JSON.stringify({
+    "@context": "https://schema.org",
+    "@graph": [{
+      "@type": "VideoObject",
+      "@id": `${harness.context.location.href}#video`,
+      contentUrl: manifestUrl,
+      inLanguage: "en"
+    }]
+  });
+  const originalQuerySelectorAll = harness.context.document.querySelectorAll;
+  harness.context.document.querySelectorAll = (selector) => selector === 'script[type="application/ld+json"]'
+    ? [structuredData]
+    : originalQuerySelectorAll(selector);
+
+  const source = readFileSync("extension/content/content-script.js", "utf8");
+  vm.runInNewContext(source, harness.context, { filename: "extension/content/content-script.js" });
+  await flushPromises();
+
+  const playerContext = harness.context.getTedPlayerContext();
+  assert.equal(playerContext.videoId, "rob_bredow_the_artist_driven_innovation_behind_the_films_we_love");
+  assert.equal(playerContext.manifestUrl, manifestUrl);
+  assert.equal(
+    playerContext.sessionKey,
+    `rob_bredow_the_artist_driven_innovation_behind_the_films_we_love:${manifestUrl}`
+  );
+});
+
+test("TED autoplay clears the completed state while the next player context is loading", async () => {
+  const harness = createYoutubeHarness();
+  harness.context.location.hostname = "www.ted.com";
+  harness.context.location.href = "https://www.ted.com/talks/next_talk";
+  harness.context.location.pathname = "/talks/next_talk";
+  harness.context.location.search = "";
+  harness.context.performance = { getEntriesByType: () => [] };
+
+  const source = readFileSync("extension/content/content-script.js", "utf8");
+  vm.runInNewContext(source, harness.context, { filename: "extension/content/content-script.js" });
+  await flushPromises();
+  vm.runInNewContext(`
+    subtitleState.enabled = true;
+    subtitleState.currentPlatform = "ted";
+    subtitleState.currentRouteKey = "previous_talk";
+    subtitleState.translationPhase = "complete";
+  `, harness.context);
+
+  harness.intervalCallbacks.at(-1)();
+  await flushPromises();
+
+  assert.equal(vm.runInNewContext("subtitleState.translationPhase", harness.context), "temporary");
+  assert.equal(vm.runInNewContext("subtitleState.pendingRouteKey", harness.context), "next_talk");
 });
 
 test("YouTube Google provider sends one final translation request without temporary duplicate", async () => {
@@ -2955,8 +3021,8 @@ test("late temporary response does not overwrite completed YouTube LLM subtitles
   assert.equal(overlay.textContent, "LLM translated subtitle");
 });
 
-test("fallback final progress uses completed background and marks toolbar icon as fallback", async () => {
-  const { controls, overlay, runtimeMessageListeners } = await loadYoutubeOverlay();
+test("fallback final progress shows a toast, uses completed background, and marks the toolbar icon", async () => {
+  const { context, controls, moviePlayer, overlay, runtimeMessageListeners } = await loadYoutubeOverlay();
   const button = controls.querySelector("#ast-toolbar-button");
 
   for (const listener of runtimeMessageListeners) {
@@ -2984,6 +3050,11 @@ test("fallback final progress uses completed background and marks toolbar icon a
   assert.equal(button.classList.values.has("temporary"), false);
   assert.equal(button.classList.values.has("complete"), false);
   assert.equal(button.classList.values.has("fallback"), true);
+  const toast = context.document.getElementById("ast-toast");
+  assert.ok(toast, "expected every fallback to render a toast");
+  assert.equal(toast.parentElement, moviePlayer);
+  assert.match(toast.textContent, /번역하지 못해/);
+  assert.match(toast.textContent, /Google Translate/);
 });
 
 test("quota fallback progress shows a toast notification", async () => {
@@ -3017,6 +3088,40 @@ test("quota fallback progress shows a toast notification", async () => {
   assert.equal(toast.parentElement, moviePlayer);
   assert.equal(toast.classList.values.has("ast-toast-video"), true);
   assert.match(toast.textContent, /쿼터가 초과/);
+  assert.match(toast.textContent, /Google Translate/);
+});
+
+test("final rate limit fallback progress shows a toast notification", async () => {
+  const { context, moviePlayer, runtimeMessageListeners } = await loadYoutubeOverlay();
+
+  for (const listener of runtimeMessageListeners) {
+    listener({
+      type: "translation.progress",
+      videoId: "abc123def45",
+      mode: "final",
+      progress: {
+        fallbackProviderId: "googleTranslate",
+        fallbackReason: "rate_limit_exceeded",
+        fallbackMessage: "Too many requests. Falling back to Google Translate.",
+        chunkIndex: 0,
+        chunkCount: 1,
+        cues: [
+          {
+            id: "yt-0",
+            start: 0,
+            end: 5,
+            text: "Fallback translated subtitle"
+          }
+        ]
+      }
+    });
+  }
+
+  const toast = context.document.getElementById("ast-toast");
+  assert.ok(toast, "expected rate limit fallback toast to be rendered");
+  assert.equal(toast.parentElement, moviePlayer);
+  assert.equal(toast.classList.values.has("ast-toast-video"), true);
+  assert.match(toast.textContent, /요청이 너무 많아/);
   assert.match(toast.textContent, /Google Translate/);
 });
 

@@ -58,6 +58,8 @@ const subtitleState = {
   currentSessionKey: "",
   currentPlatform: "",
   currentVideoId: "",
+  currentRouteKey: "",
+  pendingRouteKey: "",
   currentVideo: null,
   currentDocument: null,
   activeProviderId: "",
@@ -78,7 +80,7 @@ const subtitleState = {
   expectedCueIds: new Set(),
   finalTranslatedCueIds: new Set(),
   lastTemporaryPriorityKey: "",
-  lastQuotaToastKey: "",
+  lastFallbackToastKey: "",
   toastTimeoutId: null,
   subtitleStyle: null,
   udemyTranscriptTranslations: new Map(),
@@ -649,8 +651,47 @@ function getTedManifestResourceUrl() {
   return null;
 }
 
+function getTedStructuredVideoData(talkSlug) {
+  const expectedTalkPath = talkSlug ? `/talks/${talkSlug}` : "";
+  const scripts = document.querySelectorAll?.('script[type="application/ld+json"]') || [];
+  for (const script of scripts) {
+    let data;
+    try {
+      data = JSON.parse(script.textContent || "");
+    } catch {
+      continue;
+    }
+    const nodes = Array.isArray(data?.["@graph"]) ? data["@graph"] : [data];
+    for (const node of nodes) {
+      const types = Array.isArray(node?.["@type"]) ? node["@type"] : [node?.["@type"]];
+      if (!types.includes("VideoObject")) continue;
+      const pageReferences = [node?.url, node?.["@id"], node?.embedUrl]
+        .map((value) => String(value || ""));
+      if (expectedTalkPath && !pageReferences.some((value) => value.includes(expectedTalkPath))) continue;
+      try {
+        const manifestUrl = new URL(String(node?.contentUrl || ""));
+        if (manifestUrl.protocol !== "https:"
+          || manifestUrl.hostname !== "hls.ted.com"
+          || !/^\/project_masters\/[^/]+\/manifest\.m3u8$/.test(manifestUrl.pathname)) {
+          continue;
+        }
+        return {
+          manifestUrl: manifestUrl.href,
+          sourceLanguage: String(node?.inLanguage || "en")
+        };
+      } catch {
+        // Ignore structured data without a valid TED HLS URL.
+      }
+    }
+  }
+  return null;
+}
+
 function getTedPlayerContext() {
   const talkSlug = getTedTalkSlug();
+  if (talkSlug && tedPlayerContextCache?.slug === talkSlug) {
+    return tedPlayerContextCache;
+  }
   let videoData = null;
   try {
     const nextDataText = document.getElementById("__NEXT_DATA__")?.textContent;
@@ -662,8 +703,10 @@ function getTedPlayerContext() {
   const playerData = parseTedPlayerData(videoData?.playerData)
     || parseTedPlayerData(videoData?.acmePlayerData);
   const playerMatchesPage = !playerData?.slug || !talkSlug || playerData.slug === talkSlug;
-  const embeddedManifestUrl = playerMatchesPage && (playerData?.resources?.hls?.stream || videoData?.hlsUrl);
-  const resourceManifestUrl = getTedManifestResourceUrl();
+  const structuredVideoData = getTedStructuredVideoData(talkSlug);
+  const embeddedManifestUrl = (playerMatchesPage && (playerData?.resources?.hls?.stream || videoData?.hlsUrl))
+    || structuredVideoData?.manifestUrl;
+  const resourceManifestUrl = embeddedManifestUrl ? null : getTedManifestResourceUrl();
   if (!embeddedManifestUrl
     && talkSlug
     && tedPlayerContextCache?.slug
@@ -678,7 +721,7 @@ function getTedPlayerContext() {
   const context = {
     videoId: String(videoId),
     manifestUrl: String(manifestUrl),
-    sourceLanguage: String((playerMatchesPage && playerData?.nativeLanguage) || "en"),
+    sourceLanguage: String((playerMatchesPage && playerData?.nativeLanguage) || structuredVideoData?.sourceLanguage || "en"),
     slug: talkSlug || String(playerData?.slug || ""),
     sessionKey: `${String(videoId)}:${String(manifestUrl)}`
   };
@@ -1957,12 +2000,19 @@ function disableSubtitlesForUnavailableCaptions(video) {
   showToast(contentText("contentCaptionsUnavailable"), video);
 }
 
-function showQuotaFallbackToast(detail = {}) {
-  if (detail.fallbackReason !== "quota_exceeded") return;
-  const key = `${subtitleState.currentVideoId}:${detail.fallbackProviderId || "googleTranslate"}:${detail.fallbackReason}`;
-  if (subtitleState.lastQuotaToastKey === key) return;
-  subtitleState.lastQuotaToastKey = key;
-  showToast(contentText("contentQuotaFallback"), subtitleState.currentVideo);
+function showFallbackToast(detail = {}) {
+  const messageKey = detail.fallbackReason === "quota_exceeded"
+    ? "contentQuotaFallback"
+    : detail.fallbackReason === "rate_limit_exceeded"
+      ? "contentRateLimitFallback"
+      : detail.fallbackProviderId
+        ? "contentFallback"
+        : "";
+  if (!messageKey) return;
+  const key = `${subtitleState.currentVideoId}:${detail.fallbackProviderId || "googleTranslate"}:${detail.fallbackReason || "fallback"}`;
+  if (subtitleState.lastFallbackToastKey === key) return;
+  subtitleState.lastFallbackToastKey = key;
+  showToast(contentText(messageKey), subtitleState.currentVideo);
 }
 
 function clearOverlayStatus(video) {
@@ -2311,7 +2361,7 @@ function requestTemporaryTranslationAtCurrentCue(video = subtitleState.currentVi
     if (requestId !== subtitleState.activeTemporaryRequestId) return;
     if (!subtitleState.enabled || ["complete", "fallback"].includes(subtitleState.translationPhase)) return;
     if (!translatedDocument?.cues?.length) return;
-    showQuotaFallbackToast(translatedDocument);
+    showFallbackToast(translatedDocument);
     setTranslationPhase("temporary");
     applyTranslatedCues(targetVideo, translatedDocument.cues, { preserveFinalCues: true });
     refreshCurrentCueTranslationPhase(targetVideo);
@@ -2585,7 +2635,7 @@ function startDefaultCueTranslation(document, platform, sessionKey, video, provi
     if (requestId !== subtitleState.activeTemporaryRequestId) return;
     if (!subtitleState.enabled || !isCurrentSession(platform, sessionKey) || !translatedDocument?.cues?.length) return;
     if (subtitleState.finalTranslatedCueIds.size > 0 || ["complete", "fallback"].includes(subtitleState.translationPhase)) return;
-    showQuotaFallbackToast(translatedDocument);
+    showFallbackToast(translatedDocument);
     setTranslationPhase("temporary");
     applyTranslatedCues(targetVideo, translatedDocument.cues, { preserveFinalCues: true });
     refreshCurrentCueTranslationPhase(targetVideo);
@@ -2609,7 +2659,7 @@ function startFinalTranslation(document, platform, sessionKey, video, providerId
     if (requestId !== subtitleState.activeFinalRequestId) return;
     if (!subtitleState.enabled || !isCurrentSession(platform, sessionKey) || !translatedDocument?.cues?.length) return;
     subtitleState.activeTemporaryRequestId = "";
-    showQuotaFallbackToast(translatedDocument);
+    showFallbackToast(translatedDocument);
     trackFinalTranslatedCues(translatedDocument.cues);
     applyTranslatedCues(video, translatedDocument.cues);
     setTranslationPhase(translatedDocument.fallbackProviderId ? "fallback" : "complete");
@@ -2856,7 +2906,7 @@ const platformHandlers = {
   ted: {
     platform: "ted",
     loadingMessage: contentText("contentTranslationPreparing"),
-    getSessionKey: () => getTedPlayerContext()?.sessionKey || getTedTalkSlug(),
+    getSessionKey: () => getTedPlayerContext()?.sessionKey || null,
     findVideo: () => findVideoElement("ted"),
     async listCaptionTracks() {
       const context = getTedPlayerContext();
@@ -2875,17 +2925,19 @@ const platformHandlers = {
         }))
         .filter(Boolean);
     },
-    async buildTranscriptRequest() {
+    async buildTranscriptRequest({ quietMissingPageData = false } = {}) {
       const context = getTedPlayerContext();
       const video = this.findVideo();
 
       if (!context || !video) {
-        console.warn("[AST] Missing TED caption data:", {
-          videoId: context?.videoId || null,
-          hasVideo: Boolean(video),
-          url: location.href
-        });
-        if (video) showOverlayMessage(video, contentText("contentMissingTed"), "error");
+        if (!quietMissingPageData) {
+          console.warn("[AST] Missing TED caption data:", {
+            videoId: context?.videoId || null,
+            hasVideo: Boolean(video),
+            url: location.href
+          });
+          if (video) showOverlayMessage(video, contentText("contentMissingTed"), "error");
+        }
         return null;
       }
       const track = requireCaptionTrack(
@@ -3044,6 +3096,8 @@ async function loadPlatformSubtitleOverlay(handler, options = {}) {
   subtitleState.currentSessionKey = request.sessionKey;
   subtitleState.currentPlatform = handler.platform;
   subtitleState.currentVideoId = response.document.videoId;
+  subtitleState.currentRouteKey = handler.platform === "ted" ? getTedTalkSlug() || "" : "";
+  subtitleState.pendingRouteKey = "";
   subtitleState.currentVideo = request.video;
   subtitleState.currentDocument = response.document;
   subtitleState.activeProviderId = "";
@@ -3051,7 +3105,7 @@ async function loadPlatformSubtitleOverlay(handler, options = {}) {
   subtitleState.expectedCueIds = new Set(response.document.cues.map((cue) => String(cue.id)));
   subtitleState.finalTranslatedCueIds = new Set();
   subtitleState.lastTemporaryPriorityKey = "";
-  subtitleState.lastQuotaToastKey = "";
+  subtitleState.lastFallbackToastKey = "";
   handler.markLoaded?.(request.sessionKey, response.document);
 
   clearOverlayStatus(request.video);
@@ -3113,7 +3167,7 @@ chrome.runtime.onMessage.addListener((message) => {
   if (message.mode === "temporary") {
     if (message.requestId && message.requestId !== subtitleState.activeTemporaryRequestId) return false;
     if (["complete", "fallback"].includes(subtitleState.translationPhase) || !hasUnfinalizedCue(message.progress?.cues)) return false;
-    showQuotaFallbackToast(message.progress);
+    showFallbackToast(message.progress);
     setTranslationPhase("temporary");
     applyTranslatedCues(subtitleState.currentVideo, message.progress?.cues, { preserveFinalCues: true });
     refreshCurrentCueTranslationPhase(subtitleState.currentVideo);
@@ -3123,7 +3177,7 @@ chrome.runtime.onMessage.addListener((message) => {
     if (message.requestId && message.requestId !== subtitleState.activeFinalRequestId) return false;
     trackFinalTranslatedCues(message.progress?.cues);
     const isFallback = Boolean(message.progress?.fallbackProviderId);
-    showQuotaFallbackToast(message.progress);
+    showFallbackToast(message.progress);
     applyTranslatedCues(subtitleState.currentVideo, message.progress?.cues);
     if (isFallback) {
       setTranslationPhase("fallback");
@@ -3186,6 +3240,20 @@ function toggleSubtitles(platform) {
 function watchPlatformChanges(handler) {
   const tryRefresh = () => {
     if (subtitleState.disposed || !subtitleState.enabled || subtitleState.loading) return;
+    if (handler.platform === "ted") {
+      const routeKey = getTedTalkSlug();
+      const routeChanged = Boolean(routeKey
+        && subtitleState.currentPlatform === "ted"
+        && subtitleState.currentRouteKey
+        && routeKey !== subtitleState.currentRouteKey);
+      if (routeChanged && subtitleState.pendingRouteKey !== routeKey) {
+        subtitleState.pendingRouteKey = routeKey;
+        invalidateTranslationRequests();
+        subtitleState.finalTranslatedCueIds = new Set();
+        setTranslationPhase("temporary");
+        showOverlayMessage(handler.findVideo(), handler.loadingMessage);
+      }
+    }
     const sessionKey = handler.getSessionKey();
     if (!sessionKey || (subtitleState.currentPlatform === handler.platform && sessionKey === subtitleState.currentSessionKey)) return;
 
@@ -3203,6 +3271,7 @@ function watchPlatformChanges(handler) {
       observer.disconnect();
       return;
     }
+    if (handler.platform === "ted") return;
     tryRefresh();
   });
   observer.observe(document.body, { childList: true, subtree: true });

@@ -560,6 +560,12 @@
   "contentQuotaFallback": {
     "message": "API クォータを超過したため、Google Translate に切り替えます。"
   },
+  "contentRateLimitFallback": {
+    "message": "API リクエストが多すぎて再試行に失敗したため、Google Translate に切り替えます。"
+  },
+  "contentFallback": {
+    "message": "選択した翻訳プロバイダーで翻訳できなかったため、Google Translate に切り替えます。"
+  },
   "contentMissingUdemy": {
     "message": "Udemy 講義の情報を見つけられませんでした。"
   },
