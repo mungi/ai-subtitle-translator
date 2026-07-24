@@ -148,6 +148,7 @@ const advancedSettingsTab = document.getElementById("advancedSettingsTab");
 const simpleSettingsPanel = document.getElementById("simpleSettingsPanel");
 const advancedSettingsPanel = document.getElementById("advancedSettingsPanel");
 const simpleGoogleApiKeyInput = document.getElementById("simpleGoogleApiKey");
+const simpleGoogleApiKeyVisibilityButton = document.getElementById("toggleSimpleGoogleApiKeyVisibility");
 const simpleGoogleGuide = document.getElementById("simpleGoogleGuide");
 const simpleGoogleGuideLinks = document.getElementById("simpleGoogleGuideLinks");
 const testSimpleGoogleApiKeyButton = document.getElementById("testSimpleGoogleApiKey");
@@ -165,6 +166,7 @@ const restoreSettingsFileInput = document.getElementById("restoreSettingsFile");
 const backupStatusLine = document.getElementById("backupStatusLine");
 const simpleGoogleTestLockedControls = [
   simpleGoogleApiKeyInput,
+  simpleGoogleApiKeyVisibilityButton,
   testSimpleGoogleApiKeyButton,
   document.getElementById("resetSettings"),
   document.getElementById("resetGeneralSettings"),
@@ -875,10 +877,73 @@ function renderOpenRouterNitroField(provider) {
   return wrapper;
 }
 
+function createSecretVisibilityIcon(revealed) {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+
+  const eye = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  eye.setAttribute("d", "M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z");
+  svg.append(eye);
+
+  const pupil = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  pupil.setAttribute("cx", "12");
+  pupil.setAttribute("cy", "12");
+  pupil.setAttribute("r", "2.5");
+  svg.append(pupil);
+
+  if (revealed) {
+    const slash = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    slash.setAttribute("d", "M4 4l16 16");
+    svg.append(slash);
+  }
+
+  return svg;
+}
+
+function setSecretVisibility(input, button, revealed) {
+  input.type = revealed ? "text" : "password";
+  button.setAttribute("aria-pressed", String(revealed));
+  const accessibleLabel = t(revealed ? "hideApiKey" : "showApiKey");
+  button.setAttribute("aria-label", accessibleLabel);
+  button.title = accessibleLabel;
+  button.replaceChildren(createSecretVisibilityIcon(revealed));
+}
+
+function bindSecretVisibilityButton(input, button) {
+  setSecretVisibility(input, button, false);
+  button.addEventListener("click", () => {
+    const revealed = button.getAttribute("aria-pressed") !== "true";
+    setSecretVisibility(input, button, revealed);
+    input.focus();
+  });
+}
+
+function createSecretInputControl(input) {
+  const control = document.createElement("div");
+  control.className = "secret-input-control";
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "secret-visibility-button";
+  bindSecretVisibilityButton(input, button);
+
+  control.append(input, button);
+  return control;
+}
+
 function renderField(provider, [key, labelKey, placeholder, type = "text"]) {
-  const wrapper = document.createElement("label");
-  const labelText = document.createElement("span");
+  const isApiKey = key === "apiKey";
+  let inputId = "";
+  const wrapper = document.createElement(isApiKey ? "div" : "label");
+  const labelText = document.createElement(isApiKey ? "label" : "span");
   labelText.textContent = t(labelKey);
+  if (isApiKey) {
+    inputId = `provider-${provider.id}-api-key`;
+    labelText.htmlFor = inputId;
+    labelText.className = "field-label";
+    wrapper.classList.add("secret-field");
+  }
   wrapper.append(labelText);
   const localizedPlaceholder = key === "model" ? t("modelExample", { model: placeholder }) : placeholder;
 
@@ -917,15 +982,22 @@ function renderField(provider, [key, labelKey, placeholder, type = "text"]) {
 
   const input = document.createElement("input");
   input.name = key;
-  input.type = key === "apiKey" ? "password" : type;
+  input.type = isApiKey ? "password" : type;
   input.placeholder = localizedPlaceholder;
-  input.value = key === "apiKey" ? maskSecretValue(provider[key]) : (provider[key] ?? "");
+  input.value = isApiKey ? maskSecretValue(provider[key]) : (provider[key] ?? "");
+  if (isApiKey) {
+    input.id = inputId;
+    input.className = "api-key-input";
+    input.autocomplete = "off";
+    input.autocapitalize = "off";
+    input.spellcheck = false;
+  }
   if (type === "number") {
     input.step = key === "temperature" ? "0.1" : "1";
     input.min = "0";
   }
 
-  if (key === "apiKey" && canFetchModelsForProvider(provider)) {
+  if (isApiKey && canFetchModelsForProvider(provider)) {
     const row = document.createElement("div");
     row.className = "api-key-row";
 
@@ -935,13 +1007,13 @@ function renderField(provider, [key, labelKey, placeholder, type = "text"]) {
     button.textContent = t("fetchModels");
     button.addEventListener("click", () => fetchModelsForSelectedProvider(button));
 
-    row.append(input, button);
+    row.append(createSecretInputControl(input), button);
     wrapper.classList.add("wide");
     wrapper.append(row);
     return wrapper;
   }
 
-  wrapper.append(input);
+  wrapper.append(isApiKey ? createSecretInputControl(input) : input);
   return wrapper;
 }
 
@@ -1158,6 +1230,7 @@ function renderProviderGuide(providerId) {
 
 function renderSimpleGoogleSettings() {
   simpleGoogleApiKeyInput.value = pendingSimpleGoogleApiKey ?? maskSecretValue(settings.providers.google.apiKey);
+  setSecretVisibility(simpleGoogleApiKeyInput, simpleGoogleApiKeyVisibilityButton, false);
   simpleGoogleGuide.textContent = t("simpleGoogleIntroGuide");
   simpleGoogleGuideLinks.replaceChildren(...SIMPLE_GOOGLE_GUIDE_LINKS.map((link) => {
     const anchor = document.createElement("a");
@@ -1411,6 +1484,7 @@ function renderPlatformSettings() {
 
 async function init() {
   applyLocaleText();
+  bindSecretVisibilityButton(simpleGoogleApiKeyInput, simpleGoogleApiKeyVisibilityButton);
   subtitleStylePreview.textContent = getDefaultPreviewText();
   settings = await getSettings();
   selectedProviderId = settings.activeProvider;
