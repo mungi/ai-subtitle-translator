@@ -35,10 +35,13 @@
         </div>
         <p class="section-description" data-i18n="simpleSettingsDescription"></p>
         <div class="simple-google-key-row">
-          <label class="simple-google-key-field">
-            <span data-i18n="simpleGoogleApiKey"></span>
-            <input id="simpleGoogleApiKey" type="password" autocomplete="off" spellcheck="false">
-          </label>
+          <div class="simple-google-key-field">
+            <label for="simpleGoogleApiKey" data-i18n="simpleGoogleApiKey"></label>
+            <div class="secret-input-control">
+              <input id="simpleGoogleApiKey" class="api-key-input" type="password" autocomplete="off" autocapitalize="off" spellcheck="false">
+              <button id="toggleSimpleGoogleApiKeyVisibility" class="secret-visibility-button" type="button" aria-pressed="false"></button>
+            </div>
+          </div>
           <button id="testSimpleGoogleApiKey" type="button" class="primary" data-i18n="simpleGoogleTestApiKey"></button>
         </div>
         <p id="simpleSettingsStatus" class="status-line" role="status"></p>

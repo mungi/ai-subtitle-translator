@@ -32,6 +32,12 @@
   "simpleGoogleApiKey": {
     "message": "Google AI API キー"
   },
+  "showApiKey": {
+    "message": "API キーを表示"
+  },
+  "hideApiKey": {
+    "message": "API キーを非表示"
+  },
   "simpleGoogleIntroGuide": {
     "message": "Google AI で字幕を翻訳します。下の案内に沿って API キーを作成して入力すると、Gemini 3.1 Flash Lite が自動設定されます。API キーを確認を押して接続を確認してください。"
   },

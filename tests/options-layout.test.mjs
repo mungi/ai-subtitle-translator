@@ -48,7 +48,8 @@ test("settings mode tabs default to a focused Google API key simple panel", () =
   assert.ok(advancedIndex > simpleIndex);
   assert.match(optionsHtml, /id="simpleSettingsTab"[^>]*role="tab"[^>]*aria-selected="true"/);
   assert.match(optionsHtml, /id="advancedSettingsTab"[^>]*role="tab"[^>]*aria-selected="false"/);
-  assert.match(optionsHtml, /id="simpleGoogleApiKey" type="password" autocomplete="off"/);
+  assert.match(optionsHtml, /id="simpleGoogleApiKey"[^>]*class="api-key-input"[^>]*type="password"[^>]*autocomplete="off"/);
+  assert.match(optionsHtml, /id="toggleSimpleGoogleApiKeyVisibility"[^>]*class="secret-visibility-button"[^>]*aria-pressed="false"/);
   assert.match(optionsHtml, /id="simpleSettingsStatus"[^>]*role="status"/);
   assert.match(optionsHtml, /id="advancedSettingsPanel"[^>]*hidden/);
   assert.match(optionsCss, /\.settings-mode-tabs\s*\{/);
@@ -74,7 +75,7 @@ test("simple settings retain the existing Google guide and show the API key guid
   assert.match(simpleHtml, /id="simpleGoogleGuide"/);
   assert.match(
     simpleHtml,
-    /<div class="simple-google-key-row">\s*<label class="simple-google-key-field">[\s\S]*id="simpleGoogleApiKey"[\s\S]*<\/label>\s*<button id="testSimpleGoogleApiKey"[^>]*data-i18n="simpleGoogleTestApiKey"[^>]*><\/button>\s*<\/div>\s*<p id="simpleSettingsStatus"[^>]*role="status"><\/p>/
+    /<div class="simple-google-key-row">\s*<div class="simple-google-key-field">[\s\S]*id="simpleGoogleApiKey"[\s\S]*id="toggleSimpleGoogleApiKeyVisibility"[\s\S]*<\/div>\s*<button id="testSimpleGoogleApiKey"[^>]*data-i18n="simpleGoogleTestApiKey"[^>]*><\/button>\s*<\/div>\s*<p id="simpleSettingsStatus"[^>]*role="status"><\/p>/
   );
   assert.ok(simpleHtml.indexOf('id="simpleSettingsStatus"') < simpleHtml.indexOf('id="simpleGoogleGuide"'));
   assert.match(simpleHtml, /id="simpleGoogleKeyGuide"/);
@@ -160,6 +161,8 @@ test("simple settings messages are synchronized in Korean, English, and Japanese
       "simpleSettingsTitle",
       "simpleSettingsDescription",
       "simpleGoogleApiKey",
+      "showApiKey",
+      "hideApiKey",
       "simpleGoogleIntroGuide",
       "simpleGoogleTestApiKey",
       "simpleGoogleApiKeyReady",
@@ -393,10 +396,26 @@ test("Custom LLM check and endpoint permission request are rendered only in its 
 
 test("API key fields render masked saved values and preserve untouched secrets", () => {
   assert.match(optionsJs, /import \{ maskSecretValue, resolveSecretFieldValue \} from "\.\.\/shared\/secret-fields\.js";/);
-  assert.match(optionsJs, /input\.type = key === "apiKey" \? "password" : type;/);
-  assert.match(optionsJs, /input\.value = key === "apiKey"\s*\?\s*maskSecretValue\(provider\[key\]\)\s*:\s*\(provider\[key\] \?\? ""\);/);
+  assert.match(optionsJs, /input\.type = isApiKey \? "password" : type;/);
+  assert.match(optionsJs, /input\.value = isApiKey \? maskSecretValue\(provider\[key\]\) : \(provider\[key\] \?\? ""\);/);
   assert.match(optionsJs, /if \(key === "apiKey"\) \{\s*provider\[key\] = resolveSecretFieldValue\(value, provider\[key\]\);/);
   assert.doesNotMatch(optionsJs, /input\.value = provider\[key\] \?\? "";/);
+});
+
+test("API key fields provide an accessible reveal control and a code-friendly font", () => {
+  assert.match(optionsJs, /function bindSecretVisibilityButton\(input, button\)/);
+  assert.match(optionsJs, /input\.type = revealed \? "text" : "password";/);
+  assert.match(optionsJs, /button\.setAttribute\("aria-pressed", String\(revealed\)\);/);
+  assert.match(optionsJs, /t\(revealed \? "hideApiKey" : "showApiKey"\)/);
+  assert.match(optionsJs, /button\.replaceChildren\(createSecretVisibilityIcon\(revealed\)\);/);
+  assert.match(optionsJs, /setSecretVisibility\(simpleGoogleApiKeyInput, simpleGoogleApiKeyVisibilityButton, false\);/);
+  assert.match(optionsCss, /\.api-key-input\s*\{[\s\S]*font-family: ui-monospace,[\s\S]*font-variant-ligatures: none;/);
+  assert.match(optionsCss, /\.secret-field\s*\{[\s\S]*display: grid;[\s\S]*gap: 7px;/);
+  assert.match(optionsCss, /\.secret-visibility-button\s*\{[\s\S]*position: absolute;/);
+  assert.equal(message("ko", "showApiKey"), "API 키 표시");
+  assert.equal(message("ko", "hideApiKey"), "API 키 숨기기");
+  assert.equal(message("en", "showApiKey"), "Show API key");
+  assert.equal(message("ja", "hideApiKey"), "API キーを非表示");
 });
 
 test("Custom LLM curl preview never includes the entered API key", () => {
@@ -410,9 +429,9 @@ test("provider API key row is placed before model and keeps fetch models button"
     assert.ok(block.indexOf('["apiKey", "fieldApiKey"') < block.indexOf('["model", "fieldModel"'), `${providerId} should render API Key before Model`);
   }
 
-  assert.match(optionsJs, /if \(key === "apiKey" && canFetchModelsForProvider\(provider\)\) \{/);
+  assert.match(optionsJs, /if \(isApiKey && canFetchModelsForProvider\(provider\)\) \{/);
   assert.match(optionsJs, /row\.className = "api-key-row";/);
-  assert.match(optionsJs, /row\.append\(input, button\);/);
+  assert.match(optionsJs, /row\.append\(createSecretInputControl\(input\), button\);/);
   assert.doesNotMatch(optionsJs, /row\.append\(select, button\);/);
   assert.match(optionsCss, /\.api-key-row\s*\{[\s\S]*grid-template-columns: minmax\(0, 1fr\) auto;/);
 });

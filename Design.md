@@ -165,7 +165,7 @@ background service worker는 처리 대상 메시지의 필수 payload를 네트
 - CST에서 AST로 명칭을 전환한 현재 초기 개발 단계에서는 `runtimeIndexV3` vault로 한 번만 초기화한다. API key는 다시 입력하거나 `.astbackup` 파일로 복구한다.
 - 최초 출시 이후에는 storage key를 바꿔 사용자 설정을 초기화하지 않는다. 일반 설정이나 vault 구조를 변경할 때 schema/version을 올리고, 이전 출시 버전부터 현재 버전까지 순서대로 적용되는 마이그레이션을 함께 제공한다.
 - vault는 고정 storage key 안의 `version`을 기준으로 단계별 마이그레이션한다. 알 수 없는 미래 버전이나 필요한 마이그레이션이 누락된 경우에는 데이터를 지우지 않고 오류로 중단한다.
-- 옵션 화면의 저장된 API key 입력값은 앞 6자와 뒤 4자만 표시하고, 마스킹 값을 그대로 저장하면 기존 secret을 유지한다.
+- 옵션 화면의 API key 입력란은 기본적으로 password 형태로 숨긴다. 오른쪽 표시 버튼을 누르면 저장된 key는 앞 6자와 뒤 4자만, 새로 입력 중인 key는 전체 값을 보여주며, 다시 숨길 수 있다. 마스킹 값을 그대로 저장하면 기존 secret을 유지한다.
 - 자막 텍스트는 사용자가 선택한 provider로 전송될 수 있다.
 - Custom LLM은 `localhost` 또는 `127.0.0.1` host permission으로 연결하고, 사용자 지정 HTTPS origin은 모델 가져오기 또는 연결 테스트 중 사용자의 런타임 승인을 받아 연결한다.
 - Hosted provider 요청은 공식 HTTPS origin allowlist를 통과해야 하며, Custom LLM은 loopback host 또는 사용자가 승인한 HTTPS origin만 허용한다.
