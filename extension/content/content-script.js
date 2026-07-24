@@ -2452,7 +2452,7 @@ function ensureButton(platform, options = {}) {
 }
 
 function shouldAllowFloatingToolbar(platform) {
-  if (platform === "udemy") return false;
+  if (platform === "udemy" || platform === "ted") return false;
   if (!isVimeoPlatform(platform)) return true;
   return location.hostname === "player.vimeo.com" || Boolean(document.querySelector("video"));
 }

@@ -1476,6 +1476,30 @@ test("TED autoplay clears the completed state while the next player context is l
   assert.equal(vm.runInNewContext("subtitleState.pendingRouteKey", harness.context), "next_talk");
 });
 
+test("TED waits for native player controls instead of showing a floating toolbar during ads", async () => {
+  const harness = createYoutubeHarness();
+  harness.context.location.hostname = "www.ted.com";
+  harness.context.location.href = "https://www.ted.com/talks/test_talk";
+  harness.context.location.pathname = "/talks/test_talk";
+  harness.context.location.search = "";
+  harness.context.performance = { getEntriesByType: () => [] };
+
+  const source = readFileSync("extension/content/content-script.js", "utf8");
+  vm.runInNewContext(source, harness.context, { filename: "extension/content/content-script.js" });
+  await flushPromises();
+
+  assert.equal(
+    harness.context.document.getElementById("ast-floating-toolbar"),
+    null,
+    "expected TED ads and player loading states not to show the floating fallback"
+  );
+  assert.equal(
+    harness.context.document.getElementById("ast-toolbar-button"),
+    null,
+    "expected the AST button to wait until TED's native controls are available"
+  );
+});
+
 test("YouTube Google provider sends one final translation request without temporary duplicate", async () => {
   const { context, controls, sentMessages } = createYoutubeHarness();
   const source = readFileSync("extension/content/content-script.js", "utf8");
