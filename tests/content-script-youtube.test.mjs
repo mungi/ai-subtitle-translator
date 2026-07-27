@@ -284,6 +284,8 @@ function createYoutubeHarness(options = {}) {
   body.append(moviePlayer);
 
   const sentMessages = [];
+  const timeoutCallbacks = [];
+  let timeoutSequence = 0;
   const documentRef = {
     readyState: "complete",
     body,
@@ -419,12 +421,35 @@ function createYoutubeHarness(options = {}) {
       return intervalCallbacks.length;
     },
     clearInterval: () => {},
+    setTimeout: (callback, delay) => {
+      const timeout = { id: ++timeoutSequence, callback, delay, cleared: false };
+      timeoutCallbacks.push(timeout);
+      return timeout.id;
+    },
+    clearTimeout: (timeoutId) => {
+      const timeout = timeoutCallbacks.find((item) => item.id === timeoutId);
+      if (timeout) timeout.cleared = true;
+    },
     URL,
     URLSearchParams,
     fetch: options.fetch
   };
 
-  return { context, controls, moviePlayer, video, runtimeMessageListeners, sentMessages, intervalCallbacks };
+  return {
+    context,
+    controls,
+    moviePlayer,
+    video,
+    runtimeMessageListeners,
+    sentMessages,
+    intervalCallbacks,
+    timeoutCallbacks,
+    runTimeouts() {
+      for (const timeout of timeoutCallbacks.splice(0)) {
+        if (!timeout.cleared) timeout.callback();
+      }
+    }
+  };
 }
 
 function createUdemyHarness(options = {}) {
@@ -787,6 +812,98 @@ test("toolbar button opens a platform-styled provider menu before toggling AST",
   menu.children.at(-1).dispatchEvent({ type: "click", stopPropagation: () => {} });
   await flushPromises();
   assert.ok(sentMessages.some((message) => message.type === "ast.openOptions"));
+});
+
+test("provider menu closes after five seconds unless the user interacts with it", async () => {
+  const { context, controls, timeoutCallbacks, runTimeouts } = createYoutubeHarness();
+  const source = readFileSync("extension/content/content-script.js", "utf8");
+
+  vm.runInNewContext(source, context, { filename: "extension/content/content-script.js" });
+  await flushPromises();
+
+  const button = controls.querySelector("#ast-toolbar-button");
+  button.dispatchEvent({
+    type: "click",
+    stopPropagation: () => {},
+    preventDefault: () => {}
+  });
+  await flushPromises();
+
+  const menu = context.document.getElementById("ast-provider-menu");
+  assert.equal(timeoutCallbacks.at(-1)?.delay, 5000);
+  runTimeouts();
+  assert.equal(menu.hidden, true, "expected an untouched menu to close after five seconds");
+
+  button.dispatchEvent({
+    type: "click",
+    stopPropagation: () => {},
+    preventDefault: () => {}
+  });
+  await flushPromises();
+  menu.dispatchEvent({ type: "pointerover" });
+  runTimeouts();
+  assert.equal(menu.hidden, false, "expected a hovered menu to remain open");
+  menu.dispatchEvent({ type: "pointerleave" });
+  runTimeouts();
+  assert.equal(menu.hidden, true, "expected the timer to restart after the pointer leaves");
+
+  button.dispatchEvent({
+    type: "click",
+    stopPropagation: () => {},
+    preventDefault: () => {}
+  });
+  await flushPromises();
+  menu.dispatchEvent({ type: "click" });
+  runTimeouts();
+  assert.equal(menu.hidden, false, "expected a clicked menu to remain open");
+  menu.dispatchEvent({ type: "pointerleave" });
+  runTimeouts();
+  assert.equal(menu.hidden, true, "expected a clicked menu to close after the pointer leaves");
+});
+
+test("translation progress keeps an open provider submenu mounted", async () => {
+  const { context, controls } = createYoutubeHarness();
+  const source = readFileSync("extension/content/content-script.js", "utf8");
+  context.document.documentElement.innerHTML = `
+    <script>
+      var ytInitialPlayerResponse = ${JSON.stringify({
+        captions: {
+          playerCaptionsTracklistRenderer: {
+            captionTracks: [
+              {
+                baseUrl: "https://www.youtube.com/api/timedtext?v=abc123def45&lang=en",
+                languageCode: "en",
+                name: { simpleText: "English" }
+              }
+            ]
+          }
+        }
+      })};
+    </script>
+  `;
+
+  vm.runInNewContext(source, context, { filename: "extension/content/content-script.js" });
+  await flushPromises();
+
+  const button = controls.querySelector("#ast-toolbar-button");
+  button.dispatchEvent({
+    type: "click",
+    stopPropagation: () => {},
+    preventDefault: () => {}
+  });
+  await flushPromises();
+
+  const menu = context.document.getElementById("ast-provider-menu");
+  const sourceCaptionSubmenu = menu.children.find((item) => item.className === "ast-source-caption-submenu");
+  const translationStyleSubmenu = menu.children.find((item) => item.className === "ast-translation-style-submenu");
+  assert.ok(sourceCaptionSubmenu);
+  assert.ok(translationStyleSubmenu);
+
+  context.setTranslationPhase("temporary");
+
+  assert.equal(menu.dataset.phase, "temporary");
+  assert.ok(menu.children.includes(sourceCaptionSubmenu), "expected the source submenu to stay mounted");
+  assert.ok(menu.children.includes(translationStyleSubmenu), "expected the style submenu to stay mounted");
 });
 
 test("YouTube provider menu stops quietly after the extension context is invalidated", async () => {
