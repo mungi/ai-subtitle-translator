@@ -15,6 +15,7 @@ const OVERLAY_RESIZE_HIT_WIDTH_PX = 18;
 const OVERLAY_REFERENCE_WIDTH_PX = 1280;
 const OVERLAY_REFERENCE_HEIGHT_PX = 720;
 const UDEMY_FLOATING_TOOLBAR_DELAY_MS = 2500;
+const PROVIDER_MENU_AUTO_CLOSE_DELAY_MS = 5000;
 const DEFAULT_TEMPORARY_PRIORITY_WINDOW_SECONDS = 420;
 const MIN_TEMPORARY_PRIORITY_WINDOW_SECONDS = 120;
 const MAX_TEMPORARY_PRIORITY_WINDOW_SECONDS = 900;
@@ -89,6 +90,7 @@ const subtitleState = {
   disposed: false
 };
 let crossFrameProviderMenuOpen = false;
+let providerMenuAutoCloseTimeoutId = null;
 let tedPlayerContextCache = null;
 const CAPTION_SVG = `
 <svg class="ast-toolbar-icon" viewBox="0 0 1240 1240" width="24" height="24" aria-hidden="true" focusable="false">
@@ -138,6 +140,7 @@ function isMachineTranslationProvider(providerId) {
 }
 
 function disposeContentScript() {
+  clearProviderMenuAutoCloseTimer();
   removeUdemyTranscriptObserver();
   removeUdemyTranscriptTranslationElements();
   subtitleState.disposed = true;
@@ -270,7 +273,22 @@ function setProviderMenuVisibility(open) {
   return sendRuntimeMessage({ type: "ast.providerMenu.setOpen", open: crossFrameProviderMenuOpen });
 }
 
+function clearProviderMenuAutoCloseTimer() {
+  if (providerMenuAutoCloseTimeoutId === null) return;
+  clearTimeout(providerMenuAutoCloseTimeoutId);
+  providerMenuAutoCloseTimeoutId = null;
+}
+
+function scheduleProviderMenuAutoClose() {
+  clearProviderMenuAutoCloseTimer();
+  providerMenuAutoCloseTimeoutId = setTimeout(() => {
+    providerMenuAutoCloseTimeoutId = null;
+    closeProviderMenu();
+  }, PROVIDER_MENU_AUTO_CLOSE_DELAY_MS);
+}
+
 function closeProviderMenu({ notify = true } = {}) {
+  clearProviderMenuAutoCloseTimer();
   const menu = document.getElementById(PROVIDER_MENU_ID);
   const wasOpen = Boolean(menu && !menu.hidden);
   if (menu) menu.hidden = true;
@@ -469,6 +487,15 @@ function ensureProviderMenu(platform) {
     menu.addEventListener("mousedown", (event) => {
       event.stopPropagation();
     });
+    const cancelAutoClose = () => clearProviderMenuAutoCloseTimer();
+    menu.addEventListener("pointerover", cancelAutoClose);
+    menu.addEventListener("pointerleave", scheduleProviderMenuAutoClose);
+    menu.addEventListener("pointerdown", cancelAutoClose, { capture: true });
+    menu.addEventListener("click", cancelAutoClose, { capture: true });
+    menu.addEventListener("focusin", cancelAutoClose);
+    menu.addEventListener("focusout", (event) => {
+      if (!menu.contains(event.relatedTarget)) scheduleProviderMenuAutoClose();
+    });
   } else {
     menu.className = `ast-provider-menu ast-provider-menu-${platform}`;
     menu.dataset.platform = platform;
@@ -519,6 +546,7 @@ async function toggleProviderMenu(platform) {
   menu.hidden = false;
   document.getElementById(BUTTON_ID)?.setAttribute("aria-expanded", "true");
   void setProviderMenuVisibility(true);
+  scheduleProviderMenuAutoClose();
 }
 
 async function selectSourceCaptionTrack(platform, trackId) {
@@ -552,6 +580,11 @@ async function selectSourceCaptionTrack(platform, trackId) {
 function refreshOpenProviderMenu() {
   const menu = document.getElementById(PROVIDER_MENU_ID);
   if (menu && !menu.hidden) renderProviderMenu(menu.dataset.platform || detectPlatform());
+}
+
+function updateOpenProviderMenuPhase() {
+  const menu = document.getElementById(PROVIDER_MENU_ID);
+  if (menu && !menu.hidden) menu.dataset.phase = subtitleState.translationPhase;
 }
 
 function findVideoElement(platform) {
@@ -1904,7 +1937,7 @@ function setButtonState(enabled, loading = false) {
   button.classList.toggle("fallback", subtitleState.translationPhase === "fallback");
   button.setAttribute("aria-pressed", String(enabled));
   button.title = loading ? contentText("contentTranslationPreparing") : contentText("contentMenuTitle");
-  refreshOpenProviderMenu();
+  updateOpenProviderMenuPhase();
 }
 
 function setTranslationPhase(phase) {
