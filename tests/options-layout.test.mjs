@@ -37,6 +37,21 @@ test("top actions only expose reset all when settings save automatically", () =>
   assert.equal(message("en", "allReset"), "Reset all");
 });
 
+test("page header displays the current manifest version beside the settings title", () => {
+  assert.match(
+    optionsHtml,
+    /<div class="page-title-row">\s*<h1 data-i18n="title"><\/h1>\s*<span id="extensionVersion" class="extension-version"><\/span>\s*<\/div>/
+  );
+  assert.match(optionsCss, /\.page-title-row\s*\{[\s\S]*display: flex;/);
+  assert.match(optionsCss, /\.extension-version\s*\{[\s\S]*white-space: nowrap;/);
+  assert.match(optionsJs, /const extensionVersion = document\.getElementById\("extensionVersion"\);/);
+  assert.match(
+    optionsJs,
+    /function renderExtensionVersion\(\) \{\s*const version = chrome\.runtime\.getManifest\(\)\.version;\s*extensionVersion\.textContent = `v\$\{version\}`;/
+  );
+  assert.match(optionsJs, /applyLocaleText\(\);\s*renderExtensionVersion\(\);/);
+});
+
 test("settings mode tabs default to a focused Google API key simple panel", () => {
   const headerEnd = optionsHtml.indexOf("</header>");
   const tabsIndex = optionsHtml.indexOf('id="settingsModeTabs"');

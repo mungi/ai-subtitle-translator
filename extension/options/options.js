@@ -164,6 +164,7 @@ const backupSettingsButton = document.getElementById("backupSettings");
 const restoreSettingsButton = document.getElementById("restoreSettings");
 const restoreSettingsFileInput = document.getElementById("restoreSettingsFile");
 const backupStatusLine = document.getElementById("backupStatusLine");
+const extensionVersion = document.getElementById("extensionVersion");
 const simpleGoogleTestLockedControls = [
   simpleGoogleApiKeyInput,
   simpleGoogleApiKeyVisibilityButton,
@@ -217,6 +218,11 @@ function applyLocaleText() {
   document.querySelectorAll("[data-i18n-aria-label]").forEach((element) => {
     element.setAttribute("aria-label", t(element.dataset.i18nAriaLabel));
   });
+}
+
+function renderExtensionVersion() {
+  const version = chrome.runtime.getManifest().version;
+  extensionVersion.textContent = `v${version}`;
 }
 
 function setStatus(message, type = "") {
@@ -1484,6 +1490,7 @@ function renderPlatformSettings() {
 
 async function init() {
   applyLocaleText();
+  renderExtensionVersion();
   bindSecretVisibilityButton(simpleGoogleApiKeyInput, simpleGoogleApiKeyVisibilityButton);
   subtitleStylePreview.textContent = getDefaultPreviewText();
   settings = await getSettings();

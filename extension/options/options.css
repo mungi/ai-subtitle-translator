@@ -105,6 +105,24 @@ button.ghost {
   font-size: 24px;
 }
 
+.page-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.page-title-row h1 {
+  min-width: 0;
+}
+
+.extension-version {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .page-header p {
   margin: 6px 0 0;
   color: var(--muted);
