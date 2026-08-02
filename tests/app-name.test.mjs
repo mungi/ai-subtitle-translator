@@ -19,6 +19,7 @@ const popupCss = readFileSync(new URL("../extension/popup/popup.css", import.met
 const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
 const chromeStoreKo = readFileSync(new URL("../docs/chrome-web-store-ko.md", import.meta.url), "utf8");
 const chromeStoreEn = readFileSync(new URL("../docs/chrome-web-store-en.md", import.meta.url), "utf8");
+const chromeStoreJa = readFileSync(new URL("../docs/chrome-web-store-ja.md", import.meta.url), "utf8");
 
 test("extension app name uses AST - AI Subtitle Translator", () => {
   assert.equal(manifest.default_locale, "en");
@@ -41,8 +42,9 @@ test("extension app name uses AST - AI Subtitle Translator", () => {
   assert.match(popupCss, /\.summary-card\s*\{/);
   assert.match(popupCss, /\.brand-mark\s*\{/);
   assert.match(readme, new RegExp(`^# ${APP_NAME}\\n`));
-  assert.match(chromeStoreKo, new RegExp(`제품명: ${APP_NAME}`));
-  assert.match(chromeStoreEn, new RegExp(`Product name: ${APP_NAME}`));
+  assert.match(chromeStoreKo, new RegExp(`^# ${APP_NAME}\\n`));
+  assert.match(chromeStoreEn, new RegExp(`^# ${APP_NAME}\\n`));
+  assert.match(chromeStoreJa, new RegExp(`^# ${APP_NAME}\\n`));
 });
 
 test("popup headings keep AI subtitle translation branding in every locale", () => {
@@ -70,4 +72,5 @@ test("previous app name is not left in user-facing app metadata", () => {
   assert.doesNotMatch(readme, new RegExp(PREVIOUS_APP_NAME));
   assert.doesNotMatch(chromeStoreKo, new RegExp(OLD_APP_NAME));
   assert.doesNotMatch(chromeStoreEn, new RegExp(OLD_APP_NAME));
+  assert.doesNotMatch(chromeStoreJa, new RegExp(OLD_APP_NAME));
 });
