@@ -477,7 +477,7 @@
     "message": "AST - AI Subtitle Translator"
   },
   "extensionDescription": {
-    "message": "전체 문맥 LLM provider로 Udemy, YouTube, TED, NVIDIA Academy, Vimeo 자막을 번역합니다."
+    "message": "문맥을 이해하는 LLM으로 Udemy, YouTube, Ted 등 다양한 플랫폼의 자막을 자연스럽게 번역합니다."
   },
   "optionsPageTitle": {
     "message": "AI 자막 번역 설정"

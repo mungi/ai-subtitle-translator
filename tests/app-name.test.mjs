@@ -25,7 +25,18 @@ test("extension app name uses AST - AI Subtitle Translator", () => {
   assert.equal(manifest.default_locale, "en");
   assert.equal(manifest.name, "__MSG_extensionName__");
   assert.equal(englishMessages.extensionName.message, APP_NAME);
-  assert.match(englishMessages.extensionDescription.message, /Udemy, YouTube, TED, NVIDIA Academy, and Vimeo subtitles/);
+  assert.equal(
+    englishMessages.extensionDescription.message,
+    "Translate subtitles naturally across various platforms, including Udemy, YouTube, and TED, with a context-aware LLM."
+  );
+  assert.equal(
+    japaneseMessages.extensionDescription.message,
+    "文脈を理解するLLMを活用し、Udemy、YouTube、TEDなど、さまざまなプラットフォームの字幕を自然に翻訳します。"
+  );
+  assert.equal(
+    koreanMessages.extensionDescription.message,
+    "문맥을 이해하는 LLM으로 Udemy, YouTube, Ted 등 다양한 플랫폼의 자막을 자연스럽게 번역합니다."
+  );
   assert.equal(PROVIDERS.openrouter.appTitle, APP_NAME);
   assert.match(optionsJs, new RegExp(`"appTitle", "fieldXTitle", "${APP_NAME}"`));
   assert.match(optionsHtml, /<title data-i18n="optionsPageTitle"><\/title>/);

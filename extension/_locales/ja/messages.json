@@ -477,7 +477,7 @@
     "message": "AST - AI Subtitle Translator"
   },
   "extensionDescription": {
-    "message": "文脈全体を活用する LLM プロバイダーで Udemy、YouTube、TED、NVIDIA Academy、Vimeo の字幕を翻訳します。"
+    "message": "文脈を理解するLLMを活用し、Udemy、YouTube、TEDなど、さまざまなプラットフォームの字幕を自然に翻訳します。"
   },
   "optionsPageTitle": {
     "message": "AI 字幕翻訳設定"

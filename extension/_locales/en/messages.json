@@ -477,7 +477,7 @@
     "message": "AST - AI Subtitle Translator"
   },
   "extensionDescription": {
-    "message": "Translate Udemy, YouTube, TED, NVIDIA Academy, and Vimeo subtitles with full-context LLM providers."
+    "message": "Translate subtitles naturally across various platforms, including Udemy, YouTube, and TED, with a context-aware LLM."
   },
   "optionsPageTitle": {
     "message": "AST - AI Subtitle Translator Settings"
