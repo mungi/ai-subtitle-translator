@@ -58,6 +58,26 @@ test("extension app name uses AST - AI Subtitle Translator", () => {
   assert.match(chromeStoreJa, new RegExp(`^# ${APP_NAME}\\n`));
 });
 
+test("store listing copy describes multi-provider support without keyword lists", () => {
+  for (const listing of [chromeStoreKo, chromeStoreEn, chromeStoreJa]) {
+    assert.doesNotMatch(listing, /Google Gemini, OpenAI GPT, Anthropic Claude, DeepL, NVIDIA NIM, OpenRouter, (and )?Custom LLM/);
+  }
+
+  assert.match(chromeStoreKo, /여러 LLM 제공업체/);
+  assert.match(chromeStoreEn, /multiple LLM providers/);
+  assert.match(chromeStoreJa, /複数の LLM プロバイダー/);
+});
+
+test("store listing simple settings describe the automatic Gemini model setup", () => {
+  for (const listing of [chromeStoreKo, chromeStoreEn, chromeStoreJa]) {
+    assert.match(listing, /gemini-3\.1-flash-lite/);
+  }
+
+  assert.doesNotMatch(chromeStoreKo, /# 처음 시작할 때 LLM 선택 가이드/);
+  assert.doesNotMatch(chromeStoreEn, /# LLM Selection Guide For First-Time Users/);
+  assert.doesNotMatch(chromeStoreJa, /# 初めて使う場合の LLM 選択ガイド/);
+});
+
 test("popup headings keep AI subtitle translation branding in every locale", () => {
   assert.deepEqual({
     en: englishMessages.popupHeading.message,
