@@ -11,8 +11,7 @@ Naturally translate subtitles from videos on the following websites into your pr
   - Translate subtitles quickly with Google Translate, or connect an LLM for natural translations that consider context.
   - Use prompts to specify a translation style.
   - Customize the subtitle display style directly.
-  - Supports a range of LLM providers.
-    - Google Gemini, OpenAI GPT, Anthropic Claude, DeepL, NVIDIA NIM, OpenRouter, and Custom LLM
+  - Supports multiple LLM providers, including commercial AI APIs, OpenAI-compatible APIs, and local servers. Choose providers, models, and API keys in Settings; see the Chrome Web Store Options-screen screenshot for the full supported-provider list.
 
 # Notes
   - Providers other than Google Translate require an API key.
@@ -38,19 +37,15 @@ Naturally translate subtitles from videos on the following websites into your pr
 
   ## Simple Settings — Recommended
   1. Install the extension, then click the `Get API key` link at the bottom of Simple Settings to create a Google AI API key.
-  2. Enter the free API key in the `Google AI API key` field in Settings, then click `Check API key`.
+  2. Enter the free API key in the `Google AI API key` field in Settings, then click `Check API key`. After verification succeeds, the Google AI provider and the `gemini-3.1-flash-lite` model are configured automatically.
+
+  See the introduction website's [LLM selection guide](https://mungi.github.io/ai-subtitle-translator/#llm-selection-guide) for first-time model recommendations.
 
   ## Advanced Settings
   - To use a provider that requires an API key, enter the key issued by that provider, then click `Test connection`.
   - Adjust the translation style and subtitle display style as needed.
   - Back up all settings, including API keys. Backup files are encrypted with AES-256-GCM, and the password used during backup is required to restore them.
   - If you have a DeepL API key, you can use DeepL for fast translation.
-
-# LLM Selection Guide For First-Time Users
-  - Start for free: [Create an API key in Google AI Studio](https://aistudio.google.com/api-keys), then select the Google AI provider and the `gemini-3.1-flash-lite` model. Gemini 3.1 Flash Lite is designed for fast responses and cost efficiency, making it a good starting model for translation.
-  - Google AI Free Tier daily request limits (RPD) typically reset at 4 PM Korea Standard Time during U.S. Pacific Daylight Time and at 5 PM during standard time. Available free quota and limits may vary by account and model, so check AI Studio.
-  - Recommended models for paid use: Subtitle translation is a relatively clear input-output task, so start with a smaller, faster model instead of the largest frontier model. Gemini 3.1 Flash Lite, GPT-5.6 Luna, and Claude Haiku 4.5 are good starting points; use a larger model only when you need higher quality.
-  - Value model for paid use: With the OpenRouter provider, `deepseek/deepseek-v4-flash` is a good cost-effective starting point for paid translation because of its fast processing and efficiency. Select `Use Nitro` to prioritize faster providers. Check OpenRouter for current pricing and limits.
 
 # Major Changes
   [ v0.1.3 (2026-08-03) ]

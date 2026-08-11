@@ -72,6 +72,22 @@ test("introduction site renders TED support in Korean, English, and Japanese", (
   }
 });
 
+test("introduction site exposes the localized LLM selection guide", () => {
+  assert.match(siteHtml, /id="llm-selection-guide"/);
+
+  const expectedTitles = {
+    ko: "처음 시작하는 LLM 선택 가이드",
+    en: "LLM selection guide for first-time users",
+    ja: "初めて使う場合の LLM 選択ガイド"
+  };
+
+  for (const [language, expectedTitle] of Object.entries(expectedTitles)) {
+    const site = createSiteContext(language);
+    const title = site.i18nElements.find((element) => element.dataset.i18n === "starterTitle");
+    assert.equal(title.textContent, expectedTitle);
+  }
+});
+
 test("introduction site language selector switches and persists the selected language", () => {
   const site = createSiteContext("ko");
   site.languageSelect.listener({ target: { value: "ja" } });

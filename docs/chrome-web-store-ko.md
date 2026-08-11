@@ -10,8 +10,7 @@
   - Google 번역으로 자막을 빠르게 번역하거나, LLM AI를 활용해 문맥을 고려한 자연스러운 번역을 제공합니다.
   - 프롬프트를 활용하여 번역 스타일을 지정할 수 있습니다.
   - 자막 표시 스타일을 다양하게 직접 변경할 수 있습니다.
-  - 다양한 LLM 제공업체를 지원합니다.
-    - Google Gemini, OpenAI GPT, Anthropic Claude, DeepL, NVIDIA NIM, OpenRouter, Custom LLM
+  - 다양한 상용 AI API와 OpenAI 호환 API·로컬 서버를 포함한 여러 LLM 제공업체를 지원합니다. 설정에서 제공업체·모델·API 키를 선택할 수 있으며, 전체 지원 목록은 Chrome Web Store의 Options 화면 스크린샷에서 확인하세요.
 
 # 주의 사항
   - Google 번역 외의 제공업체는 API 키가 필요합니다.
@@ -37,19 +36,15 @@
 
   ## 간단 설정 - 권장
   1. 확장 프로그램을 설치하고 설정 페이지에서 간단 설정 하단의 `API 키 발급하기` 링크를 클릭하여 Google AI API 키를 발급받습니다.
-  2. 발급받은 무료 API 키를 설정의 `Google AI API 키` 항목에 넣고 `API 키 확인` 버튼을 누릅니다.
+  2. 발급받은 무료 API 키를 설정의 `Google AI API 키` 항목에 넣고 `API 키 확인` 버튼을 누릅니다. 확인에 성공하면 Google AI 제공업체와 `gemini-3.1-flash-lite` 모델이 자동으로 설정됩니다.
+
+  처음 사용하는 모델 선택 가이드는 소개 웹사이트의 [LLM 선택 가이드](https://mungi.github.io/ai-subtitle-translator/#llm-selection-guide)에서 확인하세요.
 
   ## 고급 설정
   - API 키가 필요한 제공업체를 사용할 경우, 해당 제공업체에서 발급한 API 키를 입력한 후 `연결 테스트` 버튼을 누릅니다.
   - 필요에 따라 번역 스타일과 자막 표시 스타일을 조절할 수 있습니다.
   - API 키를 포함한 모든 설정 값을 백업할 수 있습니다. 백업 파일은 AES-256-GCM으로 암호화되며, 복구 시에는 백업할 때 입력한 암호가 필요합니다.
   - DeepL API 키가 있는 경우 빠른 번역에 DeepL을 사용할 수 있습니다.
-
-# 처음 시작할 때 LLM 선택 가이드
-  - 무료로 시작: [Google AI Studio에서 API 키 발급](https://aistudio.google.com/api-keys) 후 Google AI 제공업체와 `gemini-3.1-flash-lite` 모델을 선택하세요. Gemini 3.1 Flash Lite는 빠른 응답과 비용 효율성을 목표로 하며, 번역 작업의 시작 모델로 적합합니다.
-  - Google AI 무료 등급의 일일 요청 한도(RPD)는 한국 시간으로 보통 오후 4시(미국 서부 서머타임 기준, 표준시에는 오후 5시)에 초기화됩니다. 실제 무료 한도와 사용 가능 여부는 계정과 모델에 따라 달라질 수 있으므로 AI Studio에서 확인하세요.
-  - 유료 권장 모델 : 자막 번역은 비교적 명확한 입출력 작업이므로, 가장 큰 프론티어 모델보다 작고 빠른 모델부터 사용하는 편을 권장합니다. Gemini 3.1 Flash Lite, GPT-5.6 Luna, Claude Haiku 4.5 등이 좋은 시작점이며, 더 높은 품질이 필요한 경우에만 큰 모델을 사용하세요.
-  - 유료 가성비 모델 : OpenRouter 제공업체에서 `deepseek/deepseek-v4-flash`의 빠른 처리와 비용 효율성을 갖춘 모델로, 유료 번역의 가성비 시작점으로 적합합니다. `Nitro 사용`을 체크하면 빠른 제공업체가 우선 제공됩니다. 현재 가격과 한도는 OpenRouter에서 확인하세요.
 
 # 주요 변경
   [ v0.1.3 (2026-08-03) ]
