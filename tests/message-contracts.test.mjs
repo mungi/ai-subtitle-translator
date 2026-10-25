@@ -9,6 +9,15 @@ const validDocument = {
   cues: [{ id: "cue-1", start: 0, end: 1, text: "Hello" }]
 };
 
+test("subtitle display messages accept only the three supported modes", () => {
+  for (const mode of ["dual", "source", "translated"]) {
+    assert.deepEqual(validateBackgroundMessage({ type: "settings.setSubtitleDisplayMode", mode }), { handled: true, ok: true });
+  }
+  for (const mode of [undefined, "", "other", {}, 1]) {
+    assert.equal(validateBackgroundMessage({ type: "settings.setSubtitleDisplayMode", mode }).ok, false);
+  }
+});
+
 test("background message validation accepts a valid translation request", () => {
   assert.deepEqual(validateBackgroundMessage({
     type: "translation.translateDocument",

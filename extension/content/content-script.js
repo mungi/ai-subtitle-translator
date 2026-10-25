@@ -36,6 +36,11 @@ const TRANSLATION_STYLE_MESSAGE_KEYS = {
   custom: "styleCustom",
   custom2: "styleCustom2"
 };
+const SUBTITLE_DISPLAY_MESSAGE_KEYS = {
+  dual: "contentDualSubtitles",
+  source: "contentMainSubtitles",
+  translated: "contentTranslatedSubtitles"
+};
 const YOUTUBE_TRANSCRIPT_TEXT_PATTERN = /<text\b([^>]*)>([\s\S]*?)<\/text>/g;
 const YOUTUBE_XML_ATTRIBUTE_PATTERN = /(\w+)="([^"]*)"/g;
 const YOUTUBE_ANDROID_INNERTUBE_CONTEXT = {
@@ -50,7 +55,17 @@ const YOUTUBE_ENTITY_MAP = {
   "&gt;": ">",
   "&quot;": "\"",
   "&#39;": "'",
-  "&apos;": "'"
+  "&apos;": "'",
+  "&nbsp;": " ",
+  "&ndash;": "–",
+  "&mdash;": "—",
+  "&hellip;": "…",
+  "&lsquo;": "‘",
+  "&rsquo;": "’",
+  "&ldquo;": "“",
+  "&rdquo;": "”",
+  "&laquo;": "«",
+  "&raquo;": "»"
 };
 const subtitleState = {
   enabled: false,
@@ -84,6 +99,8 @@ const subtitleState = {
   lastFallbackToastKey: "",
   toastTimeoutId: null,
   subtitleStyle: null,
+  subtitleDisplayMode: "source",
+  targetLanguage: "",
   udemyTranscriptTranslations: new Map(),
   udemyTranscriptObserver: null,
   udemyTranscriptRefreshQueued: false,
@@ -394,6 +411,46 @@ function renderTranslationStyleMenu(menu, platform) {
   menu.append(submenu);
 }
 
+function renderSubtitleDisplayMenu(menu) {
+  const submenu = document.createElement("div");
+  submenu.className = "ast-subtitle-display-submenu";
+  const selectedMode = subtitleState.subtitleDisplayMode;
+  const toggle = createProviderMenuButton(
+    "ast-provider-menu-item ast-subtitle-display-toggle",
+    `${contentText("contentSubtitleDisplay")}: ${contentText(SUBTITLE_DISPLAY_MESSAGE_KEYS[selectedMode])}`
+  );
+  toggle.setAttribute("role", "menuitem");
+  toggle.setAttribute("aria-haspopup", "menu");
+  submenu.append(toggle);
+
+  const list = document.createElement("div");
+  list.className = "ast-subtitle-display-list";
+  list.setAttribute("role", "group");
+  list.setAttribute("aria-label", contentText("contentSubtitleDisplay"));
+  for (const [mode, messageKey] of Object.entries(SUBTITLE_DISPLAY_MESSAGE_KEYS)) {
+    const item = createProviderMenuButton("ast-provider-menu-item ast-subtitle-display-item", contentText(messageKey));
+    item.dataset.mode = mode;
+    item.setAttribute("role", "menuitemradio");
+    item.setAttribute("aria-checked", String(mode === selectedMode));
+    if (mode === selectedMode) item.classList.add("active");
+    item.addEventListener("click", (event) => {
+      event.stopPropagation();
+      selectSubtitleDisplayMode(mode).catch((error) => showToast(error.message));
+    });
+    list.append(item);
+  }
+  submenu.append(list);
+  menu.append(submenu);
+}
+
+async function selectSubtitleDisplayMode(mode) {
+  const response = await sendRuntimeMessage({ type: "settings.setSubtitleDisplayMode", mode });
+  if (!response?.ok) throw new Error(response?.error || "Could not save subtitle display mode.");
+  subtitleState.subtitleDisplayMode = mode;
+  if (subtitleState.currentVideo) renderCurrentOverlayCue(subtitleState.currentVideo);
+  refreshOpenProviderMenu();
+}
+
 function renderProviderMenu(platform = detectPlatform()) {
   const menu = document.getElementById(PROVIDER_MENU_ID);
   if (!menu) return;
@@ -448,6 +505,7 @@ function renderProviderMenu(platform = detectPlatform()) {
 
   renderSourceCaptionMenu(menu, platform);
   renderTranslationStyleMenu(menu, platform);
+  renderSubtitleDisplayMenu(menu);
 
   const lastSeparator = document.createElement("div");
   lastSeparator.className = "ast-provider-menu-separator";
@@ -511,6 +569,9 @@ async function refreshAvailableProviders() {
     .some((provider) => provider.id === settings.activeProvider);
   subtitleState.activeProviderId = activeProviderAvailable ? settings.activeProvider : "googleTranslate";
   subtitleState.translationStyle = settings.translationStyle || "custom";
+  subtitleState.targetLanguage = settings.targetLanguage || "";
+  subtitleState.subtitleDisplayMode = Object.hasOwn(SUBTITLE_DISPLAY_MESSAGE_KEYS, settings.subtitleDisplayMode)
+    ? settings.subtitleDisplayMode : "source";
   subtitleState.defaultProviderId = resolveDefaultTranslationProviderId(settings);
   subtitleState.temporaryPriorityWindowSeconds = resolveTemporaryPriorityWindowSeconds(settings);
   return settings;
@@ -625,6 +686,12 @@ function findOverlayHost(platform, video) {
 
 function findOverlay(video, platform = subtitleState.currentPlatform || detectPlatform()) {
   return findOverlayHost(platform, video)?.querySelector(`#${OVERLAY_ID}`) || null;
+}
+
+function isYoutubeAdPlaying() {
+  if ((subtitleState.currentPlatform || detectPlatform()) !== "youtube") return false;
+  const player = document.querySelector("#movie_player");
+  return Boolean(player?.classList.contains("ad-showing") || player?.classList.contains("ad-interrupting"));
 }
 
 function getUdemyLectureId() {
@@ -819,6 +886,7 @@ function readYoutubeTrackName(track) {
 
 function getYoutubeCaptionTracksFromPage(videoId) {
   const playerResponse = parseJsonObjectAfter(document.documentElement?.innerHTML, "ytInitialPlayerResponse");
+  if (playerResponse?.videoDetails?.videoId && playerResponse.videoDetails.videoId !== videoId) return [];
   const tracks = playerResponse?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
   if (!Array.isArray(tracks)) return [];
 
@@ -1052,7 +1120,19 @@ function cloneYoutubeAndroidContext() {
 }
 
 function decodeYoutubeXmlEntities(value) {
-  return String(value ?? "").replace(/&(amp|lt|gt|quot|apos|#39);/g, (entity) => YOUTUBE_ENTITY_MAP[entity] || entity);
+  let text = String(value ?? "");
+  for (let pass = 0; pass < 2; pass += 1) {
+    const decoded = text.replace(/&(#x[0-9a-f]+|#\d+|[a-z][a-z0-9]+);/gi, (entity, name) => {
+      if (!name.startsWith("#")) return YOUTUBE_ENTITY_MAP[entity.toLowerCase()] || entity;
+      const hex = /^#x/i.test(name);
+      const codePoint = Number.parseInt(name.slice(hex ? 2 : 1), hex ? 16 : 10);
+      return Number.isInteger(codePoint) && codePoint >= 0 && codePoint <= 0x10ffff
+        ? String.fromCodePoint(codePoint) : entity;
+    });
+    if (decoded === text) break;
+    text = decoded;
+  }
+  return text;
 }
 
 function parseYoutubeAttributes(value) {
@@ -1090,6 +1170,29 @@ function parseYoutubeTranscriptXmlOnPage(xml) {
   return validateYoutubePageCues(cues);
 }
 
+function getYoutubeWordTimingsOnPage(event, cueEnd) {
+  if (!event.segs?.some((segment) => segment.tOffsetMs !== undefined)) return undefined;
+  const words = [];
+  let offset = 0;
+  for (const segment of event.segs) {
+    const text = String(segment.utf8 || "").replace(/\s+/g, " ");
+    if (!text.trim()) {
+      if (words.length) words.at(-1).text += text;
+      continue;
+    }
+    if (segment.tOffsetMs !== undefined) offset = Number(segment.tOffsetMs);
+    const start = (Number(event.tStartMs) + offset) / 1000;
+    if (!Number.isFinite(offset) || offset < 0 || start >= cueEnd
+      || (words.length && start < words.at(-1).start)) return undefined;
+    if (words.at(-1)?.start === start) words.at(-1).text += text;
+    else words.push({ text, start });
+  }
+  if (!words.length) return undefined;
+  words[0].text = words[0].text.trimStart();
+  words.at(-1).text = words.at(-1).text.trimEnd();
+  return words.map((word, index) => ({ ...word, end: words[index + 1]?.start ?? cueEnd }));
+}
+
 function parseYoutubeTranscriptJson3OnPage(jsonText) {
   const body = typeof jsonText === "string" ? JSON.parse(jsonText) : jsonText;
   const cues = [];
@@ -1108,11 +1211,13 @@ function parseYoutubeTranscriptJson3OnPage(jsonText) {
     }
 
     const start = startMs / 1000;
+    const end = (startMs + Math.max(durationMs, 1)) / 1000;
     cues.push(normalizeYoutubePageCue({
       id: `yt-${cues.length}`,
       start,
-      end: start + Math.max(durationMs / 1000, 0.001),
-      text
+      end,
+      text,
+      words: getYoutubeWordTimingsOnPage(event, end)
     }));
   }
 
@@ -1128,6 +1233,36 @@ function parseYoutubeTranscriptPayloadOnPage(text) {
     return parseYoutubeTranscriptJson3OnPage(trimmed);
   }
   return parseYoutubeTranscriptXmlOnPage(trimmed);
+}
+
+function getYoutubePlayerTranscriptDocument(request, waitForPlayer = false) {
+  const capture = globalThis.astYoutubeCaptionCapture;
+  if (!capture) return null;
+  const selectedTrack = getSelectedSourceCaptionTrack("youtube", request.message.videoId);
+  const options = {
+    videoId: request.message.videoId,
+    languageCode: request.message.languageCode,
+    isAutoGenerated: selectedTrack?.isAutoGenerated
+  };
+  const parseCaption = (caption) => {
+    if (!caption || getYoutubeVideoId() !== caption.videoId) return null;
+    try {
+      return {
+        platform: "youtube",
+        videoId: caption.videoId,
+        sourceLanguage: caption.languageCode,
+        cues: parseYoutubeTranscriptPayloadOnPage(caption.text)
+      };
+    } catch {
+      return null;
+    }
+  };
+  const captured = capture.get(options);
+  if (captured) return parseCaption(captured);
+  if (waitForPlayer) {
+    return capture.request(options).then(parseCaption);
+  }
+  return null;
 }
 
 async function fetchYoutubeJsonOnPage(url, init) {
@@ -1343,12 +1478,13 @@ function collectYoutubeTranscriptCueRenderers(value, output = []) {
   return output;
 }
 
-function normalizeYoutubePageCue({ id, start, end, text }) {
+function normalizeYoutubePageCue({ id, start, end, text, words }) {
   return {
     id: String(id),
     start: Number(start),
     end: Number(end),
-    text: String(text ?? "").replace(/\s+/g, " ").trim()
+    text: decodeYoutubeXmlEntities(text).replace(/\s+/g, " ").trim(),
+    ...(words?.length ? { words: words.map((word) => ({ ...word, text: decodeYoutubeXmlEntities(word.text) })) } : {})
   };
 }
 
@@ -1527,7 +1663,12 @@ function getUdemyCourseId() {
 
 function findActiveCue(cues, currentTime) {
   if (!Array.isArray(cues)) return null;
-  return cues.find((cue) => currentTime >= cue.start && currentTime < cue.end) || null;
+  // YouTube rolling captions can overlap: prefer the most recently started cue.
+  for (let index = cues.length - 1; index >= 0; index -= 1) {
+    const cue = cues[index];
+    if (currentTime >= cue.start && currentTime < cue.end) return cue;
+  }
+  return null;
 }
 
 function hexToRgb(hex) {
@@ -1922,6 +2063,18 @@ function ensureOverlay(video, platform = subtitleState.currentPlatform || detect
   }
   applyOverlayStyle(overlay);
   installOverlayDrag(overlay);
+  if (platform === "youtube" && !parent.astSubtitleAdObserver) {
+    let wasAd = isYoutubeAdPlaying();
+    const observer = new MutationObserver(() => {
+      if (subtitleState.disposed) { observer.disconnect(); return; }
+      const isAd = isYoutubeAdPlaying();
+      if (wasAd === isAd) return;
+      wasAd = isAd;
+      renderCurrentOverlayCue(subtitleState.currentVideo || video);
+    });
+    observer.observe(parent, { attributes: true, attributeFilter: ["class"] });
+    parent.astSubtitleAdObserver = observer;
+  }
   return overlay;
 }
 
@@ -1964,7 +2117,7 @@ function showOverlayMessage(video, message, type = "info") {
   overlay.dataset.disabled = "false";
   overlay.dataset.status = type;
   overlay.textContent = message;
-  overlay.hidden = false;
+  overlay.hidden = isYoutubeAdPlaying();
 }
 
 function findToastHost(video = subtitleState.currentVideo) {
@@ -2183,6 +2336,7 @@ function renderUdemyTranscriptTranslations() {
     if (translationElement.textContent !== translation.text) {
       translationElement.textContent = translation.text;
     }
+    setSubtitleTextDirection(translationElement, subtitleState.targetLanguage);
     applyUdemyTranscriptCueHighlight(translationElement, cueElement, cueTextElement);
   }
 
@@ -2260,7 +2414,12 @@ function applyTranslatedCues(video, translatedCues, { preserveFinalCues = false 
     .filter((cue) => !preserveFinalCues || !isFinalTranslatedCue(cue));
   const translatedById = new Map(applicableCues.map((cue) => [cue.id, cue]));
   if (translatedById.size === 0) return;
-  targetVideo.astSubtitleCues = targetVideo.astSubtitleCues.map((cue) => translatedById.get(cue.id) || cue);
+  targetVideo.astSubtitleCues = targetVideo.astSubtitleCues.map((cue) => {
+    const translated = translatedById.get(cue.id);
+    if (!translated) return cue;
+    // Keep source timing and text together; only replace the matching cue's text.
+    return { ...cue, sourceText: cue.sourceText ?? cue.text, text: translated.text };
+  });
   applyUdemyTranscriptTranslations(applicableCues, { preserveFinalCues });
   clearOverlayStatus(targetVideo);
   renderOverlay(targetVideo, targetVideo.astSubtitleCues);
@@ -2368,6 +2527,7 @@ function createTranslationRequestId(mode) {
 }
 
 function requestTemporaryTranslationAtCurrentCue(video = subtitleState.currentVideo) {
+  if (isYoutubeAdPlaying()) return false;
   if (!subtitleState.enabled || ["complete", "fallback"].includes(subtitleState.translationPhase)) return false;
   if (!subtitleState.currentDocument || !subtitleState.defaultProviderId) return false;
   if (subtitleState.activeProviderId === subtitleState.defaultProviderId) return false;
@@ -2525,16 +2685,114 @@ function normalizeInitialStartTime(value) {
   return Number.isFinite(value) && value >= 0 ? value : 0;
 }
 
-function renderCurrentOverlayCue(video) {
+function setSubtitleTextDirection(element, language) {
+  const languageCode = String(language || "").replace(/_/g, "-");
+  const baseLanguage = languageCode.split("-")[0].toLowerCase();
+  const direction = !baseLanguage || ["auto", "und"].includes(baseLanguage)
+    ? "auto" : ["ar", "fa"].includes(baseLanguage) ? "rtl" : "ltr";
+  if (element.getAttribute("dir") !== direction) element.setAttribute("dir", direction);
+  if (element.getAttribute("lang") !== languageCode) element.setAttribute("lang", languageCode);
+}
+
+function getSubtitleProgressWords(cue, text, cues) {
+  if (cue?.words?.length) {
+    return cue.words.map((word) => ({ ...word, text: decodeYoutubeXmlEntities(word.text) }));
+  }
+  if (!cue || subtitleState.currentPlatform !== "youtube") return null;
+  const tokens = text.match(/\s*\S+/gu) || [];
+  const nextStart = cues?.find((item) => item.start > cue.start)?.start;
+  const end = Math.min(cue.end, nextStart ?? cue.end);
+  const totalWeight = tokens.reduce((sum, token) => sum + token.trim().length, 0);
+  if (!totalWeight || end <= cue.start) return null;
+  let weight = 0;
+  // Manual captions may have no word offsets. Estimate progress within the cue's
+  // visible interval without changing the source cue or inventing speech timestamps.
+  return tokens.map((token) => {
+    const start = cue.start + (end - cue.start) * weight / totalWeight;
+    weight += token.trim().length;
+    return { text: token, start, end: cue.start + (end - cue.start) * weight / totalWeight };
+  });
+}
+
+function updateSubtitleWordProgress(overlay, currentTime) {
+  if (!overlay) return;
+  for (const word of overlay.querySelectorAll(".ast-subtitle-word")) {
+    const state = currentTime >= Number(word.dataset.end) ? "spoken"
+      : currentTime >= Number(word.dataset.start) ? "active" : "pending";
+    if (word.dataset.state !== state) word.dataset.state = state;
+  }
+}
+
+function renderCurrentOverlayCue(video, frameTime) {
   const targetVideo = resolveRenderVideo(video);
   if (!targetVideo) return;
   const overlay = ensureOverlay(targetVideo);
   if (!overlay) return;
-  if (overlay.dataset.status) return;
-  const activeCue = findActiveCue(targetVideo.astSubtitleCues, targetVideo.currentTime);
-  overlay.textContent = activeCue?.text || "";
+  if (isYoutubeAdPlaying()) {
+    overlay.hidden = true;
+    targetVideo.astSubtitleRenderedCue = null;
+    return;
+  }
+  if (overlay.dataset.status) {
+    overlay.hidden = !subtitleState.enabled || overlay.dataset.disabled === "true";
+    return;
+  }
+  const currentTime = targetVideo === video && Number.isFinite(frameTime) ? frameTime : targetVideo.currentTime;
+  const activeCue = findActiveCue(targetVideo.astSubtitleCues, currentTime);
+  targetVideo.astSubtitleRenderedCue = activeCue;
+  const sourceText = decodeYoutubeXmlEntities(activeCue?.sourceText ?? activeCue?.text ?? "");
+  const translatedText = activeCue?.sourceText !== undefined ? decodeYoutubeXmlEntities(activeCue.text) : "";
+  const mode = subtitleState.subtitleDisplayMode;
+  const sourceLanguage = subtitleState.currentDocument?.sourceLanguage;
+  const progressWords = getSubtitleProgressWords(activeCue, sourceText, targetVideo.astSubtitleCues);
+  const lines = mode === "dual" && translatedText
+    ? [[sourceText, sourceLanguage, progressWords], [translatedText, subtitleState.targetLanguage]]
+    : mode === "translated" && translatedText
+      ? [[translatedText, subtitleState.targetLanguage]] : [[sourceText, sourceLanguage, progressWords]];
+  clearElement(overlay);
+  for (const [index, [text, language, words]] of lines.entries()) {
+    if (!text) continue;
+    if (index > 0) overlay.append(document.createTextNode("\n"));
+    const line = document.createElement("div");
+    line.className = "ast-subtitle-line";
+    setSubtitleTextDirection(line, language);
+    if (words?.length) {
+      for (const word of words) {
+        const span = document.createElement("span");
+        span.className = "ast-subtitle-word";
+        span.textContent = word.text;
+        span.dataset.start = String(word.start);
+        span.dataset.end = String(word.end);
+        line.append(span);
+      }
+    } else {
+      line.textContent = text;
+    }
+    overlay.append(line);
+  }
+  updateSubtitleWordProgress(overlay, currentTime);
   overlay.hidden = !subtitleState.enabled || overlay.dataset.disabled === "true" || !activeCue;
   refreshCurrentCueTranslationPhase(targetVideo);
+}
+
+function scheduleSubtitleVideoFrame(video) {
+  if (!video?.requestVideoFrameCallback || video.astSubtitleFrameRequest !== undefined
+    || video.paused || !subtitleState.enabled || subtitleState.disposed) return;
+  video.astSubtitleFrameRequest = video.requestVideoFrameCallback((_now, metadata) => {
+    video.astSubtitleFrameRequest = undefined;
+    if (video !== subtitleState.currentVideo || !subtitleState.enabled || subtitleState.disposed) return;
+    const cue = findActiveCue(video.astSubtitleCues, metadata.mediaTime);
+    if (isYoutubeAdPlaying()) {
+      const overlay = findOverlay(video);
+      if (overlay) overlay.hidden = true;
+      video.astSubtitleRenderedCue = null;
+    } else if (video.astSubtitleRenderedCue !== cue) {
+      renderCurrentOverlayCue(video, metadata.mediaTime);
+    } else {
+      updateSubtitleWordProgress(findOverlay(video), metadata.mediaTime);
+    }
+    scheduleSubtitleVideoFrame(video);
+  });
 }
 
 function renderOverlay(video, cues) {
@@ -2542,6 +2800,7 @@ function renderOverlay(video, cues) {
   if (!targetVideo) return;
   targetVideo.astSubtitleCues = cues;
   if (!ensureOverlay(targetVideo)) return;
+  scheduleSubtitleVideoFrame(targetVideo);
 
   if (targetVideo.astSubtitleRendererInstalled) {
     renderCurrentOverlayCue(targetVideo);
@@ -2554,7 +2813,10 @@ function renderOverlay(video, cues) {
     renderCurrentOverlayCue(targetVideo);
     requestTemporaryTranslationAtCurrentCue(targetVideo);
   });
-  targetVideo.addEventListener("play", () => renderCurrentOverlayCue(targetVideo));
+  targetVideo.addEventListener("play", () => {
+    renderCurrentOverlayCue(targetVideo);
+    scheduleSubtitleVideoFrame(targetVideo);
+  });
   targetVideo.addEventListener("pause", () => renderCurrentOverlayCue(targetVideo));
   renderCurrentOverlayCue(targetVideo);
 }
@@ -2586,6 +2848,9 @@ async function translateDocument(document, {
       : subtitleState.activeFinalRequestId;
     if (requestId && requestId !== activeRequestId) return null;
     console.warn(`[AST] Failed to translate subtitles (${mode}):`, response?.error || "Unknown error");
+    if (mode === "final" && subtitleState.enabled) {
+      showToast(contentText("contentTranslationFailed", [response?.error || "Unknown error"]));
+    }
     return null;
   }
 
@@ -2593,8 +2858,9 @@ async function translateDocument(document, {
 }
 
 function resolveDefaultTranslationProviderId(settings = {}) {
-  return settings.fallback?.providerId === "deepl" && settings.providerTestStatus?.deepl === "success"
-    ? "deepl"
+  const providerId = settings.fallback?.providerId;
+  return providerId === "deepl" && settings.providerTestStatus?.[providerId] === "success"
+    ? providerId
     : "googleTranslate";
 }
 
@@ -2641,7 +2907,10 @@ async function loadSubtitleStyle() {
   try {
     const settings = await getPublicSettings();
     subtitleState.subtitleStyle = settings.subtitleStyle || null;
+    subtitleState.subtitleDisplayMode = Object.hasOwn(SUBTITLE_DISPLAY_MESSAGE_KEYS, settings.subtitleDisplayMode)
+      ? settings.subtitleDisplayMode : "source";
     subtitleState.translationStyle = settings.translationStyle || "custom";
+    subtitleState.targetLanguage = settings.targetLanguage || "";
   } catch (error) {
     if (isExtensionContextInvalidated(error)) {
       disposeContentScript();
@@ -2872,6 +3141,7 @@ const platformHandlers = {
     loadingMessage: contentText("contentTranslationPreparing"),
     getSessionKey: getYoutubeVideoId,
     findVideo: () => findVideoElement("youtube"),
+    fetchNativeTranscript: (request) => getYoutubePlayerTranscriptDocument(request, true),
     async listCaptionTracks() {
       const videoId = getYoutubeVideoId();
       if (!videoId) return [];
@@ -2922,6 +3192,8 @@ const platformHandlers = {
       };
     },
     async recoverTranscriptDocument(response, request) {
+      const captured = await getYoutubePlayerTranscriptDocument(request);
+      if (captured) return captured;
       const androidRetry = buildYoutubeAndroidTranscriptRetry(response, request.message);
       if (androidRetry) {
         try {
@@ -3100,7 +3372,10 @@ async function loadPlatformSubtitleOverlay(handler, options = {}) {
   }
   if (!request) return false;
 
-  let response = await sendRuntimeMessage(request.message);
+  const pendingNative = handler.fetchNativeTranscript?.(request);
+  const nativeDocument = pendingNative?.then ? await pendingNative : pendingNative;
+  let response = nativeDocument ? { ok: true, document: nativeDocument } : await sendRuntimeMessage(request.message);
+  if (handler.getSessionKey && handler.getSessionKey() !== request.sessionKey) return false;
   if (!response?.ok && isExtensionContextInvalidated(response?.error)) {
     disposeContentScript();
     return false;
@@ -3183,7 +3458,11 @@ chrome.runtime.onMessage.addListener((message) => {
   if (message?.type === "settings.changed") {
     const settings = message.settings || {};
     subtitleState.subtitleStyle = settings.subtitleStyle || subtitleState.subtitleStyle;
+    if (Object.hasOwn(SUBTITLE_DISPLAY_MESSAGE_KEYS, settings.subtitleDisplayMode)) {
+      subtitleState.subtitleDisplayMode = settings.subtitleDisplayMode;
+    }
     subtitleState.translationStyle = settings.translationStyle || subtitleState.translationStyle;
+    subtitleState.targetLanguage = settings.targetLanguage || subtitleState.targetLanguage;
     subtitleState.availableProviders = getAvailableProviders(settings);
     if (subtitleState.availableProviders.some((provider) => provider.id === settings.activeProvider)) {
       subtitleState.activeProviderId = settings.activeProvider;
@@ -3191,6 +3470,8 @@ chrome.runtime.onMessage.addListener((message) => {
     subtitleState.defaultProviderId = resolveDefaultTranslationProviderId(settings);
     subtitleState.temporaryPriorityWindowSeconds = resolveTemporaryPriorityWindowSeconds(settings);
     applyOverlayStyle(findOverlay(subtitleState.currentVideo));
+    if (subtitleState.currentVideo) renderCurrentOverlayCue(subtitleState.currentVideo);
+    renderUdemyTranscriptTranslations();
     refreshOpenProviderMenu();
     return false;
   }

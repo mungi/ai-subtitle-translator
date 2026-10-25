@@ -39,7 +39,7 @@
     "message": "Hide API key"
   },
   "simpleGoogleIntroGuide": {
-    "message": "Translate subtitles with Google AI. Create an API key using the guide below and enter it here; Gemini 3.1 Flash Lite is set automatically. Select Check API key to verify the connection."
+    "message": "Translate subtitles with Google AI. Create an API key using the guide below and enter it here; Gemini 3.5 Flash Lite is set automatically. Select Check API key to verify the connection."
   },
   "simpleGoogleTestApiKey": {
     "message": "Check API key"
@@ -75,7 +75,7 @@
     "message": "Make sure the billing tier for the project you created is 'Free'."
   },
   "simpleGoogleKeyGuideStep5": {
-    "message": "Paste the key above. Gemini 3.1 Flash Lite is set automatically. Select Check API key to verify the connection."
+    "message": "Paste the key above. Gemini 3.5 Flash Lite is set automatically. Select Check API key to verify the connection."
   },
   "simpleGoogleFreeTierNotice": {
     "message": "The Free tier has usage limits. Daily request quotas reset at midnight Pacific time."
@@ -90,7 +90,7 @@
     "message": "Checking the Google AI connection."
   },
   "simpleGoogleTestSuccess": {
-    "message": "Google AI is connected and Gemini 3.1 Flash Lite is active."
+    "message": "Google AI is connected and Gemini 3.5 Flash Lite is active."
   },
   "simpleGoogleTestFailed": {
     "message": "Google AI connection failed. Your current translation provider is unchanged."
@@ -685,5 +685,26 @@
   },
   "providerGuideLocal": {
     "message": "Uses the OpenAI-compatible chat/completions format. localhost and 127.0.0.1 can use HTTP or HTTPS; custom servers must use HTTPS. For a custom HTTPS server, approve access to that domain when you fetch models or test the connection. Subtitle text and the API key, if entered, are sent directly to this server. In Base URL, enter only the part before /chat/completions. Example: http://localhost:1234/v1"
+  },
+  "contentSubtitleDisplay": {
+    "message": "Subtitle display"
+  },
+  "contentDualSubtitles": {
+    "message": "Dual subtitles"
+  },
+  "contentMainSubtitles": {
+    "message": "Main subtitles"
+  },
+  "contentTranslatedSubtitles": {
+    "message": "Translated subtitles"
+  },
+  "contentTranslationFailed": {
+    "message": "Translation failed. The source or available subtitles remain visible: $error$",
+    "placeholders": {
+      "error": {
+        "content": "$1",
+        "example": "HTTP 429"
+      }
+    }
   }
 }

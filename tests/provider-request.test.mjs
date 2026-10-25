@@ -206,11 +206,11 @@ test("Gemini 3 requests use low thinking level by default", () => {
   assert.equal(body.generationConfig.thinkingConfig.thinkingBudget, undefined);
 });
 
-test("Gemini 3.1 Flash Lite uses the minimum thinking level", () => {
+test("Gemini 3.5 Flash Lite uses the minimum thinking level", () => {
   const request = buildProviderRequest({
     ...PROVIDERS.google,
     apiKey: "google-test-key",
-    model: "gemini-3.1-flash-lite"
+    model: "gemini-3.5-flash-lite"
   }, {
     systemPrompt: "Translate naturally.",
     input: "Hello"
@@ -218,6 +218,8 @@ test("Gemini 3.1 Flash Lite uses the minimum thinking level", () => {
 
   const body = JSON.parse(request.init.body);
   assert.equal(body.generationConfig.thinkingConfig.thinkingLevel, "minimal");
+  assert.equal(body.generationConfig.temperature, undefined);
+  assert.match(request.url, /models\/gemini-3\.5-flash-lite:generateContent/);
 });
 
 test("Gemini 2.5 Flash requests disable thinking budget by default", () => {

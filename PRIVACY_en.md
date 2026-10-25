@@ -36,6 +36,7 @@ This data is used only to retrieve subtitles, request translations, display tran
 ## Permissions
 
 - `storage`: Stores settings, encrypted API keys, and translation cache entries locally.
+- `scripting`: Runs a script from the start of YouTube pages to capture the player's caption responses. Only subtitle text, language, and timing data are passed to the extension, excluding cookies, authentication headers, and signed URLs.
 - Host permissions: Retrieve subtitles from Udemy, YouTube, TED, NVIDIA Academy, and Vimeo, contact the selected translation provider, and connect to Custom LLM on `localhost` or `127.0.0.1`. A custom HTTPS Custom LLM domain is accessed only after the user approves it while fetching models or testing the connection.
 
 ## Google API Limited Use

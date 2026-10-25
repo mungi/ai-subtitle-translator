@@ -1,13 +1,16 @@
-export function normalizeCue({ id, start, end, text }) {
+export function normalizeCue({ id, start, end, text, words }) {
   const normalizedStart = Number(start);
   const normalizedEnd = Number(end);
-  const normalizedText = String(text ?? "").replace(/\s+/g, " ").trim();
+  const normalizedText = decodeXmlEntities(text).replace(/\s+/g, " ").trim();
 
   return {
     id: String(id),
     start: normalizedStart,
     end: normalizedEnd,
-    text: normalizedText
+    text: normalizedText,
+    ...(Array.isArray(words) && words.length > 0 ? {
+      words: words.map((word) => ({ text: decodeXmlEntities(word.text), start: Number(word.start), end: Number(word.end) }))
+    } : {})
   };
 }
 
@@ -58,40 +61,33 @@ const ENTITY_MAP = {
   gt: ">",
   quot: "\"",
   apos: "'",
-  ndash: "-",
-  mdash: "-",
-  hellip: "...",
-  lsquo: "'",
-  rsquo: "'",
-  ldquo: "\"",
-  rdquo: "\"",
-  laquo: "<<",
-  raquo: ">>"
+  ndash: "–",
+  mdash: "—",
+  hellip: "…",
+  lsquo: "‘",
+  rsquo: "’",
+  ldquo: "“",
+  rdquo: "”",
+  laquo: "«",
+  raquo: "»"
 };
 
 export function decodeXmlEntities(value) {
-  return String(value ?? "").replace(/&(#x?[0-9a-f]+|[a-z][a-z0-9]+);/gi, (entity, name) => {
-    const key = String(name).toLowerCase();
-    if (ENTITY_MAP[key]) {
-      return ENTITY_MAP[key];
-    }
-
-    if (key.startsWith("#x")) {
-      const codePoint = Number.parseInt(key.slice(2), 16);
+  let text = String(value ?? "");
+  for (let pass = 0; pass < 2; pass += 1) {
+    const decoded = text.replace(/&(#x[0-9a-f]+|#\d+|[a-z][a-z0-9]+);/gi, (entity, name) => {
+      const key = name.toLowerCase();
+      if (ENTITY_MAP[key]) return ENTITY_MAP[key];
+      if (!key.startsWith("#")) return entity;
+      const hex = key.startsWith("#x");
+      const codePoint = Number.parseInt(key.slice(hex ? 2 : 1), hex ? 16 : 10);
       return Number.isInteger(codePoint) && codePoint >= 0 && codePoint <= 0x10ffff
-        ? String.fromCodePoint(codePoint)
-        : entity;
-    }
-
-    if (key.startsWith("#")) {
-      const codePoint = Number.parseInt(key.slice(1), 10);
-      return Number.isInteger(codePoint) && codePoint >= 0 && codePoint <= 0x10ffff
-        ? String.fromCodePoint(codePoint)
-        : entity;
-    }
-
-    return entity;
-  });
+        ? String.fromCodePoint(codePoint) : entity;
+    });
+    if (decoded === text) break;
+    text = decoded;
+  }
+  return text;
 }
 
 export function stripCueMarkup(value) {

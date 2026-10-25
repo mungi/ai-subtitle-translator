@@ -43,6 +43,12 @@
       "css": [
         "content/content-style.css"
       ]
+    },
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "all_frames": true,
+      "run_at": "document_start",
+      "js": ["content/youtube-capture-bridge.js"]
     }
   ],
   "host_permissions": [
@@ -76,6 +82,7 @@
   ],
   "options_page": "options/options.html",
   "permissions": [
-    "storage"
+    "storage",
+    "scripting"
   ]
 }

@@ -3,6 +3,15 @@ import test from "node:test";
 import { DEFAULT_SETTINGS, PROVIDERS } from "../extension/shared/defaults.js";
 import { normalizeSettings } from "../extension/shared/storage.js";
 
+test("subtitle display defaults to main subtitles and validates saved modes", () => {
+  assert.equal(DEFAULT_SETTINGS.subtitleDisplayMode, "source");
+  assert.equal(normalizeSettings().subtitleDisplayMode, "source");
+  assert.equal(normalizeSettings({ subtitleDisplayMode: "invalid" }).subtitleDisplayMode, "source");
+  for (const subtitleDisplayMode of ["dual", "source", "translated"]) {
+    assert.equal(normalizeSettings({ subtitleDisplayMode }).subtitleDisplayMode, subtitleDisplayMode);
+  }
+});
+
 test("subtitle background color defaults to black", () => {
   assert.equal(DEFAULT_SETTINGS.subtitleStyle.backgroundColor, "#000000");
 });
@@ -176,7 +185,7 @@ test("OpenAI-compatible provider is labeled Custom LLM in settings UI", () => {
 });
 
 test("hosted LLM providers default to the configured recommended models", () => {
-  assert.equal(PROVIDERS.google.model, "gemini-3.1-flash-lite");
+  assert.equal(PROVIDERS.google.model, "gemini-3.5-flash-lite");
   assert.equal(PROVIDERS.openai.model, "gpt-5.6-luna");
   assert.equal(PROVIDERS.anthropic.model, "claude-haiku-4-5-20251001");
   assert.equal(PROVIDERS.openrouter.model, "deepseek/deepseek-v4-flash:nitro");

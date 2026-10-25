@@ -264,12 +264,14 @@
 }
 
 .ast-source-caption-submenu,
+.ast-subtitle-display-submenu,
 .ast-translation-style-submenu {
   position: relative;
   margin-top: 4px;
 }
 
 .ast-source-caption-list,
+.ast-subtitle-display-list,
 .ast-translation-style-list {
   display: none;
   position: absolute;
@@ -290,17 +292,21 @@
 }
 
 .ast-source-caption-submenu:hover .ast-source-caption-list,
+.ast-subtitle-display-submenu:hover .ast-subtitle-display-list,
+.ast-subtitle-display-submenu:focus-within .ast-subtitle-display-list,
 .ast-translation-style-submenu:hover .ast-translation-style-list {
   display: block;
 }
 
 .ast-source-caption-item,
+.ast-subtitle-display-item,
 .ast-translation-style-item {
   width: 100%;
   text-align: left;
 }
 
 .ast-source-caption-item.active,
+.ast-subtitle-display-item.active,
 .ast-translation-style-item.active {
   background: rgba(255, 255, 255, 0.16);
 }
@@ -428,6 +434,7 @@
 }
 
 .ast-subtitle-overlay {
+  white-space: normal;
   position: absolute;
   left: 50%;
   bottom: 14%;
@@ -453,6 +460,21 @@
   touch-action: none;
   user-select: none;
   cursor: move;
+}
+
+.ast-subtitle-line {
+  white-space: pre-line;
+  unicode-bidi: isolate;
+}
+
+.ast-subtitle-word {
+  color: inherit;
+  -webkit-text-fill-color: currentColor;
+  background: transparent;
+}
+
+.ast-subtitle-word[data-state="pending"] {
+  color: #666666;
 }
 
 .ast-subtitle-overlay.dragging {
@@ -493,6 +515,8 @@
   color: #111827;
   font: 400 0.9em/1.45 Arial, sans-serif;
   white-space: pre-wrap;
+  text-align: start;
+  unicode-bidi: isolate;
 }
 
 .ast-udemy-transcript-translation[data-phase="temporary"] {
@@ -528,6 +552,8 @@
 }
 
 .ast-subtitle-overlay:empty,
+#movie_player.ad-showing .ast-subtitle-overlay,
+#movie_player.ad-interrupting .ast-subtitle-overlay,
 .ast-subtitle-overlay[hidden],
 .ast-subtitle-overlay[data-disabled="true"],
 .ast-toast[hidden] {

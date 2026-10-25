@@ -4,6 +4,14 @@ import test from "node:test";
 
 const manifest = JSON.parse(readFileSync(new URL("../extension/manifest.json", import.meta.url), "utf8"));
 
+test("YouTube caption bridge starts early with domain-scoped scripting access", () => {
+  assert.ok(manifest.permissions.includes("scripting"));
+  const bridge = manifest.content_scripts.find((item) => item.js.includes("content/youtube-capture-bridge.js"));
+  assert.deepEqual(bridge.matches, ["https://www.youtube.com/*"]);
+  assert.equal(bridge.run_at, "document_start");
+  assert.equal(manifest.minimum_chrome_version, "102");
+});
+
 test("manifest grants NVIDIA NIM host permission", () => {
   assert.ok(manifest.host_permissions.includes("https://integrate.api.nvidia.com/*"));
 });

@@ -14,7 +14,7 @@
 
 # 주의 사항
   - Google 번역 외의 제공업체는 API 키가 필요합니다.
-  - Google AI API 키를 발급해 무료 등급의 Gemini 3.1 Flash Lite를 연결하면 빠른 응답의 AI 번역을 시작할 수 있습니다. (권장)
+  - Google AI API 키를 발급해 무료 등급의 Gemini 3.5 Flash Lite를 연결하면 빠른 응답의 AI 번역을 시작할 수 있습니다. (권장)
   - 무료 사용량과 제한 및 발생 비용은 각 LLM API 제공 업체의 정책을 확인해 주세요.
 
 # 주요 기능
@@ -36,7 +36,7 @@
 
   ## 간단 설정 - 권장
   1. 확장 프로그램을 설치하고 설정 페이지에서 간단 설정 하단의 `API 키 발급하기` 링크를 클릭하여 Google AI API 키를 발급받습니다.
-  2. 발급받은 무료 API 키를 설정의 `Google AI API 키` 항목에 넣고 `API 키 확인` 버튼을 누릅니다. 확인에 성공하면 Google AI 제공업체와 `gemini-3.1-flash-lite` 모델이 자동으로 설정됩니다.
+  2. 발급받은 무료 API 키를 설정의 `Google AI API 키` 항목에 넣고 `API 키 확인` 버튼을 누릅니다. 확인에 성공하면 Google AI 제공업체와 `gemini-3.5-flash-lite` 모델이 자동으로 설정됩니다.
 
   처음 사용하는 모델 선택 가이드는 소개 웹사이트의 [LLM 선택 가이드](https://mungi.github.io/ai-subtitle-translator/#llm-selection-guide)에서 확인하세요.
 

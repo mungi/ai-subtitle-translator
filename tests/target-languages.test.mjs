@@ -20,6 +20,7 @@ test("target language labels use each language's native name", () => {
   assert.equal(getTargetLanguageLabel(language("pt-BR")), "Português (Brasil)");
   assert.equal(getTargetLanguageLabel(language("ru")), "Русский");
   assert.equal(getTargetLanguageLabel(language("ar")), "العربية");
+  assert.equal(getTargetLanguageLabel(language("fa")), "فارسی");
   assert.equal(getTargetLanguageLabel(language("hi")), "हिन्दी");
   assert.equal(getTargetLanguageLabel(language("id")), "Bahasa Indonesia");
   assert.equal(getTargetLanguageLabel(language("vi")), "Tiếng Việt");

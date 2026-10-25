@@ -39,7 +39,7 @@
     "message": "API キーを非表示"
   },
   "simpleGoogleIntroGuide": {
-    "message": "Google AI で字幕を翻訳します。下の案内に沿って API キーを作成して入力すると、Gemini 3.1 Flash Lite が自動設定されます。API キーを確認を押して接続を確認してください。"
+    "message": "Google AI で字幕を翻訳します。下の案内に沿って API キーを作成して入力すると、Gemini 3.5 Flash Lite が自動設定されます。API キーを確認を押して接続を確認してください。"
   },
   "simpleGoogleTestApiKey": {
     "message": "API キーを確認"
@@ -75,7 +75,7 @@
     "message": "作成したプロジェクトの課金階層が '無料（Free）' になっていることを必ず確認してください。"
   },
   "simpleGoogleKeyGuideStep5": {
-    "message": "コピーしたキーを上の入力欄に貼り付けると、Gemini 3.1 Flash Lite が自動設定されます。API キーを確認を押して接続を確認してください。"
+    "message": "コピーしたキーを上の入力欄に貼り付けると、Gemini 3.5 Flash Lite が自動設定されます。API キーを確認を押して接続を確認してください。"
   },
   "simpleGoogleFreeTierNotice": {
     "message": "無料枠には利用制限があります。1 日あたりのリクエスト上限は太平洋時間の午前 0 時にリセットされます。"
@@ -90,7 +90,7 @@
     "message": "Google AI の接続を確認しています。"
   },
   "simpleGoogleTestSuccess": {
-    "message": "Google AI に接続し、Gemini 3.1 Flash Lite を有効にしました。"
+    "message": "Google AI に接続し、Gemini 3.5 Flash Lite を有効にしました。"
   },
   "simpleGoogleTestFailed": {
     "message": "Google AI への接続に失敗しました。現在の翻訳プロバイダーを維持します。"
@@ -685,5 +685,26 @@
   },
   "providerGuideLocal": {
     "message": "OpenAI 互換の chat/completions 形式を使用します。localhost と 127.0.0.1 は HTTP または HTTPS を使用でき、カスタムサーバーは HTTPS のみ使用できます。カスタム HTTPS サーバーは、モデル取得または接続テスト時にそのドメインへのアクセス権限を許可してから使用してください。字幕テキストと、入力した場合は API キーがこのサーバーへ直接送信されます。Base URL には、/chat/completions の直前までを入力してください。例: http://localhost:1234/v1"
+  },
+  "contentSubtitleDisplay": {
+    "message": "字幕表示"
+  },
+  "contentDualSubtitles": {
+    "message": "二重字幕"
+  },
+  "contentMainSubtitles": {
+    "message": "メイン字幕"
+  },
+  "contentTranslatedSubtitles": {
+    "message": "翻訳字幕"
+  },
+  "contentTranslationFailed": {
+    "message": "翻訳できませんでした。原文または準備済みの字幕を維持します: $error$",
+    "placeholders": {
+      "error": {
+        "content": "$1",
+        "example": "HTTP 429"
+      }
+    }
   }
 }

@@ -234,7 +234,7 @@ test("machine translation requests reject cross-origin redirects", async () => {
         headers: { "Content-Type": "application/json" }
       });
     }
-    return new Response(JSON.stringify([[['안녕하세요']]]), {
+    return new Response(JSON.stringify(['안녕하세요']), {
       status: 200,
       headers: { "Content-Type": "application/json" }
     });

@@ -1,6 +1,25 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { fetchYoutubeTranscript, youtubeCaptionInternals } from "../extension/platforms/youtube-captions.js";
+import { createSubtitleDocument } from "../extension/shared/subtitles.js";
+
+test("YouTube JSON3 retains word offsets and skips rolling-window and newline events", () => {
+  const cues = youtubeCaptionInternals.parseYoutubeTranscriptPayload(JSON.stringify({ events: [
+    { tStartMs: 0, dDurationMs: 20000, id: 1 },
+    { tStartMs: 7439, dDurationMs: 6841, segs: [
+      { utf8: "First" }, { utf8: " second", tOffsetMs: 345 }, { utf8: " third", tOffsetMs: 690 }
+    ] },
+    { tStartMs: 10629, dDurationMs: 3651, aAppend: 1, segs: [{ utf8: "\n" }] }
+  ] }));
+  assert.equal(cues.length, 1);
+  assert.deepEqual(cues[0].words, [
+    { text: "First", start: 7.439, end: 7.784 },
+    { text: " second", start: 7.784, end: 8.129 },
+    { text: " third", start: 8.129, end: 14.28 }
+  ]);
+  const document = createSubtitleDocument({ platform: "youtube", videoId: "av5DnWZZHnk", sourceLanguage: "es", cues });
+  assert.deepEqual(document.cues[0].words, cues[0].words);
+});
 
 function jsonResponse(body) {
   return {
@@ -11,6 +30,17 @@ function jsonResponse(body) {
     text: async () => JSON.stringify(body)
   };
 }
+
+test("YouTube source captions decode numeric and nested entities in JSON3, words, and XML", () => {
+  const json = youtubeCaptionInternals.parseYoutubeTranscriptPayload(JSON.stringify({ events: [{
+    tStartMs: 0, dDurationMs: 3000,
+    segs: [{ utf8: "Utah&#39;s" }, { utf8: " river &#x1F30A;", tOffsetMs: 1000 }]
+  }] }));
+  assert.equal(json[0].text, "Utah's river 🌊");
+  assert.equal(json[0].words.map((word) => word.text).join(""), json[0].text);
+  const xml = youtubeCaptionInternals.parseYoutubeTranscriptPayload('<transcript><text start="0" dur="3">Utah&amp;#39;s &amp;amp; river</text></transcript>');
+  assert.equal(xml[0].text, "Utah's & river");
+});
 
 function textResponse(text, init = {}) {
   return {

@@ -5,7 +5,7 @@ import { getSettings } from "./storage.js";
 import { decodeXmlEntities, normalizeCue, validateCues } from "./subtitles.js";
 
 const TRANSLATION_CACHE_KEY = "translationCache";
-const TRANSLATION_CACHE_VERSION = "v2";
+const TRANSLATION_CACHE_VERSION = "v3";
 export const TRANSLATION_CACHE_MAX_ENTRIES = 30;
 export const TRANSLATION_CACHE_MAX_BYTES = 4 * 1024 * 1024;
 const DEFAULT_MAX_CUE_CHARS_PER_CHUNK = 24000;
@@ -14,7 +14,6 @@ const DEFAULT_LLM_CHUNK_MAX_DURATION_SECONDS = 420;
 const MIN_LLM_RETRY_CUES_PER_CHUNK = 1;
 const LLM_PARALLEL_CHUNK_LIMIT = 2;
 const GOOGLE_MAX_CHARS_PER_CHUNK = 1500;
-const GOOGLE_CUE_DELIMITER = "\n\n";
 const GOOGLE_TRANSLATE_PROVIDER_ID = "googleTranslate";
 const DEEPL_MAX_TEXTS_PER_REQUEST = 50;
 const DEEPL_MAX_REQUEST_BODY_BYTES = 128 * 1024;
@@ -405,6 +404,7 @@ function buildCacheKey(document, settings, provider) {
       : "",
     provider.id,
     provider.model,
+    ...(provider.apiStyle === "google-translate" ? ["google-batch-v1"] : []),
     String(cueSignature.length),
     String(hashString(cueSignature))
   ].join(":");
@@ -693,74 +693,67 @@ function normalizeSourceLanguage(sourceLanguage) {
 function splitCuesForGoogle(cues, maxChars = GOOGLE_MAX_CHARS_PER_CHUNK) {
   const chunks = [];
   let current = [];
-  let currentText = "";
+  let currentSize = 0;
 
   for (const cue of cues) {
-    const cueText = `${GOOGLE_CUE_DELIMITER}${cue.text || ""}`;
-    const nextText = currentText ? `${currentText}${cueText}` : cueText;
-    if (current.length > 0 && nextText.length > maxChars) {
-      chunks.push({ cues: current, text: currentText });
+    const size = String(cue.text || "").length;
+    if (current.length > 0 && currentSize + size > maxChars) {
+      chunks.push({ cues: current });
       current = [];
-      currentText = "";
+      currentSize = 0;
     }
 
     current.push(cue);
-    currentText = currentText ? `${currentText}${cueText}` : cueText;
+    currentSize += size;
   }
 
   if (current.length > 0) {
-    chunks.push({ cues: current, text: currentText });
+    chunks.push({ cues: current });
   }
 
   return chunks;
 }
 
-function parseGoogleTranslateBody(body) {
-  if (body?.translations?.[0]?.text) {
-    return String(body.translations[0].text);
+function parseGoogleTranslateBody(body, expectedCount) {
+  if (!Array.isArray(body) || body.length !== expectedCount) {
+    throw new Error("Google Translate returned an invalid translation count.");
   }
-  if (Array.isArray(body?.[0])) {
-    return body[0].map((part) => part?.[0] || "").join("");
+  const translations = body.map((item) => typeof item === "string" ? item : Array.isArray(item) ? item[0] : null);
+  if (translations.some((text) => typeof text !== "string" || !text.trim())) {
+    throw new Error("Google Translate returned an empty or invalid translation.");
   }
-  return "";
+  return translations;
 }
 
-function splitGoogleCueTranslations(text, expectedCount) {
-  const parts = String(text || "")
-    .split(GOOGLE_CUE_DELIMITER)
-    .map((part) => part.trim())
-    .filter(Boolean);
-
-  if (parts.length === expectedCount) {
-    return parts;
-  }
-
-  return Array.from({ length: expectedCount }, (_, index) => parts[index] || "");
-}
-
-async function translateGoogleText(text, document, settings, provider) {
-  const formData = new URLSearchParams({
+async function translateGoogleBatch(cues, document, settings, provider) {
+  const url = new URL(provider.baseUrl);
+  for (const [key, value] of Object.entries({
     client: "gtx",
     sl: normalizeSourceLanguage(document.sourceLanguage || settings.sourceLanguage || "en"),
     tl: normalizeTargetLanguage(settings.targetLanguage),
     dt: "t",
-    q: text
-  });
-  const response = await fetch(provider.baseUrl, {
-    method: "POST",
-    redirect: "error",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
-    },
-    body: formData
-  });
-  const body = await response.json().catch(() => null);
+    format: "html"
+  })) url.searchParams.set(key, value);
+  const formData = new URLSearchParams();
+  for (const cue of cues) formData.append("q", cue.text);
+  let response;
+  try {
+    response = await fetch(url.toString(), {
+      method: "POST",
+      redirect: "error",
+      headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+      body: formData
+    });
+  } catch {
+    throw new Error("Google Translate request failed: network error or blocked redirect. Please try again later or select another provider.");
+  }
 
   if (!response.ok) {
     throw new Error(`Google Translate failed: HTTP ${response.status}: ${response.statusText}`);
   }
 
-  return parseGoogleTranslateBody(body);
+  const body = await response.json().catch(() => null);
+  return parseGoogleTranslateBody(body, cues.length);
 }
 
 async function translateCuesWithGoogle(document, settings, provider, { onProgress, chunkCount = 1 } = {}) {
@@ -769,11 +762,10 @@ async function translateCuesWithGoogle(document, settings, provider, { onProgres
 
   for (let index = 0; index < chunks.length; index += 1) {
     const chunk = chunks[index];
-    const translatedText = await translateGoogleText(chunk.text, document, settings, provider);
-    const translatedParts = splitGoogleCueTranslations(translatedText, chunk.cues.length);
+    const translatedParts = await translateGoogleBatch(chunk.cues, document, settings, provider);
     const chunkTranslations = chunk.cues.map((cue, cueIndex) => ({
       id: cue.id,
-      text: translatedParts[cueIndex] || cue.text
+      text: translatedParts[cueIndex]
     }));
     translations.push(...chunkTranslations);
 
@@ -1057,7 +1049,6 @@ export const translationInternals = {
   translateLlmChunksWithPriority,
   parseGoogleTranslateBody,
   splitCuesForGoogle,
-  splitGoogleCueTranslations,
   createTranslatedCues,
   sanitizeTranslatedText,
   sanitizeTranslatedDocument,

@@ -15,7 +15,7 @@
 
 # 注意事項
   - Google 翻訳以外のプロバイダーには API キーが必要です。
-  - Google AI API キーを作成して無料枠の Gemini 3.1 Flash Lite を接続すると、応答の速い AI 翻訳を開始できます。（推奨）
+  - Google AI API キーを作成して無料枠の Gemini 3.5 Flash Lite を接続すると、応答の速い AI 翻訳を開始できます。（推奨）
   - 無料利用枠、制限、発生する料金は、各 LLM API プロバイダーのポリシーを確認してください。
 
 # 主な機能
@@ -37,7 +37,7 @@
 
   ## かんたん設定 — 推奨
   1. 拡張機能をインストールし、設定ページのかんたん設定下部にある `API キーを取得` リンクをクリックして Google AI API キーを作成します。
-  2. 作成した無料 API キーを設定の `Google AI API キー` に入力し、`API キーを確認` をクリックします。確認に成功すると、Google AI プロバイダーと `gemini-3.1-flash-lite` モデルが自動設定されます。
+  2. 作成した無料 API キーを設定の `Google AI API キー` に入力し、`API キーを確認` をクリックします。確認に成功すると、Google AI プロバイダーと `gemini-3.5-flash-lite` モデルが自動設定されます。
 
   初めて使う場合のモデル選択ガイドは、紹介ウェブサイトの [LLM 選択ガイド](https://mungi.github.io/ai-subtitle-translator/#llm-selection-guide)で確認してください。
 

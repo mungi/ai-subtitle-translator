@@ -51,14 +51,14 @@ test("machine translation cache keys do not change with the LLM translation styl
   }
 });
 
-test("translation cache v2 rejects incomplete or timing-mismatched cached documents", () => {
+test("translation cache v3 rejects incomplete or timing-mismatched cached documents", () => {
   const provider = { id: "google", apiStyle: "google-generate-content", model: "gemini-test" };
   const cacheKey = translationInternals.buildCacheKey(sourceDocument, {
     targetLanguage: "ko",
     translationStyle: "technical"
   }, provider);
 
-  assert.match(cacheKey, /^v2:/);
+  assert.match(cacheKey, /^v3:/);
   assert.equal(translationInternals.getReusableCachedTranslation(sourceDocument, {
     ...sourceDocument,
     providerId: "google",
@@ -1075,54 +1075,6 @@ test("DeepL translation keeps each request body under the API size limit", async
   }
 });
 
-test("Google Translate sends subtitle text as a POST form instead of a redirect-prone query URL", async () => {
-  const originalFetch = globalThis.fetch;
-  let capturedRequest;
-
-  globalThis.fetch = async (url, init = {}) => {
-    capturedRequest = { url: String(url), init };
-    return {
-      ok: true,
-      status: 200,
-      statusText: "OK",
-      json: async () => [[[`첫 번째 번역\n\n두 번째 번역`]]]
-    };
-  };
-
-  try {
-    const document = {
-      ...sourceDocument,
-      cues: [
-        { id: "cue-1", start: 0, end: 1, text: "First subtitle" },
-        { id: "cue-2", start: 1, end: 2, text: "Second subtitle" }
-      ]
-    };
-    const translations = await translationInternals.translateCuesWithGoogle(document, {
-      targetLanguage: "ko",
-      sourceLanguage: "en"
-    }, {
-      apiStyle: "google-translate",
-      baseUrl: "https://translate.googleapis.com/translate_a/single"
-    });
-
-    assert.equal(capturedRequest.url, "https://translate.googleapis.com/translate_a/single");
-    assert.equal(capturedRequest.init.method, "POST");
-    assert.equal(capturedRequest.init.redirect, "error");
-    assert.equal(
-      capturedRequest.init.headers["Content-Type"],
-      "application/x-www-form-urlencoded;charset=UTF-8"
-    );
-    const body = new URLSearchParams(capturedRequest.init.body.toString());
-    assert.equal(body.get("client"), "gtx");
-    assert.equal(body.get("sl"), "en");
-    assert.equal(body.get("tl"), "ko");
-    assert.equal(body.get("q"), "\n\nFirst subtitle\n\nSecond subtitle");
-    assert.deepEqual(translations.map((item) => item.text), ["첫 번째 번역", "두 번째 번역"]);
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
-});
-
 test("temporary DeepL quota exceeded falls back to Google Translate", async () => {
   const originalChrome = globalThis.chrome;
   const originalFetch = globalThis.fetch;
@@ -1178,7 +1130,7 @@ test("temporary DeepL quota exceeded falls back to Google Translate", async () =
       ok: true,
       status: 200,
       statusText: "OK",
-      json: async () => [[["구글 번역"]]]
+      json: async () => ["구글 번역"]
     };
   };
 
@@ -1330,7 +1282,7 @@ test("LLM rate limit falls back to Google Translate after four 429 responses", a
       ok: true,
       status: 200,
       statusText: "OK",
-      json: async () => [[["구글 번역"]]]
+      json: async () => ["구글 번역"]
     };
   };
   globalThis.setTimeout = (callback) => {
@@ -1439,7 +1391,7 @@ test("LLM failure falls back to Google Translate even when DeepL is selected for
       ok: true,
       status: 200,
       statusText: "OK",
-      json: async () => [[["구글 번역"]]]
+      json: async () => ["구글 번역"]
     };
   };
 

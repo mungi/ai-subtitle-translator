@@ -1,6 +1,26 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+test("native YouTube capture is registered in MAIN at document_start only once", async () => {
+  globalThis.chrome = {
+    runtime: { onMessage: { addListener() {} } },
+    storage: { local: { setAccessLevel: async () => {} } }
+  };
+  const { registerYoutubeCaptionCapture } = await import("../extension/background/service-worker.js");
+  let registered = [];
+  let writes = 0;
+  const scripting = {
+    getRegisteredContentScripts: async () => registered,
+    registerContentScripts: async (scripts) => { registered = scripts; writes += 1; }
+  };
+  await registerYoutubeCaptionCapture(scripting);
+  await registerYoutubeCaptionCapture(scripting);
+  assert.equal(writes, 1);
+  assert.deepEqual(registered[0].matches, ["https://www.youtube.com/*"]);
+  assert.equal(registered[0].world, "MAIN");
+  assert.equal(registered[0].runAt, "document_start");
+});
+
 test("provider connection tests reserve output tokens for Gemini thinking models", async () => {
   globalThis.chrome = {
     runtime: {
@@ -98,14 +118,17 @@ test("provider and translation-style mutations are serialized without losing eit
     }
   };
 
-  const { setActiveProvider, setTranslationStyle } = await import("../extension/background/service-worker.js");
+  const { setActiveProvider, setTranslationStyle, setSubtitleDisplayMode } = await import("../extension/background/service-worker.js");
   await Promise.all([
     setActiveProvider("google"),
-    setTranslationStyle("technical")
+    setTranslationStyle("technical"),
+    setSubtitleDisplayMode("dual")
   ]);
 
   assert.equal(llmSettings.activeProvider, "google");
   assert.equal(llmSettings.translationStyle, "technical");
+  assert.equal(llmSettings.subtitleDisplayMode, "dual");
+  await assert.rejects(setSubtitleDisplayMode("invalid"), /Unsupported subtitle display mode/);
 });
 
 test("NVIDIA NIM model listing uses the OpenAI-compatible models endpoint", async () => {

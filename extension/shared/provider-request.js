@@ -217,7 +217,7 @@ export function buildProviderRequest(provider, { systemPrompt, input, structured
               }
             ],
             generationConfig: {
-              temperature,
+              ...(/^gemini-3\.5-flash-lite(?:-|$)/i.test(model) ? {} : { temperature }),
               maxOutputTokens: maxTokens,
               ...(thinkingConfig ? { thinkingConfig } : {})
             }

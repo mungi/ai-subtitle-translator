@@ -24,7 +24,7 @@ test("staging a Google key preserves an untouched masked key and enforces Flash 
   const next = stageSimpleGoogleApiKey(createSettings(), maskSecretValue("stored-google-key"));
 
   assert.equal(next.providers.google.apiKey, "stored-google-key");
-  assert.equal(next.providers.google.model, "gemini-3.1-flash-lite");
+  assert.equal(next.providers.google.model, "gemini-3.5-flash-lite");
   assert.equal(next.providerTestStatus.google, undefined);
   assert.equal(next.providerTestStatus.openai, "success");
 });
@@ -90,5 +90,5 @@ test("simple settings expose localized API key and dummy YouTube guide links", (
     { labelKey: "simpleGoogleGetApiKey", url: "https://aistudio.google.com/api-keys" },
     { labelKey: "simpleGoogleYoutubeGuide", url: "https://www.youtube.com/watch?v=PLACEHOLDER" }
   ]);
-  assert.equal(SIMPLE_GOOGLE_MODEL, "gemini-3.1-flash-lite");
+  assert.equal(SIMPLE_GOOGLE_MODEL, "gemini-3.5-flash-lite");
 });

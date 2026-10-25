@@ -9,6 +9,8 @@ extension/
   manifest.json                    Chrome MV3 권한, content script, background 등록
   background/service-worker.js      메시지 라우팅, provider 테스트, 모델 조회, 번역 실행 중재
   content/content-script.js         플랫폼 감지, 툴바 버튼, 자막 오버레이, 페이지 재시도
+  content/youtube-capture-main.js   YouTube MAIN world의 실제 XHR/fetch 자막 응답 관찰
+  content/youtube-capture-bridge.js 격리된 context의 자막 본문 캐시와 대기 요청
   content/content-style.css         툴바/오버레이 스타일
   platforms/
     youtube-captions.js             YouTube track/cue 수집과 fallback
@@ -105,7 +107,9 @@ type SubtitleDocument = {
 
 ### YouTube
 
-`platforms/youtube-captions.js`는 다음 순서로 자막을 찾습니다.
+먼저 `scripting.registerContentScripts`로 등록한 MAIN world 수집기와 격리된 bridge를 `document_start`에 실행합니다. 실제 플레이어의 `timedtext` 응답을 복제해 읽고, 캐시가 없으면 요청한 언어의 네이티브 자막을 잠시 활성화합니다. 응답 또는 타임아웃 후 기존 자막 선택과 활성 상태를 복원합니다. 같은 페이지·origin의 전용 메시지만 처리하고 쿠키·헤더·서명 URL은 전달하지 않습니다. 본문 길이는 최대 2,097,152자, 캐시는 6개로 제한합니다.
+
+네이티브 응답을 얻지 못하면 `platforms/youtube-captions.js`의 기존 경로를 사용합니다.
 
 1. watch page의 `ytInitialPlayerResponse` caption track
 2. Android Innertube player fallback
@@ -114,6 +118,10 @@ type SubtitleDocument = {
 5. background에서 401/403이 나면 page context retry metadata를 내려 content script에서 현재 페이지 fetch로 재시도
 
 지원 파서는 XML `<text>`, JSON3, SRV3 `<p>`, WebVTT, transcript panel renderer입니다. track 선택은 요청 언어가 있으면 manual track을 우선하고, 언어 요청이 없으면 English manual, English auto, manual, 첫 track 순서입니다.
+
+JSON3의 `segs[].tOffsetMs`는 선택적인 cue `words: [{ text, start, end }]`로 보존합니다. 영상 프레임 시각에 따라 원문을 미발화 단어의 `#666666`에서 설정된 글자색으로 바꾸며 단어 배경은 변경하지 않습니다. 시간 정보가 없거나 잘못되면 원문 단어 길이와 cue의 표시 구간(다음 cue 시작 시각까지)을 기준으로 진행을 추정합니다. 번역문은 단어 순서를 직접 대응시키지 않으며 cue 시간만 따릅니다. 원문과 단어 텍스트는 숫자·16진수 및 중첩 HTML entity를 텍스트로 디코딩합니다.
+
+YouTube 플레이어의 `ad-showing`·`ad-interrupting` 상태는 CSS와 class 변경 관찰로 감지합니다. 광고 중에는 자막과 준비/실패 메시지를 숨기고, 광고 종료 시 본영상의 현재 cue를 다시 표시합니다. 광고 재생 중 네이티브 자막 트랙 활성화와 임시 번역 우선 요청도 중단합니다.
 
 ### Udemy
 
@@ -137,7 +145,8 @@ caption URL의 WebVTT를 받아 `parseWebVtt`로 cue를 생성합니다. 로그�
 
 `shared/translation.js`의 공개 진입점은 `translateSubtitleDocument(document, options)`입니다.
 
-- Google Translate: cue 텍스트를 `\n\n` delimiter로 묶어 chunk 요청 후 cue 순서로 다시 나눕니다.
+- Google Translate: `/translate_a/t`에 cue별 `q` form 필드를 반복해서 POST하고 반환 배열을 cue 순서에 대응시킵니다. 언어·클라이언트 옵션은 query에, 자막 텍스트는 body에만 전달합니다. 기존 `/translate_a/single` 기본 설정은 새 주소로 정규화합니다.
+- Google Translate 응답 개수·문자열·빈 항목을 검증하고, 잘못된 응답을 원문으로 대체해 성공 처리하지 않습니다. 네트워크·redirect 실패는 오류로 알리고 원문을 유지합니다. 캐시 버전 `v3`에 Google 전용 `google-batch-v1` 표시를 추가해 이전 요청 방식의 캐시는 재사용하지 않습니다.
 - DeepL: request body 128 KiB와 request당 50 text 제한을 고려해 chunk를 나눕니다.
 - LLM provider: 현재 재생 위치의 첫 1분을 우선 번역하고, 이후 구간을 먼저 처리한 다음 이전 구간을 처리합니다. 일반 청크는 기본 최대 7분을 기준으로 하며 사용자가 2~15분 사이에서 조절할 수 있습니다. 내부 안전 상한은 24,000자·500 cue입니다. `{ translations: [{ id, text }] }` 응답만 허용합니다.
 - LLM 응답은 JSON fence, `<think>` 블록, 일부 loose object 형태를 회복합니다.
@@ -174,6 +183,9 @@ CST에서 AST로 명칭을 바꾼 현재 초기 개발 단계에서는 storage n
 툴바 아이콘은 상태를 색으로 표시한다. 기본 흰색은 꺼짐/원문 상태, 파란색은 활성 상태, 노란색은 임시 번역, 초록색은 현재 cue 최종 번역 준비, 보라색은 전체 최종 번역 완료, 분홍색은 Google Translate 대체 번역이다. 자막 또는 번역 요청 중에는 현재 색상으로 pulse 애니메이션을 표시한다.
 - 영상 위 subtitle overlay 생성
 - 현재 video time에 맞는 cue 렌더링
+- 겹치는 cue는 가장 최근에 시작한 활성 cue를 선택하고, 지원 브라우저에서는 영상 프레임 시각으로 자막 경계를 갱신합니다.
+- `자막표시` 메뉴는 메인자막(기본 원문), 번역자막, 이중자막(원문 위·번역 아래)을 제공합니다. 번역은 원문 cue의 시간과 `sourceText`를 보존하며, 표시 모드는 검증된 `settings.setSubtitleDisplayMode` 메시지로 저장하고 지원 사이트에 공유합니다.
+- 원문과 번역은 별도 줄 요소로 렌더링하고 언어별 `dir`·`lang` 및 `unicode-bidi: isolate`를 적용합니다. 페르시아어·아랍어는 RTL, 영상 자막은 가운데 정렬, Udemy 대본 번역은 `text-align: start`로 표시합니다.
 - 번역 상태별 버튼 class와 overlay 배경색 적용
 - overlay 드래그 위치 저장
 - overlay 폭 resize와 높이 자동 제한
@@ -183,7 +195,7 @@ CST에서 AST로 명칭을 바꾼 현재 초기 개발 단계에서는 storage n
 
 ### Options
 
-`options/options.js`는 기본 `간단 설정`과 전체 `고급 설정`을 렌더링합니다. 간단 설정은 Google AI API key 한 개와 연결 확인만 제공하며, 성공 시 Gemini 3.1 Flash Lite를 자동 설정합니다. 고급 설정은 provider tab, provider별 field, 모델 조회, 연결 테스트, target language, translation style, subtitle style preview, cache clear와 설정 백업/복구를 렌더링합니다. 모델 조회가 끝나면 `model-recommendations.js`로 권장 모델을 선택합니다. 온라인 provider는 즉시 연결 테스트해 상태를 갱신하고, Custom LLM은 `google/gemma-4-e4b` 우선 모델 선택까지만 수행합니다. 사용자 지정 HTTPS Custom LLM은 모델 가져오기 또는 연결 테스트를 시작할 때 해당 origin 접근 권한을 요청합니다. provider field는 `providerFieldDefs`에 모여 있어 provider 추가 시 defaults, request adapter, host permission, field 정의, recommendation과 tests를 함께 갱신해야 합니다.
+`options/options.js`는 기본 `간단 설정`과 전체 `고급 설정`을 렌더링합니다. 간단 설정은 Google AI API key 한 개와 연결 확인만 제공하며, 성공 시 Gemini 3.5 Flash Lite를 자동 설정합니다. 고급 설정은 provider tab, provider별 field, 모델 조회, 연결 테스트, target language, translation style, subtitle style preview, cache clear와 설정 백업/복구를 렌더링합니다. 모델 조회가 끝나면 `model-recommendations.js`로 권장 모델을 선택합니다. 온라인 provider는 즉시 연결 테스트해 상태를 갱신하고, Custom LLM은 `google/gemma-4-e4b` 우선 모델 선택까지만 수행합니다. 사용자 지정 HTTPS Custom LLM은 모델 가져오기 또는 연결 테스트를 시작할 때 해당 origin 접근 권한을 요청합니다. provider field는 `providerFieldDefs`에 모여 있어 provider 추가 시 defaults, request adapter, host permission, field 정의, recommendation과 tests를 함께 갱신해야 합니다.
 
 설정 백업은 API key가 복원된 현재 설정을 사용자 백업 비밀번호에서 파생한 AES-GCM key로 암호화해 `.astbackup` 파일로 저장합니다. 복구 선택창과 파일명 검증은 이 확장자만 허용합니다. 백업/복구 비밀번호는 버튼 동작 시 `<dialog>` 기반 마스킹 팝업에서 입력받고 저장하지 않습니다. PBKDF2-SHA-256 250,000회와 파일별 salt/nonce를 사용합니다. 복구는 파일 형식과 payload를 검증한 뒤 기존 `saveSettings` 흐름을 사용하므로 API key는 다시 내부 secret vault에 암호화 저장됩니다. 사용자가 동의하면 `provider-key-validation.js`가 API key가 있는 provider를 순차 테스트하고 성공 상태를 실제 결과로 갱신합니다.
 

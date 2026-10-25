@@ -36,6 +36,7 @@ AST - AI Subtitle Translator는 Udemy, YouTube, TED, NVIDIA Academy, Vimeo의 �
 ## 권한
 
 - `storage`: 설정, 암호화된 API key와 번역 캐시를 로컬에 저장합니다.
+- `scripting`: YouTube 페이지 시작 시 플레이어의 자막 응답을 수집하는 스크립트를 실행합니다. 수집된 자막에서 쿠키·인증 헤더·서명 URL을 제외한 텍스트와 언어·시간 정보만 확장 프로그램에 전달합니다.
 - Host permissions: Udemy·YouTube·TED·NVIDIA Academy·Vimeo 자막 조회, 선택한 번역 provider 호출, `localhost`/`127.0.0.1` Custom LLM 호출에 사용합니다. 사용자 지정 HTTPS Custom LLM domain은 모델 가져오기 또는 연결 테스트 시 사용자가 승인한 경우에만 접근합니다.
 
 ## Google API Limited Use

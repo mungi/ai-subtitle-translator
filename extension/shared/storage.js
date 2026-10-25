@@ -63,6 +63,10 @@ function mergeProvider(defaultProvider, storedProvider = {}) {
   if (Number(storedProvider.maxTokens) === 4096) {
     provider.maxTokens = defaultProvider.maxTokens;
   }
+  if (defaultProvider.id === "googleTranslate"
+    && storedProvider.baseUrl === "https://translate.googleapis.com/translate_a/single") {
+    provider.baseUrl = defaultProvider.baseUrl;
+  }
   return provider;
 }
 
@@ -132,6 +136,9 @@ export function normalizeSettings(settings = {}) {
     providerTestStatus,
     maxChunkDurationSeconds: normalizeChunkDurationSeconds(settings.maxChunkDurationSeconds, defaults.maxChunkDurationSeconds),
     targetLanguage,
+    subtitleDisplayMode: ["dual", "source", "translated"].includes(settings.subtitleDisplayMode)
+      ? settings.subtitleDisplayMode
+      : defaults.subtitleDisplayMode,
     activeProvider,
     customSystemPrompt: extractStyleSystemPrompt(settings.customSystemPrompt || defaults.customSystemPrompt || buildDefaultCustomStyleSystemPrompt(targetLanguage)),
     custom2SystemPrompt: extractStyleSystemPrompt(settings.custom2SystemPrompt || defaults.custom2SystemPrompt || buildDefaultCustom2StyleSystemPrompt())

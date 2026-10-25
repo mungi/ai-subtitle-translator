@@ -15,7 +15,7 @@ Naturally translate subtitles from videos on the following websites into your pr
 
 # Notes
   - Providers other than Google Translate require an API key.
-  - Create a Google AI API key and connect the free-tier Gemini 3.1 Flash Lite model to start AI translation with fast responses. (Recommended)
+  - Create a Google AI API key and connect the free-tier Gemini 3.5 Flash Lite model to start AI translation with fast responses. (Recommended)
   - Check each LLM API provider's policy for free allowances, limits, and any applicable charges.
 
 # Main Features
@@ -37,7 +37,7 @@ Naturally translate subtitles from videos on the following websites into your pr
 
   ## Simple Settings — Recommended
   1. Install the extension, then click the `Get API key` link at the bottom of Simple Settings to create a Google AI API key.
-  2. Enter the free API key in the `Google AI API key` field in Settings, then click `Check API key`. After verification succeeds, the Google AI provider and the `gemini-3.1-flash-lite` model are configured automatically.
+  2. Enter the free API key in the `Google AI API key` field in Settings, then click `Check API key`. After verification succeeds, the Google AI provider and the `gemini-3.5-flash-lite` model are configured automatically.
 
   See the introduction website's [LLM selection guide](https://mungi.github.io/ai-subtitle-translator/#llm-selection-guide) for first-time model recommendations.
 

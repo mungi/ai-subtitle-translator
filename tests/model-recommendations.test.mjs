@@ -2,15 +2,16 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { selectRecommendedModel } from "../extension/shared/model-recommendations.js";
 
-test("Google AI recommends Gemini 3.1 Flash Lite over larger and media models", () => {
+test("Google AI recommends Gemini 3.5 Flash Lite over larger and media models", () => {
   const selected = selectRecommendedModel("google", [
+    { id: "gemini-3.1-flash-lite", label: "Gemini 3.1 Flash Lite" },
     { id: "gemini-3.5-flash", label: "Gemini 3.5 Flash" },
     { id: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro" },
     { id: "gemini-3.1-flash-image", label: "Gemini 3.1 Flash Image" },
-    { id: "gemini-3.1-flash-lite", label: "Gemini 3.1 Flash Lite" }
+    { id: "gemini-3.5-flash-lite", label: "Gemini 3.5 Flash Lite" }
   ]);
 
-  assert.equal(selected.id, "gemini-3.1-flash-lite");
+  assert.equal(selected.id, "gemini-3.5-flash-lite");
 });
 
 test("provider recommendations choose configured models before lightweight fallbacks", () => {
@@ -28,7 +29,7 @@ test("provider recommendations choose configured models before lightweight fallb
 
   assert.equal(selectRecommendedModel("openrouter", [
     { id: "openai/gpt-5.5", label: "GPT 5.5" },
-    { id: "google/gemini-3.1-flash-lite", label: "Gemini 3.1 Flash Lite" },
+    { id: "google/gemini-3.5-flash-lite", label: "Gemini 3.5 Flash Lite" },
     { id: "deepseek/deepseek-v4-flash", label: "DeepSeek: DeepSeek V4 Flash" }
   ]).id, "deepseek/deepseek-v4-flash");
 

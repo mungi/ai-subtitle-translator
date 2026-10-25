@@ -59,7 +59,7 @@ function getDefaultPreviewText() {
 
 const providerFieldDefs = {
   googleTranslate: [
-    ["baseUrl", "fieldBaseUrl", "https://translate.googleapis.com/translate_a/single"]
+    ["baseUrl", "fieldBaseUrl", "https://translate.googleapis.com/translate_a/t"]
   ],
   deepl: [
     ["apiKey", "fieldApiKey", "DeepL-Auth-Key"],
@@ -763,7 +763,7 @@ function renderTargetLanguageSelect() {
   targetLanguageSelect.innerHTML = languageOptions
     .map((language) => {
       const label = getTargetLanguageLabel(language, uiLanguage);
-      return `<option value="${escapeHtml(language.code)}">${escapeHtml(label)} (${escapeHtml(language.code)})</option>`;
+      return `<option dir="auto" value="${escapeHtml(language.code)}">${escapeHtml(label)} (${escapeHtml(language.code)})</option>`;
     })
     .join("");
   targetLanguageSelect.value = selectedCode;

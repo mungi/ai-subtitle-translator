@@ -3,7 +3,7 @@ export const PROVIDERS = {
     id: "googleTranslate",
     label: "Google Translate",
     apiStyle: "google-translate",
-    baseUrl: "https://translate.googleapis.com/translate_a/single"
+    baseUrl: "https://translate.googleapis.com/translate_a/t"
   },
   deepl: {
     id: "deepl",
@@ -40,7 +40,7 @@ export const PROVIDERS = {
     apiStyle: "google-generate-content",
     baseUrl: "https://generativelanguage.googleapis.com/v1beta",
     apiKey: "",
-    model: "gemini-3.1-flash-lite",
+    model: "gemini-3.5-flash-lite",
     temperature: 0.2,
     maxTokens: 8192
   },
@@ -380,6 +380,7 @@ export function buildSystemPromptFromSettings(settings = {}) {
 }
 
 export const DEFAULT_SETTINGS = {
+  subtitleDisplayMode: "source",
   activeProvider: "googleTranslate",
   targetLanguage: "",
   translationStyle: "custom",
@@ -464,6 +465,7 @@ export const TARGET_LANGUAGES = [
   { code: "pt-BR", nativeLabel: "Português (Brasil)", labels: { ko: "포르투갈어 브라질", en: "Portuguese Brazil" } },
   { code: "ru", nativeLabel: "Русский", labels: { ko: "러시아어", en: "Russian" } },
   { code: "ar", nativeLabel: "العربية", labels: { ko: "아랍어", en: "Arabic" } },
+  { code: "fa", nativeLabel: "فارسی", labels: { ko: "페르시아어", en: "Persian" } },
   { code: "hi", nativeLabel: "हिन्दी", labels: { ko: "힌디어", en: "Hindi" } },
   { code: "id", nativeLabel: "Bahasa Indonesia", labels: { ko: "인도네시아어", en: "Indonesian" } },
   { code: "vi", nativeLabel: "Tiếng Việt", labels: { ko: "베트남어", en: "Vietnamese" } },

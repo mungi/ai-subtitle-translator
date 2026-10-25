@@ -224,7 +224,7 @@ test("simple settings messages are synchronized in Korean, English, and Japanese
   );
   assert.equal(
     message("ko", "simpleGoogleIntroGuide"),
-    "Google AI로 자막을 번역합니다. 아래 안내대로 API 키를 만든 뒤 입력하면 Gemini 3.1 Flash Lite가 자동으로 설정됩니다. API 키 확인을 눌러 연결을 확인하세요."
+    "Google AI로 자막을 번역합니다. 아래 안내대로 API 키를 만든 뒤 입력하면 Gemini 3.5 Flash Lite가 자동으로 설정됩니다. API 키 확인을 눌러 연결을 확인하세요."
   );
   assert.equal(
     message("ko", "simpleGoogleFreeTierNotice"),

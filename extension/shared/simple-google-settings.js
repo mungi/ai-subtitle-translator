@@ -1,6 +1,6 @@
 import { resolveSecretFieldValue } from "./secret-fields.js";
 
-export const SIMPLE_GOOGLE_MODEL = "gemini-3.1-flash-lite";
+export const SIMPLE_GOOGLE_MODEL = "gemini-3.5-flash-lite";
 export const SIMPLE_GOOGLE_GUIDE_LINKS = [
   { labelKey: "simpleGoogleGetApiKey", url: "https://aistudio.google.com/api-keys" },
   { labelKey: "simpleGoogleYoutubeGuide", url: "https://www.youtube.com/watch?v=PLACEHOLDER" }

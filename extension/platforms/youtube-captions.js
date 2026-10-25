@@ -323,6 +323,29 @@ export function parseYoutubeTranscriptXml(xml) {
   return cues;
 }
 
+function getYoutubeWordTimings(event, cueEnd) {
+  if (!event.segs?.some((segment) => segment.tOffsetMs !== undefined)) return undefined;
+  const words = [];
+  let offset = 0;
+  for (const segment of event.segs) {
+    const text = String(segment.utf8 || "").replace(/\s+/g, " ");
+    if (!text.trim()) {
+      if (words.length) words.at(-1).text += text;
+      continue;
+    }
+    if (segment.tOffsetMs !== undefined) offset = Number(segment.tOffsetMs);
+    const start = (Number(event.tStartMs) + offset) / 1000;
+    if (!Number.isFinite(offset) || offset < 0 || start >= cueEnd
+      || (words.length && start < words.at(-1).start)) return undefined;
+    if (words.at(-1)?.start === start) words.at(-1).text += text;
+    else words.push({ text, start });
+  }
+  if (!words.length) return undefined;
+  words[0].text = words[0].text.trimStart();
+  words.at(-1).text = words.at(-1).text.trimEnd();
+  return words.map((word, index) => ({ ...word, end: words[index + 1]?.start ?? cueEnd }));
+}
+
 export function parseYoutubeTranscriptJson3(jsonText) {
   const body = typeof jsonText === "string" ? JSON.parse(jsonText) : jsonText;
   const cues = [];
@@ -341,11 +364,13 @@ export function parseYoutubeTranscriptJson3(jsonText) {
     }
 
     const start = startMs / 1000;
+    const end = (startMs + Math.max(durationMs, 1)) / 1000;
     cues.push(normalizeCue({
       id: `yt-${cues.length}`,
       start,
-      end: start + Math.max(durationMs / 1000, 0.001),
-      text
+      end,
+      text,
+      words: getYoutubeWordTimings(event, end)
     }));
   }
 

@@ -61,15 +61,15 @@ type SubtitleDocument = {
 ## 번역 흐름
 
 1. 자막 토글 버튼 클릭 시 원문 cue를 먼저 오버레이에 렌더링한다.
-2. Google Translate cue 번역을 항상 시작하고, 이 상태는 노란색 아이콘으로 표시한다.
+2. LLM provider를 선택하고 임시 provider가 최종 provider와 다르면, 설정된 임시 번역을 먼저 실행한다. 임시 번역 상태는 노란색 아이콘으로 표시한다.
 3. 사용자가 선택한 active provider로 전체 번역을 background에서 실행한다. LLM provider를 선택한 경우에만 설정된 임시 provider 번역을 먼저 표시할 수 있다.
 4. LLM provider는 전체 subtitle JSON을 chunk 단위로 보내고, cue id 기준으로 결과를 병합한다. 현재 재생 위치의 1분을 우선 처리한 뒤 이후 구간을 먼저, 이전 구간을 나중에 처리한다. 일반 청크는 기본 최대 7분을 기준으로 하며 사용자가 2~15분 사이에서 조절할 수 있다. 내부 안전 상한은 24,000자·500 cue다. 응답이 불완전하면 해당 청크만 반으로 나눠 재시도한다.
 5. 최종 번역이 완료되면 오버레이 cue를 교체하고 아이콘을 완료색으로 바꾼다.
-6. LLM 실패 시 설정된 fallback provider를 사용한다. 기본 fallback은 Google Translate다.
+6. LLM 실패 시 Google Translate로 대체 번역한다. 번역 실패 시에는 원문 표시를 유지한다.
 
 ## Provider
 
-- Google Translate: API key 없는 `translate.googleapis.com/translate_a/single` 기반 cue 번역.
+- Google Translate: API key 없는 `translate.googleapis.com/translate_a/t`에 cue별 `q`를 반복해 POST하는 비공식 웹 번역 연동이다. 응답 개수와 빈 항목을 검증하고, 기존 `/translate_a/single` 기본 설정은 새 주소로 정규화한다. 공식 Cloud Translation API와 다르며 접근 제한이나 서비스 변경으로 실패할 수 있다.
 - DeepL: Free/Pro API.
 - OpenAI: Responses API.
 - Anthropic: Messages API.
@@ -82,12 +82,12 @@ OpenAI, Anthropic, Gemini, OpenRouter, NVIDIA NIM, Custom LLM은 옵션 화면�
 
 Hosted provider의 Base URL은 각 provider의 공식 HTTPS origin으로 제한한다. Custom LLM은 `localhost` 또는 `127.0.0.1`의 HTTP/HTTPS URL과 사용자가 런타임 접근 권한을 승인한 사용자 지정 HTTPS URL을 허용하며, URL 안의 사용자 정보와 fragment는 거부한다. 이 검사는 모델 조회와 실제 번역 요청 양쪽에 적용하고 HTTP redirect는 자동 추적하지 않는다.
 
-모델 목록 조회 후에는 실제 반환 목록에서 권장 모델을 자동 선택하고 저장한다. Google AI는 `gemini-3.1-flash-lite`, OpenAI는 `gpt-5.6-luna`, Anthropic은 `claude-haiku-4-5-20251001`, OpenRouter는 `deepseek/deepseek-v4-flash`, NVIDIA NIM은 `openai/gpt-oss-120b`를 최우선으로 선택하고 연결 테스트를 한 번 수행한다. Custom LLM은 `google/gemma-4-e4b`를 최우선으로 선택하지만 자동 연결 테스트는 실행하지 않는다. 해당 ID가 없으면 Flash-Lite, Haiku, Qwen/Gemma 소형 instruct 계열을 우선하고, 없으면 사용 가능한 첫 text model로 fallback한다. audio, realtime, transcription, image, embedding 등 자막 번역에 맞지 않는 변형은 추천 대상에서 제외한다.
+모델 목록 조회 후에는 실제 반환 목록에서 권장 모델을 자동 선택하고 저장한다. Google AI는 `gemini-3.5-flash-lite`, OpenAI는 `gpt-5.6-luna`, Anthropic은 `claude-haiku-4-5-20251001`, OpenRouter는 `deepseek/deepseek-v4-flash`, NVIDIA NIM은 `openai/gpt-oss-120b`를 최우선으로 선택하고 연결 테스트를 한 번 수행한다. Custom LLM은 `google/gemma-4-e4b`를 최우선으로 선택하지만 자동 연결 테스트는 실행하지 않는다. 해당 ID가 없으면 Flash-Lite, Haiku, Qwen/Gemma 소형 instruct 계열을 우선하고, 없으면 사용 가능한 첫 text model로 fallback한다. audio, realtime, transcription, image, embedding 등 자막 번역에 맞지 않는 변형은 추천 대상에서 제외한다.
 
 ## 설정 화면
 
 - 옵션 화면은 기본 `간단 설정`과 전체 `고급 설정` 탭으로 나뉜다.
-- 간단 설정에서는 Google AI API key 하나만 입력한다. 키가 없으면 Google Translate로 번역하며, 키를 입력하고 `API 키 확인`에 성공하면 Google AI를 활성 provider로 선택하고 모델을 `gemini-3.1-flash-lite`로 고정한다.
+- 간단 설정에서는 Google AI API key 하나만 입력한다. 키가 없으면 Google Translate로 번역하며, 키를 입력하고 `API 키 확인`에 성공하면 Google AI를 활성 provider로 선택하고 모델을 `gemini-3.5-flash-lite`로 고정한다.
 - 고급 설정에서는 지원 사이트, provider별 설정, 임시 번역, 자막 스타일, 백업·복원을 조정한다.
 
 ## 번역 스타일

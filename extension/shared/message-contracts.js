@@ -7,6 +7,7 @@ const BACKGROUND_MESSAGE_TYPES = new Set([
   "settings.updateSubtitleStyle",
   "settings.setActiveProvider",
   "settings.setTranslationStyle",
+  "settings.setSubtitleDisplayMode",
   "ast.openOptions",
   "ast.providerMenu.setOpen",
   "captions.youtube.listTracks",
@@ -33,6 +34,7 @@ const CONTENT_SCRIPT_MESSAGE_TYPES = new Set([
   "settings.updateSubtitleStyle",
   "settings.setActiveProvider",
   "settings.setTranslationStyle",
+  "settings.setSubtitleDisplayMode",
   "ast.openOptions",
   "ast.providerMenu.setOpen",
   "captions.youtube.listTracks",
@@ -176,6 +178,9 @@ export function validateBackgroundMessage(message) {
       break;
     case "settings.setTranslationStyle":
       if (!isNonEmptyValue(message.translationStyle)) error = "translationStyle is required.";
+      break;
+    case "settings.setSubtitleDisplayMode":
+      if (!["dual", "source", "translated"].includes(message.mode)) error = "Unsupported subtitle display mode.";
       break;
     case "ast.providerMenu.setOpen":
       if (typeof message.open !== "boolean") error = "open must be a boolean.";

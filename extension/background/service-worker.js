@@ -64,6 +64,24 @@ const HTTP_STATUS_REASONS = {
 };
 
 const storageAccessReady = restrictLocalStorageAccess();
+export async function registerYoutubeCaptionCapture(scripting = chrome.scripting) {
+  const id = "ast-youtube-caption-capture";
+  const registered = await scripting.getRegisteredContentScripts({ ids: [id] });
+  if (registered.length === 0) {
+    await scripting.registerContentScripts([{
+      id,
+      matches: ["https://www.youtube.com/*"],
+      js: ["content/youtube-capture-main.js"],
+      runAt: "document_start",
+      world: "MAIN",
+      allFrames: true,
+      persistAcrossSessions: true
+    }]);
+  }
+}
+if (chrome.scripting) {
+  void registerYoutubeCaptionCapture().catch((error) => console.error("[AST] Could not register YouTube caption capture:", error));
+}
 let settingsMutationQueue = Promise.resolve();
 void storageAccessReady.catch((error) => {
   console.error("[AST] Could not restrict extension storage access:", error);
@@ -84,6 +102,9 @@ async function broadcastPublicSettings() {
       "https://ted.com/talks/*",
       "https://www.ted.com/talks/*",
       "https://*.udemy.com/course/*/learn/*",
+      "https://vimeo.com/*",
+      "https://www.vimeo.com/*",
+      "https://player.vimeo.com/*",
       "https://www.nvidia.com/*/training/academy/course-player/*"
     ]
   });
@@ -202,7 +223,8 @@ export async function listProviderModels(provider) {
       case "openai": {
         const baseUrl = requireProviderValue(provider, "baseUrl", "Base URL");
         const apiKey = requireProviderValue(provider, "apiKey", "API key");
-        const body = await fetchJson(joinUrl(baseUrl, "models"), {
+        const url = joinUrl(baseUrl, "models");
+        const body = await fetchJson(url, {
           headers: { Authorization: `Bearer ${apiKey}` }
         });
         return normalizeModelList(body.data || []);
@@ -364,6 +386,18 @@ export function setTranslationStyle(translationStyle) {
   });
 }
 
+export function setSubtitleDisplayMode(mode) {
+  if (!["dual", "source", "translated"].includes(mode)) {
+    return Promise.reject(new Error(`Unsupported subtitle display mode: ${mode}`));
+  }
+  return enqueueSettingsMutation(async () => {
+    const settings = await getSettings();
+    settings.subtitleDisplayMode = mode;
+    await saveSettings(settings);
+    return { mode };
+  });
+}
+
 export function buildYoutubeTranscriptErrorResponse(error) {
   const response = {
     ok: false,
@@ -415,6 +449,13 @@ function dispatchBackgroundMessage(message, sender, sendResponse) {
 
   if (message?.type === "settings.setTranslationStyle") {
     setTranslationStyle(message.translationStyle)
+      .then((result) => sendResponse({ ok: true, result }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.type === "settings.setSubtitleDisplayMode") {
+    setSubtitleDisplayMode(message.mode)
       .then((result) => sendResponse({ ok: true, result }))
       .catch((error) => sendResponse({ ok: false, error: error.message }));
     return true;
