@@ -28,6 +28,7 @@ const MESSAGE_SUBSTITUTION_NAMES = {
   restoreKeyTestComplete: ["success", "total", "failed"],
   restoreKeyTestSuccessItem: ["provider"],
   restoreKeyTestFailureItem: ["provider", "error"],
+  reasoningSettingDetected: ["mode"],
   durationMinutes: ["minutes"],
   localLlmRequestUrl: ["url"],
   modelExample: ["model"]
@@ -394,10 +395,14 @@ async function testRestoredProviderKeys() {
   }
 
   const result = await validateConfiguredProviderKeys(settings, {
-    testProvider: (providerId) => chrome.runtime.sendMessage({
+    testProvider: async (providerId) => {
+      const response = await chrome.runtime.sendMessage({
         type: "llm.testActiveProvider",
         providerId
-      }),
+      });
+      applyReasoningProfileFromTestResponse(providerId, response);
+      return response;
+    },
     onProgress: ({ provider, current, total }) => {
       setBackupStatus(formatMessage("restoreTestingKey", {
         current,
@@ -551,6 +556,21 @@ async function persistProviderTestStatus(providerId, state = "idle", { activate 
   renderFallbackProviderSelect();
 }
 
+function applyReasoningProfileFromTestResponse(providerId, response) {
+  const profile = response?.ok && response.result?.reasoningProfile;
+  const provider = settings.providers?.[providerId];
+  if (profile && provider) provider.reasoningProfile = profile;
+}
+
+function getDetectedReasoningStatus(response) {
+  const mode = response?.result?.reasoningProfile?.mode;
+  if (!mode) return "";
+  if (mode === "omit") return t("reasoningSettingUnsupported");
+  return formatMessage("reasoningSettingDetected", {
+    mode: mode.startsWith("budget:") ? `thinkingBudget=${mode.slice(7)}` : mode
+  });
+}
+
 function clearSelectedProviderTestStatus() {
   updateProviderTestStatus(selectedProviderId, "idle");
   renderGeneralSettings();
@@ -689,7 +709,15 @@ function applySubtitlePreview() {
   readSubtitleStyleSettings();
   const style = settings.subtitleStyle || {};
   updateCustomWebFontVisibility();
-  customPreviewFontStyle.textContent = style.webFontCss || "";
+  customPreviewFontStyle.textContent = String(style.webFontCss || "")
+    .replaceAll(
+      "__AST_GOWUN_BATANG_FONT_URL__",
+      chrome.runtime.getURL("assets/fonts/gowun-batang-regular.woff")
+    )
+    .replaceAll(
+      "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2108@1.1/GowunBatang-Regular.woff",
+      chrome.runtime.getURL("assets/fonts/gowun-batang-regular.woff")
+    );
   subtitleStylePreview.style.fontSize = `${clampNumber(style.fontSize, 10, 64, 30)}px`;
   subtitleStylePreview.style.fontFamily = style.fontFamily || "Arial, sans-serif";
   subtitleStylePreview.style.color = style.textColor || "#f2f2f2";
@@ -699,7 +727,7 @@ function applySubtitlePreview() {
     ? `${outlineWidth}px ${style.outlineColor || "#000000"}`
     : "0 transparent";
   subtitleStylePreview.style.paintOrder = "stroke fill";
-  subtitleStylePreview.style.background = `rgba(${hexToRgb(style.backgroundColor)}, ${clampNumber(style.backgroundOpacity, 0, 1, 0.5)})`;
+  subtitleStylePreview.style.background = `rgba(${hexToRgb(style.backgroundColor)}, ${clampNumber(style.backgroundOpacity, 0, 1, 0.75)})`;
 }
 
 function renderGeneralSettings() {
@@ -788,7 +816,7 @@ function renderSubtitleStyleSettings() {
   subtitleStyleInputs.outlineWidth.value = style.outlineWidth ?? 2;
   subtitleStyleInputs.backgroundColor.value = style.backgroundColor || "#000000";
   subtitleStyleInputs.pendingBackgroundColor.value = style.pendingBackgroundColor || "#750000";
-  subtitleStyleInputs.backgroundOpacity.value = style.backgroundOpacity ?? 0.5;
+  subtitleStyleInputs.backgroundOpacity.value = style.backgroundOpacity ?? 0.75;
   updateCustomWebFontVisibility();
   applySubtitlePreview();
 }
@@ -1081,6 +1109,7 @@ async function fetchModelsForSelectedProvider(button) {
     } catch (error) {
       testResponse = { ok: false, error: error.message };
     }
+    applyReasoningProfileFromTestResponse(provider.id, testResponse);
     updateProviderTestStatus(provider.id, testResponse?.ok ? "success" : "idle");
     settings = await saveSettings(settings);
     renderGeneralSettings();
@@ -1089,11 +1118,12 @@ async function fetchModelsForSelectedProvider(button) {
     renderFallbackProviderSelect();
 
     if (testResponse?.ok) {
-      setStatus(formatMessage("modelsLoadedAndTested", {
+      const status = formatMessage("modelsLoadedAndTested", {
         provider: provider.label,
         model: recommendedModel.label || recommendedModel.id,
         count: provider.models.length
-      }), "success");
+      });
+      setStatus([status, getDetectedReasoningStatus(testResponse)].filter(Boolean).join(" · "), "success");
     } else {
       setStatus(formatMessage("modelsLoadedTestFailed", {
         provider: provider.label,
@@ -1328,6 +1358,7 @@ async function testSimpleGoogleApiKey() {
     }
     if (testRunId !== simpleGoogleTestRunId) return;
 
+    applyReasoningProfileFromTestResponse("google", response);
     settings = applySimpleGoogleTestResult(settings, response?.ok, activeGoogleBackup);
     settings = await saveSettings(settings);
     if (testRunId !== simpleGoogleTestRunId) return;
@@ -1335,7 +1366,7 @@ async function testSimpleGoogleApiKey() {
     renderAll();
     setSimpleSettingsStatus(
       response?.ok
-        ? t("simpleGoogleTestSuccess")
+        ? [t("simpleGoogleTestSuccess"), getDetectedReasoningStatus(response)].filter(Boolean).join(" · ")
         : `${t("simpleGoogleTestFailed")}: ${response?.error || "Unknown error"}`,
       response?.ok ? "success" : "error"
     );
@@ -1469,8 +1500,12 @@ async function testProvider() {
   }
 
   const text = response.result.text || "(empty response)";
+  applyReasoningProfileFromTestResponse(providerId, response);
   await persistProviderTestStatus(providerId, "success", { activate: true });
-  setStatus(`${response.result.providerLabel} ${t("response")}: ${text}`, "success");
+  setStatus([
+    `${response.result.providerLabel} ${t("response")}: ${text}`,
+    getDetectedReasoningStatus(response)
+  ].filter(Boolean).join(" · "), "success");
 }
 
 function renderAll() {

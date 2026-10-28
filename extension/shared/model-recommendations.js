@@ -2,8 +2,8 @@ const UNSUITABLE_MODEL_PATTERN = /(?:audio|realtime|transcri|speech|tts|image|em
 
 const PROVIDER_MODEL_PREFERENCES = {
   google: [
-    "gemini-3.5-flash-lite",
-    /gemini-3\.5-flash-lite/i,
+    "gemini-3.1-flash-lite",
+    /gemini-3\.1-flash-lite/i,
     /gemini.*flash-lite/i,
     /gemini.*flash/i
   ],

@@ -316,7 +316,7 @@ test("privacy policies exist in Korean, English, and Japanese and are linked", a
     const policy = await readFile(new URL(`../${file}`, import.meta.url), "utf8");
     assert.match(policy, /Google|Google API/);
     assert.match(policy, /OpenAI/);
-    assert.match(policy, /API key/i);
+    assert.match(policy, /API (?:key|키|キー)/i);
   }
 
   for (const file of ["README.md", "README_en.md", "README_ja.md"]) {

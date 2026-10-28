@@ -35,7 +35,7 @@ test("extension app name uses AST - AI Subtitle Translator", () => {
   );
   assert.equal(
     koreanMessages.extensionDescription.message,
-    "문맥을 이해하는 LLM으로 Udemy, YouTube, Ted 등 다양한 플랫폼의 자막을 자연스럽게 번역합니다."
+    "문맥을 이해하는 LLM으로 Udemy, YouTube, TED 등 다양한 플랫폼의 자막을 자연스럽게 번역합니다."
   );
   assert.equal(PROVIDERS.openrouter.appTitle, APP_NAME);
   assert.match(optionsJs, new RegExp(`"appTitle", "fieldXTitle", "${APP_NAME}"`));
@@ -70,7 +70,7 @@ test("store listing copy describes multi-provider support without keyword lists"
 
 test("store listing simple settings describe the automatic Gemini model setup", () => {
   for (const listing of [chromeStoreKo, chromeStoreEn, chromeStoreJa]) {
-    assert.match(listing, /gemini-3\.5-flash-lite/);
+    assert.match(listing, /gemini-3\.1-flash-lite/);
   }
 
   assert.doesNotMatch(chromeStoreKo, /# 처음 시작할 때 LLM 선택 가이드/);
@@ -85,7 +85,7 @@ test("popup headings keep AI subtitle translation branding in every locale", () 
     ko: koreanMessages.popupHeading.message
   }, {
     en: "AI Subtitle Translation",
-    ja: "AI字幕翻訳",
+    ja: "AI 字幕翻訳",
     ko: "AI 자막 번역"
   });
 });

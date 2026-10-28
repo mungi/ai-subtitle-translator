@@ -278,6 +278,7 @@ function createYoutubeHarness(options = {}) {
   const controls = new FakeElement("div");
   const videoParent = new FakeElement("div");
   const video = new FakeElement("video");
+  let currentVideo = options.videoReady === false ? null : video;
   video.currentTime = 0;
   videoParent.setRect({
     left: 0,
@@ -306,7 +307,7 @@ function createYoutubeHarness(options = {}) {
     querySelector: (selector) => {
       if (selector === "#movie_player") return moviePlayer;
       if (selector === "#movie_player .ytp-right-controls") return controls;
-      if (selector === "#movie_player video, video") return video;
+      if (selector === "#movie_player video, video") return currentVideo;
       return findById(body, selector.replace(/^#/, ""));
     },
     querySelectorAll: (selector) => body.querySelectorAll(selector),
@@ -386,6 +387,10 @@ function createYoutubeHarness(options = {}) {
           storedSettings.activeProvider = message.providerId;
           return { ok: true, result: { providerId: message.providerId } };
         }
+        if (options.pendingFinalTranslation
+          && message.type === "translation.translateDocument" && message.mode === "final") {
+          return new Promise(() => {});
+        }
         if (options.sendMessage) {
           return options.sendMessage(message, { transcriptDocument });
         }
@@ -453,6 +458,9 @@ function createYoutubeHarness(options = {}) {
     controls,
     moviePlayer,
     video,
+    setVideoReady(ready) {
+      currentVideo = ready ? video : null;
+    },
     runtimeMessageListeners,
     sentMessages,
     intervalCallbacks,
@@ -715,6 +723,56 @@ async function flushPromises() {
   }
 }
 
+test("YouTube subtitles start enabled and stay off after a manual toggle", async () => {
+  const harness = createYoutubeHarness();
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
+  await flushPromises();
+  await flushPromises();
+
+  const button = harness.controls.querySelector("#ast-toolbar-button");
+  assert.equal(button.getAttribute("aria-pressed"), "true");
+  assert.equal(harness.sentMessages.filter((message) => message.type === "captions.youtube.fetchTranscript").length, 1);
+
+  button.dispatchEvent({ type: "click", stopPropagation() {}, preventDefault() {} });
+  await flushPromises();
+  const menu = harness.context.document.getElementById("ast-provider-menu");
+  menu.children.find((item) => item.className.includes("ast-provider-toggle-item"))
+    .dispatchEvent({ type: "click", stopPropagation() {}, preventDefault() {} });
+  await flushPromises();
+  assert.equal(button.getAttribute("aria-pressed"), "false");
+
+  for (const callback of harness.intervalCallbacks) callback();
+  await flushPromises();
+  assert.equal(button.getAttribute("aria-pressed"), "false");
+  assert.equal(harness.sentMessages.filter((message) => message.type === "captions.youtube.fetchTranscript").length, 1);
+});
+
+test("YouTube subtitles start when a late video player becomes ready", async () => {
+  const harness = createYoutubeHarness({ videoReady: false });
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
+  await flushPromises();
+
+  const button = harness.controls.querySelector("#ast-toolbar-button");
+  assert.equal(button.getAttribute("aria-pressed"), "false");
+  assert.equal(harness.sentMessages.some((message) => message.type === "captions.youtube.fetchTranscript"), false);
+
+  harness.setVideoReady(true);
+  for (const callback of harness.intervalCallbacks) callback();
+  await flushPromises();
+  assert.equal(button.getAttribute("aria-pressed"), "true");
+  assert.equal(harness.sentMessages.filter((message) => message.type === "captions.youtube.fetchTranscript").length, 1);
+});
+
+test("Udemy subtitles start enabled on a ready lecture", async () => {
+  const harness = createUdemyHarness();
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
+  await flushPromises();
+  await flushPromises();
+
+  assert.equal(harness.controls.querySelector("#ast-toolbar-button").getAttribute("aria-pressed"), "true");
+  assert.equal(harness.sentMessages.filter((message) => message.type === "captions.udemy.fetchTranscript").length, 1);
+});
+
 test("overlapping YouTube cues select the latest started cue at the shared boundary", async () => {
   const harness = createYoutubeHarness();
   const source = readFileSync("extension/content/content-script.js", "utf8");
@@ -730,7 +788,7 @@ test("overlapping YouTube cues select the latest started cue at the shared bound
   assert.equal(harness.context.findActiveCue(cues, 10), null);
 });
 
-test("subtitle display defaults to source and switches modes without retranslating", async () => {
+test("subtitle display defaults to translation and switches modes without retranslating", async () => {
   const harness = createYoutubeHarness({ settings: { subtitleDisplayMode: undefined } });
   vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
   await flushPromises();
@@ -738,14 +796,14 @@ test("subtitle display defaults to source and switches modes without retranslati
   await flushPromises();
   const overlay = harness.context.document.getElementById("ast-subtitle-overlay");
   harness.context.applyTranslatedCues(harness.video, [{ id: "yt-0", start: 50, end: 60, text: "안녕하세요" }]);
-  assert.equal(overlay.textContent, "Hello world");
+  assert.equal(overlay.textContent, "안녕하세요");
   assert.equal(harness.video.astSubtitleCues[0].start, 0);
   assert.equal(harness.video.astSubtitleCues[0].end, 5);
   const translationCount = harness.sentMessages.filter((m) => m.type === "translation.translateDocument").length;
   const list = harness.context.document.getElementById("ast-provider-menu").querySelector(".ast-subtitle-display-list");
   assert.ok(list);
   assert.deepEqual(list.children.map((item) => item.dataset.mode), ["dual", "source", "translated"]);
-  assert.equal(list.children[1].getAttribute("aria-checked"), "true");
+  assert.equal(list.children[2].getAttribute("aria-checked"), "true");
   list.children[0].dispatchEvent({ type: "click", stopPropagation() {} });
   await flushPromises();
   assert.equal(overlay.textContent, "Hello world\n안녕하세요");
@@ -923,7 +981,7 @@ test("untimed YouTube captions decode entities and show estimated speech progres
   assert.equal(words.at(-1).dataset.state, "pending");
   assert.equal(Number(words.at(-1).dataset.end), 4);
   assert.equal(overlay.style.color, "#ffe5a3");
-  assert.match(contentCss, /\.ast-subtitle-word\[data-state="pending"\]\s*\{[^}]*color: #666666;/);
+  assert.match(contentCss, /\.ast-subtitle-word\[data-state="pending"\]\s*\{[^}]*color: #A3A3A3;/);
   assert.doesNotMatch(contentCss, /\.ast-subtitle-word\[data-state="active"\]\s*\{[^}]*background:/);
   frame(2, { mediaTime: 3.9 });
   assert.equal(words.at(-1).dataset.state, "active");
@@ -1003,6 +1061,7 @@ for (const platform of ["youtube", "udemy", "ted", "nvidia", "vimeo"]) {
 }
 
 async function clickAstToggle(button) {
+  const alreadyEnabled = button.getAttribute("aria-pressed") === "true";
   button.dispatchEvent({
     type: "click",
     button: 0,
@@ -1011,6 +1070,11 @@ async function clickAstToggle(button) {
   });
   await flushPromises();
 
+  if (alreadyEnabled) {
+    await flushPromises();
+    await flushPromises();
+    return;
+  }
   let root = button;
   while (root.parentElement) root = root.parentElement;
   const menu = findById(root, "ast-provider-menu");
@@ -1110,7 +1174,7 @@ test("toolbar button opens a platform-styled provider menu before toggling AST",
   );
   assert.equal(styleSubmenu.classList.values.has("open"), false);
   assert.equal(menu.children.at(-1).children[0].textContent, "설정 열기");
-  assert.equal(sentMessages.some((message) => message.type.includes("fetchTranscript")), false);
+  assert.equal(sentMessages.some((message) => message.type.includes("fetchTranscript")), true);
   menu.children.at(-1).dispatchEvent({ type: "click", stopPropagation: () => {} });
   await flushPromises();
   assert.ok(sentMessages.some((message) => message.type === "ast.openOptions"));
@@ -1356,7 +1420,7 @@ test("Udemy toolbar opens the independently styled AST provider menu", async () 
     menu.children.filter((item) => item.dataset.providerId).map((item) => item.dataset.providerId),
     ["googleTranslate", "deepl"]
   );
-  assert.equal(harness.sentMessages.some((message) => message.type.includes("fetchTranscript")), false);
+  assert.equal(harness.sentMessages.some((message) => message.type.includes("fetchTranscript")), true);
 });
 
 test("Udemy transcript panel inserts each final translation below its matching cue", async () => {
@@ -1497,7 +1561,7 @@ test("provider menu persists selection, starts at current time, and shows only i
 
   assert.ok(harness.sentMessages.some((message) => message.type === "settings.setActiveProvider"
     && message.providerId === "deepl"));
-  const translationMessage = harness.sentMessages.find((message) => message.type === "translation.translateDocument");
+  const translationMessage = harness.sentMessages.findLast((message) => message.type === "translation.translateDocument");
   assert.equal(translationMessage.providerId, "deepl");
   assert.equal(translationMessage.mode, "final");
   assert.equal(translationMessage.initialStartTime, 77);
@@ -1649,7 +1713,7 @@ test("a cached LLM result replaces temporary subtitles and keeps the completed U
   assert.equal(overlay.textContent, "캐시된 최종 번역");
   assert.equal(button.classList.values.has("temporary"), false);
   assert.equal(button.classList.values.has("complete"), true);
-  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.5)");
+  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.75)");
 
   harness.runtimeMessageListeners[0]({
     type: "translation.progress",
@@ -1829,7 +1893,8 @@ test("videos without captions turn AST off, hide the preparing overlay, and show
   assert.equal(button.classList.values.has("fallback"), false);
   const menu = moviePlayer.querySelector("#ast-provider-menu");
   const toggleItem = menu.children.find((item) => item.className.includes("ast-provider-toggle-item"));
-  assert.equal(toggleItem.getAttribute("aria-checked"), "false");
+  const toggleControl = toggleItem.children.find((item) => item.className.includes("ast-provider-toggle-control"));
+  assert.equal(toggleControl.getAttribute("aria-checked"), "false");
 });
 
 test("async caption-list unavailable errors also clear the preparing state", async () => {
@@ -1947,6 +2012,7 @@ test("TED autoplay clears the completed state while the next player context is l
   await flushPromises();
   vm.runInNewContext(`
     subtitleState.enabled = true;
+    subtitleState.autoEnablePending = false;
     subtitleState.currentPlatform = "ted";
     subtitleState.currentRouteKey = "previous_talk";
     subtitleState.translationPhase = "complete";
@@ -2712,12 +2778,12 @@ test("subtitle visual size scales relative to the current player size", async ()
   });
 
   assert.equal(large.overlay.style.fontSize, "45px");
-  assert.equal(large.overlay.style.width, "1080px");
+  assert.equal(large.overlay.style.width, "1536px");
   assert.equal(large.overlay.style.padding, "12px 21px");
   assert.equal(large.overlay.style.webkitTextStroke, "3px #000000");
   assert.equal(large.overlay.style.paintOrder, "stroke fill");
   assert.equal(small.overlay.style.fontSize, "15px");
-  assert.equal(small.overlay.style.width, "360px");
+  assert.equal(small.overlay.style.width, "512px");
   assert.equal(small.overlay.style.padding, "4px 7px");
   assert.equal(small.overlay.style.webkitTextStroke, "1px #000000");
   assert.equal(small.overlay.style.paintOrder, "stroke fill");
@@ -2765,7 +2831,10 @@ test("subtitle overlay keeps user relative width but auto-fits height inside the
 });
 
 test("final LLM progress switches subtitle background and toolbar icon to complete", async () => {
-  const { controls, overlay, runtimeMessageListeners } = await loadYoutubeOverlay();
+  const { controls, overlay, runtimeMessageListeners } = await loadYoutubeOverlay({
+    settings: { activeProvider: "openai" },
+    pendingFinalTranslation: true
+  });
   const button = controls.querySelector("#ast-toolbar-button");
 
   for (const listener of runtimeMessageListeners) {
@@ -2788,7 +2857,7 @@ test("final LLM progress switches subtitle background and toolbar icon to comple
     });
   }
 
-  assert.equal(overlay.style.background, "rgba(117, 0, 0, 0.5)");
+  assert.equal(overlay.style.background, "rgba(117, 0, 0, 0.75)");
   assert.equal(button.classList.values.has("temporary"), true);
 
   for (const listener of runtimeMessageListeners) {
@@ -2811,7 +2880,7 @@ test("final LLM progress switches subtitle background and toolbar icon to comple
     });
   }
 
-  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.5)");
+  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.75)");
   assert.equal(button.classList.values.has("temporary"), false);
   assert.equal(button.classList.values.has("complete"), true);
   assert.equal(button.classList.values.has("fallback"), false);
@@ -2874,7 +2943,7 @@ test("YouTube final translation shows pending colors until the final response co
 
   const overlay = context.document.getElementById("ast-subtitle-overlay");
   assert.equal(overlay.textContent, "Hello world");
-  assert.equal(overlay.style.background, "rgba(117, 0, 0, 0.5)");
+  assert.equal(overlay.style.background, "rgba(117, 0, 0, 0.75)");
   assert.equal(button.classList.values.has("temporary"), true);
   assert.equal(button.classList.values.has("complete"), false);
 
@@ -2898,7 +2967,7 @@ test("YouTube final translation shows pending colors until the final response co
   await flushPromises();
 
   assert.equal(overlay.textContent, "Final translated subtitle");
-  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.5)");
+  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.75)");
   assert.equal(button.classList.values.has("temporary"), false);
   assert.equal(button.classList.values.has("complete"), true);
 });
@@ -2914,7 +2983,11 @@ test("current YouTube cue final progress switches from pending to current-ready 
       { id: "yt-2", start: 10, end: 15, text: "Third cue" }
     ]
   };
-  const harness = createYoutubeHarness({ transcriptDocument });
+  const harness = createYoutubeHarness({
+    transcriptDocument,
+    settings: { activeProvider: "openai" },
+    pendingFinalTranslation: true
+  });
   const source = readFileSync("extension/content/content-script.js", "utf8");
 
   vm.runInNewContext(source, harness.context, {
@@ -2928,7 +3001,7 @@ test("current YouTube cue final progress switches from pending to current-ready 
   const video = harness.context.document.querySelector("#movie_player video, video");
   const overlay = harness.context.document.getElementById("ast-subtitle-overlay");
   assert.equal(button.classList.values.has("temporary"), true);
-  assert.equal(overlay.style.background, "rgba(117, 0, 0, 0.5)");
+  assert.equal(overlay.style.background, "rgba(117, 0, 0, 0.75)");
 
   for (const listener of harness.runtimeMessageListeners) {
     listener({
@@ -2948,7 +3021,7 @@ test("current YouTube cue final progress switches from pending to current-ready 
   assert.equal(button.classList.values.has("current"), true);
   assert.equal(button.classList.values.has("temporary"), false);
   assert.equal(button.classList.values.has("complete"), false);
-  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.5)");
+  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.75)");
   assert.equal(overlay.textContent, "First final subtitle");
 
   video.currentTime = 6;
@@ -2956,7 +3029,7 @@ test("current YouTube cue final progress switches from pending to current-ready 
 
   assert.equal(button.classList.values.has("current"), false);
   assert.equal(button.classList.values.has("temporary"), true);
-  assert.equal(overlay.style.background, "rgba(117, 0, 0, 0.5)");
+  assert.equal(overlay.style.background, "rgba(117, 0, 0, 0.75)");
   assert.equal(overlay.textContent, "Second cue");
 
   for (const listener of harness.runtimeMessageListeners) {
@@ -2977,7 +3050,7 @@ test("current YouTube cue final progress switches from pending to current-ready 
   assert.equal(button.classList.values.has("current"), true);
   assert.equal(button.classList.values.has("temporary"), false);
   assert.equal(button.classList.values.has("complete"), false);
-  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.5)");
+  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.75)");
   assert.equal(overlay.textContent, "Second final subtitle");
 
   for (const listener of harness.runtimeMessageListeners) {
@@ -2998,7 +3071,7 @@ test("current YouTube cue final progress switches from pending to current-ready 
   assert.equal(button.classList.values.has("current"), false);
   assert.equal(button.classList.values.has("complete"), true);
   assert.equal(button.classList.values.has("temporary"), false);
-  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.5)");
+  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.75)");
 });
 
 test("out-of-order parallel final progress waits for every chunk before completing", async () => {
@@ -3012,7 +3085,11 @@ test("out-of-order parallel final progress waits for every chunk before completi
       { id: "yt-2", start: 10, end: 15, text: "Third cue" }
     ]
   };
-  const harness = createYoutubeHarness({ transcriptDocument });
+  const harness = createYoutubeHarness({
+    transcriptDocument,
+    settings: { activeProvider: "openai" },
+    pendingFinalTranslation: true
+  });
   const source = readFileSync("extension/content/content-script.js", "utf8");
   vm.runInNewContext(source, harness.context, { filename: "extension/content/content-script.js" });
   await flushPromises();
@@ -3141,7 +3218,11 @@ test("intermediate final LLM progress does not mark YouTube subtitles complete",
       { id: "yt-1", start: 5, end: 10, text: "Second cue" }
     ]
   };
-  const harness = createYoutubeHarness({ transcriptDocument });
+  const harness = createYoutubeHarness({
+    transcriptDocument,
+    settings: { activeProvider: "openai" },
+    pendingFinalTranslation: true
+  });
   const source = readFileSync("extension/content/content-script.js", "utf8");
 
   vm.runInNewContext(source, harness.context, {
@@ -3177,7 +3258,7 @@ test("intermediate final LLM progress does not mark YouTube subtitles complete",
   assert.equal(button.classList.values.has("complete"), false);
   assert.equal(button.classList.values.has("current"), true);
   assert.equal(button.classList.values.has("temporary"), false);
-  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.5)");
+  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.75)");
   assert.equal(overlay.textContent, "First LLM chunk subtitle");
 });
 
@@ -3191,7 +3272,11 @@ test("final LLM cue coverage marks YouTube subtitles complete even before final 
       { id: "yt-1", start: 5, end: 10, text: "Second cue" }
     ]
   };
-  const harness = createYoutubeHarness({ transcriptDocument });
+  const harness = createYoutubeHarness({
+    transcriptDocument,
+    settings: { activeProvider: "openai" },
+    pendingFinalTranslation: true
+  });
   const source = readFileSync("extension/content/content-script.js", "utf8");
 
   vm.runInNewContext(source, harness.context, {
@@ -3221,7 +3306,7 @@ test("final LLM cue coverage marks YouTube subtitles complete even before final 
 
   assert.equal(button.classList.values.has("complete"), false);
   assert.equal(button.classList.values.has("current"), true);
-  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.5)");
+  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.75)");
 
   for (const listener of harness.runtimeMessageListeners) {
     listener({
@@ -3240,7 +3325,7 @@ test("final LLM cue coverage marks YouTube subtitles complete even before final 
 
   assert.equal(button.classList.values.has("complete"), true);
   assert.equal(button.classList.values.has("temporary"), false);
-  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.5)");
+  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.75)");
   assert.equal(overlay.textContent, "First final subtitle");
 });
 
@@ -3272,7 +3357,7 @@ test("final LLM progress repaints the current YouTube overlay after DOM replacem
   assert.notEqual(currentOverlay, overlay);
   assert.equal(currentOverlay.parentElement, moviePlayer);
   assert.equal(currentOverlay.textContent, "LLM translated after replacement");
-  assert.equal(currentOverlay.style.background, "rgba(0, 0, 0, 0.5)");
+  assert.equal(currentOverlay.style.background, "rgba(0, 0, 0, 0.75)");
 });
 
 test("final LLM progress repaints the current Udemy video overlay after video replacement", async () => {
@@ -3314,7 +3399,7 @@ test("final LLM progress repaints the current Udemy video overlay after video re
   assert.ok(currentOverlay, "expected the replacement Udemy video parent to receive an overlay");
   assert.equal(replacement.astSubtitleCues[0].text, "Udemy LLM translated subtitle");
   assert.equal(currentOverlay.textContent, "Udemy LLM translated subtitle");
-  assert.equal(currentOverlay.style.background, "rgba(0, 0, 0, 0.5)");
+  assert.equal(currentOverlay.style.background, "rgba(0, 0, 0, 0.75)");
 });
 
 test("Udemy automatic refresh waits silently while lecture page data is temporarily missing", async () => {
@@ -3406,7 +3491,11 @@ test("late temporary progress does not overwrite current-ready YouTube LLM subti
       { id: "yt-1", start: 5, end: 10, text: "Second cue" }
     ]
   };
-  const harness = createYoutubeHarness({ transcriptDocument });
+  const harness = createYoutubeHarness({
+    transcriptDocument,
+    settings: { activeProvider: "openai" },
+    pendingFinalTranslation: true
+  });
   const source = readFileSync("extension/content/content-script.js", "utf8");
 
   vm.runInNewContext(source, harness.context, {
@@ -3454,7 +3543,7 @@ test("late temporary progress does not overwrite current-ready YouTube LLM subti
 
   assert.equal(button.classList.values.has("current"), true);
   assert.equal(button.classList.values.has("temporary"), false);
-  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.5)");
+  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.75)");
   assert.equal(overlay.textContent, "First final subtitle");
 });
 
@@ -3528,7 +3617,7 @@ test("late temporary response does not overwrite completed YouTube LLM subtitles
   assert.equal(overlay.textContent, "LLM translated subtitle");
 });
 
-test("fallback final progress shows a toast, uses completed background, and marks the toolbar icon", async () => {
+test("fallback final progress shows a toast, uses temporary background, and marks the toolbar icon", async () => {
   const { context, controls, moviePlayer, overlay, runtimeMessageListeners } = await loadYoutubeOverlay();
   const button = controls.querySelector("#ast-toolbar-button");
 
@@ -3553,7 +3642,7 @@ test("fallback final progress shows a toast, uses completed background, and mark
     });
   }
 
-  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.5)");
+  assert.equal(overlay.style.background, "rgba(117, 0, 0, 0.75)");
   assert.equal(button.classList.values.has("temporary"), false);
   assert.equal(button.classList.values.has("complete"), false);
   assert.equal(button.classList.values.has("fallback"), true);
@@ -3794,7 +3883,10 @@ test("YouTube toolbar button hides the player-mounted overlay on second click", 
 
   assert.equal(overlay.hidden, false);
 
-  await clickAstToggle(button);
+  const menu = findById(controls.parentElement, "ast-provider-menu");
+  menu.children.find((item) => item.className.includes("ast-provider-toggle-item"))
+    .dispatchEvent({ type: "click", stopPropagation() {}, preventDefault() {} });
+  await flushPromises();
 
   assert.equal(overlay.dataset.disabled, "true");
   assert.equal(overlay.hidden, true);

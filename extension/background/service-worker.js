@@ -1,7 +1,7 @@
 import { getPublicSettings, getSettings, restrictLocalStorageAccess, saveSettings, updateSubtitleStyleSettings } from "../shared/storage.js";
 import { TRANSLATION_STYLES } from "../shared/defaults.js";
 import { validateBackgroundMessage, validateMessageSender } from "../shared/message-contracts.js";
-import { ANTHROPIC_DIRECT_BROWSER_ACCESS_HEADER, buildProviderRequest, extractText, shouldRetryOpenRouterWithoutReasoning } from "../shared/provider-request.js";
+import { ANTHROPIC_DIRECT_BROWSER_ACCESS_HEADER, buildProviderRequest, createReasoningProfile, extractText, getReasoningProbeModes, isReasoningOptionError } from "../shared/provider-request.js";
 import { sanitizeProviderErrorMessage } from "../shared/provider-error-sanitizer.js";
 import { assertProviderEndpoint } from "../shared/provider-security.js";
 import { translateSubtitleDocument } from "../shared/translation.js";
@@ -13,6 +13,7 @@ import { fetchTedCaptionTracks, fetchTedTranscript } from "../platforms/ted-capt
 const TEST_SYSTEM_PROMPT = "You are a concise API connection tester. Reply with only the word OK.";
 const TEST_INPUT = "Return OK if you can read this message.";
 export const PROVIDER_CONNECTION_TEST_MAX_TOKENS = 128;
+const activeTranslationRequests = new Map();
 const HTTP_STATUS_REASONS = {
   300: "Multiple Choices",
   301: "Moved Permanently",
@@ -286,7 +287,7 @@ export async function listProviderModels(provider) {
   }
 }
 
-async function testActiveProvider(providerId) {
+export async function testActiveProvider(providerId) {
   const settings = await getSettings();
   const provider = settings.providers[providerId || settings.activeProvider];
   if (!provider) {
@@ -327,31 +328,29 @@ async function testActiveProvider(providerId) {
       structuredOutput: false,
       maxTokens: PROVIDER_CONNECTION_TEST_MAX_TOKENS
     };
-    let request = buildProviderRequest(provider, requestOptions);
-    let response = await fetch(request.url, request.init);
-    let responseBody = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
+    let responseBody;
+    let reasoningMode;
+    const probeModes = getReasoningProbeModes(provider);
+    for (const mode of probeModes) {
+      const request = buildProviderRequest(provider, { ...requestOptions, reasoningMode: mode });
+      const response = await fetch(request.url, request.init);
+      responseBody = await response.json().catch(() => ({}));
+      if (response.ok) {
+        reasoningMode = mode;
+        break;
+      }
       const detail = responseBody.error?.message || responseBody.message || response.statusText;
       const error = new Error(formatHttpErrorMessage(response.status, detail, response.statusText));
       error.status = response.status;
-      if (shouldRetryOpenRouterWithoutReasoning(provider, error)) {
-        provider.disableReasoning = false;
-        request = buildProviderRequest(provider, requestOptions);
-        response = await fetch(request.url, request.init);
-        responseBody = await response.json().catch(() => ({}));
-      }
-    }
-
-    if (!response.ok) {
-      const detail = responseBody.error?.message || responseBody.message || response.statusText;
-      throw new Error(formatHttpErrorMessage(response.status, detail, response.statusText));
+      error.details = JSON.stringify(responseBody.error || responseBody);
+      if (!isReasoningOptionError(error) || mode === probeModes.at(-1)) throw error;
     }
 
     return {
       providerId: provider.id,
       providerLabel: provider.label,
       text: extractText(provider, responseBody).trim(),
+      reasoningProfile: createReasoningProfile(provider, reasoningMode),
       raw: responseBody
     };
   } catch (error) {
@@ -412,6 +411,24 @@ export function buildYoutubeTranscriptErrorResponse(error) {
 }
 
 function dispatchBackgroundMessage(message, sender, sendResponse) {
+  if (message?.type === "fonts.getBundledGowun") {
+    fetch(chrome.runtime.getURL("assets/fonts/gowun-batang-regular.woff"))
+      .then((response) => {
+        if (!response.ok) throw new Error(`Bundled font load failed: HTTP ${response.status}`);
+        return response.arrayBuffer();
+      })
+      .then((fontData) => {
+        const bytes = new Uint8Array(fontData);
+        let binary = "";
+        for (let offset = 0; offset < bytes.length; offset += 32768) {
+          binary += String.fromCharCode(...bytes.subarray(offset, offset + 32768));
+        }
+        sendResponse({ ok: true, fontBase64: btoa(binary) });
+      })
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
   if (message?.type === "settings.getPublic") {
     getPublicSettings()
       .then((settings) => sendResponse({ ok: true, settings }))
@@ -574,12 +591,16 @@ function dispatchBackgroundMessage(message, sender, sendResponse) {
   }
 
   if (message?.type === "translation.translateDocument") {
+    const requestKey = `${sender.tab?.id ?? "tab"}:${sender.frameId ?? 0}:${message.requestId || crypto.randomUUID()}`;
+    const controller = new AbortController();
+    activeTranslationRequests.set(requestKey, controller);
     translateSubtitleDocument(message.document, {
       providerId: message.providerId,
       forceNoCache: Boolean(message.forceNoCache),
       initialStartTime: message.initialStartTime,
+      signal: controller.signal,
       onProgress: (progress) => {
-        if (Number.isInteger(sender.tab?.id) && sender.tab.id >= 0) {
+        if (!controller.signal.aborted && Number.isInteger(sender.tab?.id) && sender.tab.id >= 0) {
           chrome.tabs.sendMessage(sender.tab.id, {
             type: "translation.progress",
             videoId: message.document?.videoId,
@@ -591,12 +612,38 @@ function dispatchBackgroundMessage(message, sender, sendResponse) {
       }
     })
       .then((document) => sendResponse({ ok: true, document }))
-      .catch((error) => sendResponse({ ok: false, error: error.message }));
+      .catch((error) => sendResponse({ ok: false, error: error.message }))
+      .finally(() => {
+        if (activeTranslationRequests.get(requestKey) === controller) activeTranslationRequests.delete(requestKey);
+      });
     return true;
+  }
+
+  if (message?.type === "translation.cancelRequest") {
+    const requestKey = `${sender.tab?.id ?? "tab"}:${sender.frameId ?? 0}:${message.requestId}`;
+    activeTranslationRequests.get(requestKey)?.abort();
+    sendResponse({ ok: true });
+    return false;
   }
 
   if (message?.type === "translation.clearCache") {
     chrome.storage.local.remove("translationCache")
+      .then(() => sendResponse({ ok: true }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.type === "translation.clearVideoCache") {
+    chrome.storage.local.get("translationCache")
+      .then(({ translationCache = {} }) => {
+        const remaining = Object.fromEntries(Object.entries(translationCache || {}).filter(([, entry]) => (
+          entry?.document?.platform !== message.platform
+          || String(entry.document.videoId) !== String(message.videoId)
+        )));
+        return Object.keys(remaining).length > 0
+          ? chrome.storage.local.set({ translationCache: remaining })
+          : chrome.storage.local.remove("translationCache");
+      })
       .then(() => sendResponse({ ok: true }))
       .catch((error) => sendResponse({ ok: false, error: error.message }));
     return true;

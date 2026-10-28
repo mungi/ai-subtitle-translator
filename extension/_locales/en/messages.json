@@ -3,7 +3,7 @@
     "message": "AST - AI Subtitle Translator Settings"
   },
   "subtitle": {
-    "message": "Configure the provider that translates Udemy, YouTube, TED, NVIDIA Academy, and Vimeo subtitles with full document context."
+    "message": "Configure a provider to translate Udemy, YouTube, TED, NVIDIA Academy, and Vimeo subtitles using the full subtitle context."
   },
   "testProvider": {
     "message": "Test connection"
@@ -39,7 +39,7 @@
     "message": "Hide API key"
   },
   "simpleGoogleIntroGuide": {
-    "message": "Translate subtitles with Google AI. Create an API key using the guide below and enter it here; Gemini 3.5 Flash Lite is set automatically. Select Check API key to verify the connection."
+    "message": "Translate subtitles with Google AI. Create an API key using the guide below and enter it here; Gemini 3.1 Flash Lite is set automatically. Select Check API key to verify the connection."
   },
   "simpleGoogleTestApiKey": {
     "message": "Check API key"
@@ -75,7 +75,7 @@
     "message": "Make sure the billing tier for the project you created is 'Free'."
   },
   "simpleGoogleKeyGuideStep5": {
-    "message": "Paste the key above. Gemini 3.5 Flash Lite is set automatically. Select Check API key to verify the connection."
+    "message": "Paste the key above. Gemini 3.1 Flash Lite is set automatically. Select Check API key to verify the connection."
   },
   "simpleGoogleFreeTierNotice": {
     "message": "The Free tier has usage limits. Daily request quotas reset at midnight Pacific time."
@@ -84,13 +84,13 @@
     "message": "Treat your API key like a password. Do not share it or put it in public documents."
   },
   "simpleGoogleApiKeyRequired": {
-    "message": "Enter a Google AI API Key."
+    "message": "Enter a Google AI API key."
   },
   "simpleGoogleTesting": {
     "message": "Checking the Google AI connection."
   },
   "simpleGoogleTestSuccess": {
-    "message": "Google AI is connected and Gemini 3.5 Flash Lite is active."
+    "message": "Google AI is connected and Gemini 3.1 Flash Lite is active."
   },
   "simpleGoogleTestFailed": {
     "message": "Google AI connection failed. Your current translation provider is unchanged."
@@ -126,7 +126,7 @@
     "message": "Temporary Translation"
   },
   "fallbackDescription": {
-    "message": "LLM translation can take time. Choose the temporary provider to show first while it is running.\nDeepL becomes selectable after you enter an API key and pass the connection test."
+    "message": "LLM translation can take time. Choose a provider whose temporary translation will be shown while LLM translation is in progress.\nDeepL becomes selectable after you enter an API key and pass the connection test."
   },
   "fallbackProvider": {
     "message": "Temporary provider"
@@ -195,7 +195,7 @@
     "message": "Background opacity"
   },
   "localCheckTitle": {
-    "message": "How to check Custom LLM"
+    "message": "How to test Custom LLM"
   },
   "openRouterNitro": {
     "message": "Use Nitro (prefer faster providers)"
@@ -289,7 +289,16 @@
     "message": "Test failed"
   },
   "response": {
-    "message": "response"
+    "message": "Response"
+  },
+  "reasoningSettingDetected": {
+    "message": "Reasoning setting: $mode$",
+    "placeholders": {
+      "mode": { "content": "$1", "example": "minimal" }
+    }
+  },
+  "reasoningSettingUnsupported": {
+    "message": "Reasoning option unsupported"
   },
   "resetDone": {
     "message": "All settings reset."
@@ -319,7 +328,7 @@
     "message": "Back Up / Restore Current Settings"
   },
   "backupRestoreDescription": {
-    "message": "Back up or restore current settings, including API keys, in an encrypted file. The backup password is not stored, so keep it safe."
+    "message": "Back up your current settings, including API keys, to an encrypted file, or restore them from a backup. The backup password is not stored, so keep it safe."
   },
   "backupSeedLabel": {
     "message": "Backup password"
@@ -331,7 +340,7 @@
     "message": "Backup Password"
   },
   "backupSeedPlaceholder": {
-    "message": "8+ letters, numbers, and special characters"
+    "message": "8+ characters: letters, numbers, and symbols"
   },
   "backupSeedGuide": {
     "message": "Use at least 8 characters with one letter, one number, and one special character. Regular spaces are allowed inside the password."
@@ -352,10 +361,10 @@
     "message": "Decrypting the backup file and restoring settings..."
   },
   "restoreComplete": {
-    "message": "Backup settings restored."
+    "message": "Settings restored from backup."
   },
   "restoreTestKeysConfirm": {
-    "message": "Test the connection validity of API keys in the restored settings now?\nOne minimal connection request will be sent to each provider."
+    "message": "Test the API keys in the restored settings now?\nOne minimal connection request will be sent to each provider."
   },
   "restoreTestingKey": {
     "message": "Testing API key connection ($current$/$total$): $provider$",
@@ -536,8 +545,32 @@
   "contentMenuTitle": {
     "message": "AST translation menu"
   },
+  "contentStatusOff": {
+    "message": "Subtitles off"
+  },
+  "contentStatusEnabled": {
+    "message": "Subtitles on"
+  },
+  "contentStatusSource": {
+    "message": "Showing source subtitles"
+  },
+  "contentStatusTemporary": {
+    "message": "Showing temporary translation"
+  },
+  "contentStatusCurrent": {
+    "message": "Current subtitle translated; translating the rest"
+  },
+  "contentStatusComplete": {
+    "message": "Translation complete"
+  },
+  "contentStatusFallback": {
+    "message": "Showing fallback translation"
+  },
   "contentToggleSubtitles": {
     "message": "AI Subtitle Translation"
+  },
+  "contentRetranslateCurrentVideo": {
+    "message": "Retranslate this video"
   },
   "contentSourceCaptions": {
     "message": "Source subtitles"
@@ -627,10 +660,10 @@
     "message": "Base URL"
   },
   "fieldApiKey": {
-    "message": "API Key"
+    "message": "API key"
   },
   "fieldApiKeyOptional": {
-    "message": "API Key (optional)"
+    "message": "API key (optional)"
   },
   "fieldPlan": {
     "message": "Plan"
@@ -669,19 +702,19 @@
     "message": "DeepL API provider. Find the API key on the DeepL account API keys page, then configure the endpoint for your Free or Pro plan. The Free plan has monthly character usage limits."
   },
   "providerGuideOpenai": {
-    "message": "Uses the OpenAI Responses API. Create an API key in the OpenAI Platform API keys page, then enter a model available to your account. Usage limits and pricing can vary by account, model, and tier."
+    "message": "Uses the OpenAI Responses API. Create an API key on the OpenAI Platform API keys page, then enter a model available to your account. Usage limits and pricing can vary by account, model, and tier."
   },
   "providerGuideAnthropic": {
-    "message": "Uses the Anthropic Messages API. Create an API key in the Claude Platform keys page. Requests include the anthropic-version header. Usage limits and pricing can vary by account, model, and tier."
+    "message": "Uses the Anthropic Messages API. Create an API key on the Claude Platform keys page. Requests include the anthropic-version header. Usage limits and pricing can vary by account, model, and tier."
   },
   "providerGuideGoogle": {
     "message": "Uses the Google AI Gemini generateContent API. You can create an API key in Google AI Studio, and the key is sent as a URL query parameter. Rate limits and pricing can vary by project, model, and tier."
   },
   "providerGuideOpenrouter": {
-    "message": "Uses OpenRouter's OpenAI-compatible chat/completions API. Create an API key in the OpenRouter keys page. The free plan and free-model API usage are rate limited."
+    "message": "Uses OpenRouter's OpenAI-compatible chat/completions API. Create an API key on the OpenRouter keys page. The free plan and free-model API usage are rate limited."
   },
   "providerGuideNvidiaNim": {
-    "message": "Uses NVIDIA NIM's OpenAI-compatible chat/completions API. Create an API key in the NVIDIA API keys page. NVIDIA API Catalog provides free endpoints for development/prototyping, with model/account usage limits that can apply."
+    "message": "Uses NVIDIA NIM's OpenAI-compatible chat/completions API. Create an API key on the NVIDIA API keys page. NVIDIA API Catalog provides free endpoints for development and prototyping; usage limits may apply by model and account."
   },
   "providerGuideLocal": {
     "message": "Uses the OpenAI-compatible chat/completions format. localhost and 127.0.0.1 can use HTTP or HTTPS; custom servers must use HTTPS. For a custom HTTPS server, approve access to that domain when you fetch models or test the connection. Subtitle text and the API key, if entered, are sent directly to this server. In Base URL, enter only the part before /chat/completions. Example: http://localhost:1234/v1"
@@ -693,7 +726,7 @@
     "message": "Dual subtitles"
   },
   "contentMainSubtitles": {
-    "message": "Main subtitles"
+    "message": "Source subtitles"
   },
   "contentTranslatedSubtitles": {
     "message": "Translated subtitles"

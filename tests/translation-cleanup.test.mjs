@@ -1314,6 +1314,7 @@ test("LLM rate limit falls back to Google Translate after four 429 responses", a
 test("LLM failure falls back to Google Translate even when DeepL is selected for temporary translation", async () => {
   const originalChrome = globalThis.chrome;
   const originalFetch = globalThis.fetch;
+  const originalSetTimeout = globalThis.setTimeout;
   const requestHosts = [];
 
   globalThis.chrome = {
@@ -1396,14 +1397,22 @@ test("LLM failure falls back to Google Translate even when DeepL is selected for
   };
 
   try {
+    globalThis.setTimeout = (callback) => {
+      queueMicrotask(callback);
+      return 0;
+    };
     const translated = await translateSubtitleDocument(sourceDocument);
 
-    assert.deepEqual(requestHosts, ["generativelanguage.googleapis.com", "translate.googleapis.com"]);
+    assert.deepEqual(requestHosts, [
+      ...Array(5).fill("generativelanguage.googleapis.com"),
+      "translate.googleapis.com"
+    ]);
     assert.equal(translated.providerId, "google");
     assert.equal(translated.fallbackProviderId, "googleTranslate");
     assert.equal(translated.cues[0].text, "구글 번역");
   } finally {
     globalThis.chrome = originalChrome;
     globalThis.fetch = originalFetch;
+    globalThis.setTimeout = originalSetTimeout;
   }
 });

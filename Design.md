@@ -82,12 +82,12 @@ OpenAI, Anthropic, Gemini, OpenRouter, NVIDIA NIM, Custom LLM은 옵션 화면�
 
 Hosted provider의 Base URL은 각 provider의 공식 HTTPS origin으로 제한한다. Custom LLM은 `localhost` 또는 `127.0.0.1`의 HTTP/HTTPS URL과 사용자가 런타임 접근 권한을 승인한 사용자 지정 HTTPS URL을 허용하며, URL 안의 사용자 정보와 fragment는 거부한다. 이 검사는 모델 조회와 실제 번역 요청 양쪽에 적용하고 HTTP redirect는 자동 추적하지 않는다.
 
-모델 목록 조회 후에는 실제 반환 목록에서 권장 모델을 자동 선택하고 저장한다. Google AI는 `gemini-3.5-flash-lite`, OpenAI는 `gpt-5.6-luna`, Anthropic은 `claude-haiku-4-5-20251001`, OpenRouter는 `deepseek/deepseek-v4-flash`, NVIDIA NIM은 `openai/gpt-oss-120b`를 최우선으로 선택하고 연결 테스트를 한 번 수행한다. Custom LLM은 `google/gemma-4-e4b`를 최우선으로 선택하지만 자동 연결 테스트는 실행하지 않는다. 해당 ID가 없으면 Flash-Lite, Haiku, Qwen/Gemma 소형 instruct 계열을 우선하고, 없으면 사용 가능한 첫 text model로 fallback한다. audio, realtime, transcription, image, embedding 등 자막 번역에 맞지 않는 변형은 추천 대상에서 제외한다.
+모델 목록 조회 후에는 실제 반환 목록에서 권장 모델을 자동 선택하고 저장한다. Google AI는 `gemini-3.1-flash-lite`, OpenAI는 `gpt-5.6-luna`, Anthropic은 `claude-haiku-4-5-20251001`, OpenRouter는 `deepseek/deepseek-v4-flash`, NVIDIA NIM은 `openai/gpt-oss-120b`를 최우선으로 선택하고 연결 테스트를 한 번 수행한다. Custom LLM은 `google/gemma-4-e4b`를 최우선으로 선택하지만 자동 연결 테스트는 실행하지 않는다. 해당 ID가 없으면 Flash-Lite, Haiku, Qwen/Gemma 소형 instruct 계열을 우선하고, 없으면 사용 가능한 첫 text model로 fallback한다. audio, realtime, transcription, image, embedding 등 자막 번역에 맞지 않는 변형은 추천 대상에서 제외한다.
 
 ## 설정 화면
 
 - 옵션 화면은 기본 `간단 설정`과 전체 `고급 설정` 탭으로 나뉜다.
-- 간단 설정에서는 Google AI API key 하나만 입력한다. 키가 없으면 Google Translate로 번역하며, 키를 입력하고 `API 키 확인`에 성공하면 Google AI를 활성 provider로 선택하고 모델을 `gemini-3.5-flash-lite`로 고정한다.
+- 간단 설정에서는 Google AI API key 하나만 입력한다. 키가 없으면 Google Translate로 번역하며, 키를 입력하고 `API 키 확인`에 성공하면 Google AI를 활성 provider로 선택하고 모델을 `gemini-3.1-flash-lite`로 고정한다.
 - 고급 설정에서는 지원 사이트, provider별 설정, 임시 번역, 자막 스타일, 백업·복원을 조정한다.
 
 ## 번역 스타일
@@ -118,7 +118,7 @@ background service worker는 처리 대상 메시지의 필수 payload를 네트
 - 백업 파일 확장자는 `.astbackup`을 사용하며 복구 파일 선택과 입력 검증도 이 확장자만 허용한다.
 - Chrome File System Access API를 사용할 수 있으면 복구 파일 선택창의 첫 위치를 OS가 해석하는 `downloads` 표준 폴더로 제안한다. `ast-settings-restore` picker ID로 복구 전용 마지막 위치를 기억하며, API를 사용할 수 없거나 호출할 수 없는 환경에서는 `<input type="file">` 선택기로 대체한다.
 - 비밀번호 입력란은 설정 화면에 상시 노출하지 않는다. 백업 버튼을 누르거나 복구 파일을 선택했을 때 `<dialog>` 기반 마스킹 입력 팝업을 열고, 완료 또는 취소 후 입력값을 유지하지 않는다.
-- 사용자 화면에서는 `백업 비밀번호`로 표현하며, 영문, 숫자, ASCII 특수문자를 각각 1개 이상 포함한 10자 이상이어야 한다. 문자열 중간의 일반 space는 허용하되 앞뒤 space와 탭·줄바꿈은 거부하며, space는 특수문자 조건으로 인정하지 않는다.
+- 사용자 화면에서는 `백업 비밀번호`로 표현하며, 영문, 숫자, ASCII 특수문자를 각각 1개 이상 포함한 8자 이상이어야 한다. 문자열 중간의 일반 space는 허용하되 앞뒤 space와 탭·줄바꿈은 거부하며, space는 특수문자 조건으로 인정하지 않는다.
 - 파일마다 16-byte salt와 12-byte nonce를 무작위로 생성한다.
 - PBKDF2-SHA-256 250,000회로 백업 비밀번호에서 256-bit AES-GCM key를 파생한다.
 - backup format/version을 AES-GCM additional authenticated data에 포함해 다른 형식의 암호문 대입을 막는다.

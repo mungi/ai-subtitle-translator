@@ -1,4 +1,4 @@
-import { buildProviderRequest, extractText, shouldRetryOpenRouterWithoutReasoning } from "./provider-request.js";
+import { buildProviderRequest, createReasoningProfile, extractText, shouldRetryOpenRouterWithoutReasoning } from "./provider-request.js";
 import { assertProviderEndpoint } from "./provider-security.js";
 import { getCustomSystemPromptSettingKey, isCustomTranslationStyle, buildSystemPromptFromSettings } from "./defaults.js";
 import { getSettings } from "./storage.js";
@@ -24,6 +24,30 @@ const INITIAL_LLM_CHUNK_MAX_DURATION_SECONDS = 60;
 const INITIAL_LLM_CHUNK_MAX_CHARS = 1500;
 const LLM_RATE_LIMIT_FALLBACK_THRESHOLD = 4;
 const LLM_RATE_LIMIT_RETRY_BASE_DELAY_MS = 1000;
+const LLM_TRANSIENT_RETRY_MAX_ATTEMPTS = 5;
+const LLM_TRANSIENT_RETRY_BASE_DELAY_MS = 1000;
+const LLM_TRANSIENT_RETRY_MAX_AFTER_MS = 30000;
+const LLM_TRANSIENT_STATUS_CODES = new Set([408, 500, 502, 503, 504]);
+const LLM_CHUNK_SIZE_STATUS_CODES = new Set([413]);
+
+function throwIfAborted(signal) {
+  if (signal?.aborted) throw signal.reason || new DOMException("Translation canceled.", "AbortError");
+}
+
+function waitForAbortableDelay(delayMs, signal) {
+  throwIfAborted(signal);
+  return new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, delayMs);
+    const onAbort = () => {
+      clearTimeout(timeoutId);
+      reject(signal.reason || new DOMException("Translation canceled.", "AbortError"));
+    };
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
 
 function buildTranslationInput(document, { contextBefore = [] } = {}) {
   return JSON.stringify({
@@ -194,6 +218,7 @@ function parseTranslationResponse(text) {
     if (looseTranslations.length > 0) {
       return looseTranslations;
     }
+    error.retryWithSmallerChunk = true;
     throw error;
   }
 
@@ -203,7 +228,9 @@ function parseTranslationResponse(text) {
   if (Array.isArray(parsed.translations)) {
     return parsed.translations;
   }
-  throw new Error("Translation response must contain a translations array.");
+  const error = new Error("Translation response must contain a translations array.");
+  error.retryWithSmallerChunk = true;
+  throw error;
 }
 
 function parseLooseTranslations(text) {
@@ -295,22 +322,22 @@ function analyzeChunkTranslations(chunk, translations) {
 }
 
 function buildChunkTranslationError(analysis) {
+  let error;
   if (analysis.invalidIds.length > 0) {
-    return new Error("Translation response contains an item without a cue id.");
+    error = new Error("Translation response contains an item without a cue id.");
+  } else if (analysis.unexpectedIds.length > 0) {
+    error = new Error(`Translation response contains an unexpected cue id: ${analysis.unexpectedIds[0]}`);
+  } else if (analysis.duplicateIds.length > 0) {
+    error = new Error(`Translation response contains a duplicate cue id: ${analysis.duplicateIds[0]}`);
+  } else if (analysis.emptyIds.length > 0) {
+    error = new Error(`Translation response contains an empty translation for cue id: ${analysis.emptyIds[0]}`);
+  } else if (analysis.missingIds.length > 0) {
+    error = new Error(`Translation response is missing ${analysis.missingIds.length} cue translation(s): ${analysis.missingIds.slice(0, 5).join(", ")}`);
+  } else {
+    error = new Error("Translation response is invalid.");
   }
-  if (analysis.unexpectedIds.length > 0) {
-    return new Error(`Translation response contains an unexpected cue id: ${analysis.unexpectedIds[0]}`);
-  }
-  if (analysis.duplicateIds.length > 0) {
-    return new Error(`Translation response contains a duplicate cue id: ${analysis.duplicateIds[0]}`);
-  }
-  if (analysis.emptyIds.length > 0) {
-    return new Error(`Translation response contains an empty translation for cue id: ${analysis.emptyIds[0]}`);
-  }
-  if (analysis.missingIds.length > 0) {
-    return new Error(`Translation response is missing ${analysis.missingIds.length} cue translation(s): ${analysis.missingIds.slice(0, 5).join(", ")}`);
-  }
-  return new Error("Translation response is invalid.");
+  error.retryWithSmallerChunk = true;
+  return error;
 }
 
 function orderChunkTranslations(chunk, translationById) {
@@ -472,8 +499,9 @@ async function writeCachedTranslation(cacheKey, document) {
   return cacheWriteQueue;
 }
 
-async function fetchProviderJson(provider, payload) {
-  const response = await fetch(payload.url, payload.init);
+async function fetchProviderJson(provider, payload, signal) {
+  throwIfAborted(signal);
+  const response = await fetch(payload.url, { ...payload.init, signal });
   const body = await response.json().catch(() => ({}));
 
   if (!response.ok) {
@@ -483,16 +511,61 @@ async function fetchProviderJson(provider, payload) {
     error.providerId = provider.id;
     error.providerErrorType = body.error?.type;
     error.providerErrorCode = body.error?.code;
+    error.retryAfterMs = parseRetryAfterHeader(response.headers?.get?.("retry-after"));
     throw error;
   }
 
   return extractText(provider, body).trim();
 }
 
+function parseRetryAfterHeader(value) {
+  if (!value) return null;
+  const seconds = Number(value);
+  if (Number.isFinite(seconds)) return Math.max(0, seconds * 1000);
+  const dateMs = Date.parse(value);
+  return Number.isFinite(dateMs) ? Math.max(0, dateMs - Date.now()) : null;
+}
+
+function getTransientRetryDelayMs(error, retryNumber) {
+  const status = Number(error?.status);
+  const isNetworkError = !Number.isFinite(status) && error?.name === "TypeError";
+  if (!LLM_TRANSIENT_STATUS_CODES.has(status) && !isNetworkError) return null;
+
+  const retryAfterMs = error?.retryAfterMs;
+  const exponentialDelay = LLM_TRANSIENT_RETRY_BASE_DELAY_MS * (2 ** (retryNumber - 1));
+  const delayMs = Number.isFinite(retryAfterMs) ? retryAfterMs : exponentialDelay;
+  return Math.min(LLM_TRANSIENT_RETRY_MAX_AFTER_MS, Math.max(0, delayMs));
+}
+
+function isChunkSizeError(error) {
+  const status = Number(error?.status);
+  if (LLM_CHUNK_SIZE_STATUS_CODES.has(status)) return true;
+  if (![400, 413, 422].includes(status)) return false;
+  return /(context length|maximum context|max(?:imum)? token|too many tokens|token limit|request too large|payload too large|input too long|prompt too long)/i
+    .test(`${error?.message || ""} ${error?.details || ""}`);
+}
+
+async function fetchLlmChunkTextWithRetry(requestJson, request, signal) {
+  let retryNumber = 0;
+  while (true) {
+    try {
+      throwIfAborted(signal);
+      return await requestJson(request);
+    } catch (error) {
+      throwIfAborted(signal);
+      retryNumber += 1;
+      const delayMs = getTransientRetryDelayMs(error, retryNumber);
+      if (delayMs === null || retryNumber >= LLM_TRANSIENT_RETRY_MAX_ATTEMPTS) throw error;
+      await waitForAbortableDelay(delayMs, signal);
+    }
+  }
+}
+
 function createLlmRequestController({
   maxConcurrentRequests = LLM_PARALLEL_CHUNK_LIMIT,
   rateLimitFallbackThreshold = LLM_RATE_LIMIT_FALLBACK_THRESHOLD,
-  waitForRateLimit = (delayMs) => new Promise((resolve) => setTimeout(resolve, delayMs))
+  waitForRateLimit = (delayMs, signal) => waitForAbortableDelay(delayMs, signal),
+  signal
 } = {}) {
   let concurrentRequestLimit = Math.max(1, Number(maxConcurrentRequests) || 1);
   let activeRequestCount = 0;
@@ -520,12 +593,14 @@ function createLlmRequestController({
 
   const acquire = async () => {
     if (terminalError) throw terminalError;
+    throwIfAborted(signal);
     if (activeRequestCount < concurrentRequestLimit) {
       activeRequestCount += 1;
       return;
     }
 
     await new Promise((resolve, reject) => waiters.push({ resolve, reject }));
+    throwIfAborted(signal);
     if (terminalError) throw terminalError;
   };
 
@@ -533,6 +608,7 @@ function createLlmRequestController({
     async run(request) {
       await acquire();
       try {
+        throwIfAborted(signal);
         if (terminalError) throw terminalError;
         return await request();
       } finally {
@@ -550,13 +626,16 @@ function createLlmRequestController({
         throw error;
       }
 
-      await waitForRateLimit(LLM_RATE_LIMIT_RETRY_BASE_DELAY_MS * (2 ** (rateLimitErrorCount - 1)));
+      await waitForRateLimit(LLM_RATE_LIMIT_RETRY_BASE_DELAY_MS * (2 ** (rateLimitErrorCount - 1)), signal);
     },
     get concurrentRequestLimit() {
       return concurrentRequestLimit;
     },
     get rateLimitErrorCount() {
       return rateLimitErrorCount;
+    },
+    get signal() {
+      return signal;
     }
   };
 }
@@ -568,18 +647,18 @@ async function fetchLlmChunkTranslations(provider, settings, chunk, contextBefor
   };
   const request = buildProviderRequest(provider, requestOptions);
   const requestJson = (payload) => requestController
-    ? requestController.run(() => fetchProviderJson(provider, payload))
+    ? requestController.run(() => fetchProviderJson(provider, payload, requestController.signal))
     : fetchProviderJson(provider, payload);
 
   try {
-    const text = await requestJson(request);
+    const text = await fetchLlmChunkTextWithRetry(requestJson, request, requestController?.signal);
     return parseTranslationResponse(text);
   } catch (error) {
     if (!shouldRetryOpenRouterWithoutReasoning(provider, error)) throw error;
 
-    provider.disableReasoning = false;
+    provider.reasoningProfile = createReasoningProfile(provider, "omit");
     const compatibleRequest = buildProviderRequest(provider, requestOptions);
-    const text = await requestJson(compatibleRequest);
+    const text = await fetchLlmChunkTextWithRetry(requestJson, compatibleRequest, requestController?.signal);
     return parseTranslationResponse(text);
   }
 }
@@ -615,6 +694,7 @@ async function translateLlmChunkWithRetry(provider, settings, chunk, contextBefo
       await requestController.recordRateLimitError(error);
       return translateLlmChunkWithRetry(provider, settings, chunk, contextBefore, requestController);
     }
+    if (!error?.retryWithSmallerChunk && !isChunkSizeError(error)) throw error;
     if (chunk.cues.length <= MIN_LLM_RETRY_CUES_PER_CHUNK) {
       throw error;
     }
@@ -639,9 +719,9 @@ async function translateLlmChunkWithRetry(provider, settings, chunk, contextBefo
   }
 }
 
-async function translateLlmChunksWithPriority(provider, settings, document, chunks, onProgress) {
+async function translateLlmChunksWithPriority(provider, settings, document, chunks, onProgress, signal) {
   const translationsByChunk = new Array(chunks.length);
-  const requestController = createLlmRequestController();
+  const requestController = createLlmRequestController({ signal });
   let completedChunkCount = 0;
 
   const translateChunkAt = async (index) => {
@@ -725,7 +805,7 @@ function parseGoogleTranslateBody(body, expectedCount) {
   return translations;
 }
 
-async function translateGoogleBatch(cues, document, settings, provider) {
+async function translateGoogleBatch(cues, document, settings, provider, signal) {
   const url = new URL(provider.baseUrl);
   for (const [key, value] of Object.entries({
     client: "gtx",
@@ -742,9 +822,11 @@ async function translateGoogleBatch(cues, document, settings, provider) {
       method: "POST",
       redirect: "error",
       headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-      body: formData
+      body: formData,
+      signal
     });
-  } catch {
+  } catch (error) {
+    if (signal?.aborted) throw signal.reason || error;
     throw new Error("Google Translate request failed: network error or blocked redirect. Please try again later or select another provider.");
   }
 
@@ -756,13 +838,14 @@ async function translateGoogleBatch(cues, document, settings, provider) {
   return parseGoogleTranslateBody(body, cues.length);
 }
 
-async function translateCuesWithGoogle(document, settings, provider, { onProgress, chunkCount = 1 } = {}) {
+async function translateCuesWithGoogle(document, settings, provider, { onProgress, chunkCount = 1, signal } = {}) {
   const translations = [];
   const chunks = splitCuesForGoogle(document.cues);
 
   for (let index = 0; index < chunks.length; index += 1) {
+    throwIfAborted(signal);
     const chunk = chunks[index];
-    const translatedParts = await translateGoogleBatch(chunk.cues, document, settings, provider);
+    const translatedParts = await translateGoogleBatch(chunk.cues, document, settings, provider, signal);
     const chunkTranslations = chunk.cues.map((cue, cueIndex) => ({
       id: cue.id,
       text: translatedParts[cueIndex]
@@ -837,7 +920,7 @@ function splitCuesForDeepL(document, settings, maxTexts = DEEPL_MAX_TEXTS_PER_RE
   }));
 }
 
-async function translateCuesWithDeepL(document, settings, provider, { onProgress } = {}) {
+async function translateCuesWithDeepL(document, settings, provider, { onProgress, signal } = {}) {
   const apiKey = provider.apiKey?.trim();
   if (!apiKey) {
     throw new Error("DeepL API key is required.");
@@ -847,6 +930,7 @@ async function translateCuesWithDeepL(document, settings, provider, { onProgress
   const translations = [];
 
   for (const chunk of chunks) {
+    throwIfAborted(signal);
     const body = buildDeepLRequestBody(chunk.cues, document, settings);
     const response = await fetch(getDeepLEndpoint(provider), {
       method: "POST",
@@ -855,7 +939,8 @@ async function translateCuesWithDeepL(document, settings, provider, { onProgress
         Authorization: `DeepL-Auth-Key ${apiKey}`,
         "Content-Type": "application/x-www-form-urlencoded"
       },
-      body
+      body,
+      signal
     });
     const responseBody = await response.json().catch(() => ({}));
 
@@ -885,10 +970,10 @@ async function translateCuesWithDeepL(document, settings, provider, { onProgress
   return translations;
 }
 
-async function translateWithMachineProvider(document, settings, provider, { onProgress, chunkIndex = 0, chunkCount = 1 } = {}) {
+async function translateWithMachineProvider(document, settings, provider, { onProgress, chunkIndex = 0, chunkCount = 1, signal } = {}) {
   const translations = provider.apiStyle === "deepl"
-    ? await translateCuesWithDeepL(document, settings, provider, { onProgress })
-    : await translateCuesWithGoogle(document, settings, provider, { onProgress, chunkCount });
+    ? await translateCuesWithDeepL(document, settings, provider, { onProgress, signal })
+    : await translateCuesWithGoogle(document, settings, provider, { onProgress, chunkCount, signal });
 
   return translations;
 }
@@ -921,7 +1006,8 @@ function buildRateLimitFallbackMessage(activeProvider, fallbackProvider) {
   return `${activeLabel} 요청 한도 재시도에 실패하여 ${fallbackLabel}로 대체 번역합니다.`;
 }
 
-async function translateWithFallbackProvider(document, settings, activeProvider, originalError, { onProgress } = {}) {
+async function translateWithFallbackProvider(document, settings, activeProvider, originalError, { onProgress, signal } = {}) {
+  throwIfAborted(signal);
   const quotaExceeded = isQuotaExceededError(originalError);
   const fallbackProviderId = GOOGLE_TRANSLATE_PROVIDER_ID;
   const fallbackProvider = settings.providers?.[fallbackProviderId];
@@ -941,6 +1027,7 @@ async function translateWithFallbackProvider(document, settings, activeProvider,
       : undefined;
 
   const translations = await translateWithMachineProvider(document, settings, fallbackProvider, {
+    signal,
     onProgress: onProgress
       ? (progress) => onProgress({
         ...progress,
@@ -964,9 +1051,12 @@ export async function translateSubtitleDocument(document, {
   providerId,
   forceNoCache = false,
   initialStartTime = 0,
-  allowFallback = true
+  allowFallback = true,
+  signal
 } = {}) {
+  throwIfAborted(signal);
   const settings = await getSettings();
+  throwIfAborted(signal);
   const provider = settings.providers[providerId || settings.activeProvider];
   assertProviderEndpoint(provider);
   const cacheKey = buildCacheKey(document, settings, provider);
@@ -985,7 +1075,8 @@ export async function translateSubtitleDocument(document, {
   const configuredChunkSize = DEFAULT_MAX_CUE_CHARS_PER_CHUNK;
   if (provider.apiStyle === "google-translate" || provider.apiStyle === "deepl") {
     try {
-      const translations = await translateWithMachineProvider(document, settings, provider, { onProgress });
+      const translations = await translateWithMachineProvider(document, settings, provider, { onProgress, signal });
+      throwIfAborted(signal);
       const result = {
         ...mergeTranslations(document, translations),
         targetLanguage: settings.targetLanguage,
@@ -995,6 +1086,7 @@ export async function translateSubtitleDocument(document, {
       };
 
       if (settings.cacheTranslations && !forceNoCache) {
+        throwIfAborted(signal);
         await writeCachedTranslation(cacheKey, result);
       }
       return result;
@@ -1002,7 +1094,8 @@ export async function translateSubtitleDocument(document, {
       if (!allowFallback || !isQuotaExceededError(error)) {
         throw error;
       }
-      return translateWithFallbackProvider(document, settings, provider, error, { onProgress });
+      if (signal?.aborted) throw signal.reason || error;
+      return translateWithFallbackProvider(document, settings, provider, error, { onProgress, signal });
     }
   }
 
@@ -1014,7 +1107,8 @@ export async function translateSubtitleDocument(document, {
     maxDurationSeconds: settings.maxChunkDurationSeconds
   });
   try {
-    const translations = await translateLlmChunksWithPriority(provider, settings, document, chunks, onProgress);
+    const translations = await translateLlmChunksWithPriority(provider, settings, document, chunks, onProgress, signal);
+    throwIfAborted(signal);
     const translatedDocument = mergeTranslations(document, translations);
     const result = {
       ...translatedDocument,
@@ -1025,12 +1119,14 @@ export async function translateSubtitleDocument(document, {
     };
 
     if (settings.cacheTranslations && !forceNoCache) {
+      throwIfAborted(signal);
       await writeCachedTranslation(cacheKey, result);
     }
     return result;
   } catch (error) {
+    if (signal?.aborted) throw signal.reason || error;
     if (!allowFallback) throw error;
-    return translateWithFallbackProvider(document, settings, provider, error, { onProgress });
+    return translateWithFallbackProvider(document, settings, provider, error, { onProgress, signal });
   }
 
 }

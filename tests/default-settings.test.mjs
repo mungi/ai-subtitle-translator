@@ -3,10 +3,10 @@ import test from "node:test";
 import { DEFAULT_SETTINGS, PROVIDERS } from "../extension/shared/defaults.js";
 import { normalizeSettings } from "../extension/shared/storage.js";
 
-test("subtitle display defaults to main subtitles and validates saved modes", () => {
-  assert.equal(DEFAULT_SETTINGS.subtitleDisplayMode, "source");
-  assert.equal(normalizeSettings().subtitleDisplayMode, "source");
-  assert.equal(normalizeSettings({ subtitleDisplayMode: "invalid" }).subtitleDisplayMode, "source");
+test("subtitle display defaults to translated subtitles and validates saved modes", () => {
+  assert.equal(DEFAULT_SETTINGS.subtitleDisplayMode, "translated");
+  assert.equal(normalizeSettings().subtitleDisplayMode, "translated");
+  assert.equal(normalizeSettings({ subtitleDisplayMode: "invalid" }).subtitleDisplayMode, "translated");
   for (const subtitleDisplayMode of ["dual", "source", "translated"]) {
     assert.equal(normalizeSettings({ subtitleDisplayMode }).subtitleDisplayMode, subtitleDisplayMode);
   }
@@ -30,16 +30,17 @@ test("TED subtitle support is enabled by default", () => {
 
 test("default translation style and subtitle appearance match the intended initial setup", () => {
   assert.equal(DEFAULT_SETTINGS.translationStyle, "custom");
-  assert.equal(DEFAULT_SETTINGS.subtitleStyle.fontSize, 35);
+  assert.equal(DEFAULT_SETTINGS.subtitleStyle.fontSize, 30);
   assert.equal(DEFAULT_SETTINGS.subtitleStyle.fontPreset, "gowun-batang");
   assert.equal(DEFAULT_SETTINGS.subtitleStyle.fontFamily, "'GounBatang', serif");
-  assert.match(DEFAULT_SETTINGS.subtitleStyle.webFontCss, /GowunBatang-Regular\.woff/);
+  assert.match(DEFAULT_SETTINGS.subtitleStyle.webFontCss, /__AST_GOWUN_BATANG_FONT_URL__/);
+  assert.equal(DEFAULT_SETTINGS.subtitleStyle.width, 1024);
   assert.equal(DEFAULT_SETTINGS.subtitleStyle.textColor, "#f2f2f2");
   assert.equal(DEFAULT_SETTINGS.subtitleStyle.shadowBlur, 3);
   assert.equal(DEFAULT_SETTINGS.subtitleStyle.outlineEnabled, true);
   assert.equal(DEFAULT_SETTINGS.subtitleStyle.outlineWidth, 2);
   assert.equal(DEFAULT_SETTINGS.subtitleStyle.pendingBackgroundColor, "#750000");
-  assert.equal(DEFAULT_SETTINGS.subtitleStyle.backgroundOpacity, 0.5);
+  assert.equal(DEFAULT_SETTINGS.subtitleStyle.backgroundOpacity, 0.75);
 });
 
 test("Japanese UI defaults subtitle font to Noto Sans JP", () => {
@@ -185,7 +186,7 @@ test("OpenAI-compatible provider is labeled Custom LLM in settings UI", () => {
 });
 
 test("hosted LLM providers default to the configured recommended models", () => {
-  assert.equal(PROVIDERS.google.model, "gemini-3.5-flash-lite");
+  assert.equal(PROVIDERS.google.model, "gemini-3.1-flash-lite");
   assert.equal(PROVIDERS.openai.model, "gpt-5.6-luna");
   assert.equal(PROVIDERS.anthropic.model, "claude-haiku-4-5-20251001");
   assert.equal(PROVIDERS.openrouter.model, "deepseek/deepseek-v4-flash:nitro");

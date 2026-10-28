@@ -40,7 +40,7 @@ export const PROVIDERS = {
     apiStyle: "google-generate-content",
     baseUrl: "https://generativelanguage.googleapis.com/v1beta",
     apiKey: "",
-    model: "gemini-3.5-flash-lite",
+    model: "gemini-3.1-flash-lite",
     temperature: 0.2,
     maxTokens: 8192
   },
@@ -149,7 +149,7 @@ export const WEB_FONT_PRESETS = [
     fontFamily: "'GounBatang', serif",
     css: `@font-face {
     font-family: 'GounBatang';
-    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2108@1.1/GowunBatang-Regular.woff') format('woff');
+    src: url('__AST_GOWUN_BATANG_FONT_URL__') format('woff');
     font-weight: normal;
     font-display: swap;
 }`
@@ -380,7 +380,7 @@ export function buildSystemPromptFromSettings(settings = {}) {
 }
 
 export const DEFAULT_SETTINGS = {
-  subtitleDisplayMode: "source",
+  subtitleDisplayMode: "translated",
   activeProvider: "googleTranslate",
   targetLanguage: "",
   translationStyle: "custom",
@@ -402,12 +402,12 @@ export const DEFAULT_SETTINGS = {
   subtitleStyle: {
     positionX: 50,
     positionY: 78,
-    fontSize: 35,
+    fontSize: 30,
     fontPreset: "gowun-batang",
     fontFamily: "'GounBatang', serif",
     webFontCss: WEB_FONT_PRESETS.find((preset) => preset.id === "gowun-batang").css,
     customWebFontCss: DEFAULT_CUSTOM_WEB_FONT_CSS,
-    width: 720,
+    width: 1024,
     textColor: "#f2f2f2",
     shadowEnabled: true,
     shadowColor: "#000000",
@@ -418,7 +418,7 @@ export const DEFAULT_SETTINGS = {
     outlineWidth: 2,
     backgroundColor: "#000000",
     pendingBackgroundColor: "#750000",
-    backgroundOpacity: 0.5
+    backgroundOpacity: 0.75
   },
   providers: PROVIDERS
 };

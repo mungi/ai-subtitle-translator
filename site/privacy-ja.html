@@ -32,16 +32,16 @@
         <header class="policy-title">
           <p class="eyebrow">AST - AI Subtitle Translator</p>
           <h1>プライバシーポリシー</h1>
-          <p>AST - AI Subtitle Translator は、Udemy、YouTube、TED、NVIDIA Academy、Vimeo の字幕をユーザーが選択した翻訳サービスで翻訳する Chrome 拡張機能です。開発者は独自の backend server を運用せず、広告、追跡、分析を目的としてユーザーデータを収集しません。</p>
+          <p>AST - AI Subtitle Translator は、Udemy、YouTube、TED、NVIDIA Academy、Vimeo の字幕をユーザーが選択した翻訳サービスで翻訳する Chrome 拡張機能です。開発者は独自のバックエンドサーバーを運用せず、広告、追跡、分析を目的としてユーザーデータを収集しません。</p>
         </header>
 
         <section aria-labelledby="data-ja">
           <span class="policy-number">01</span>
           <h2 id="data-ja">取り扱うデータ</h2>
           <ul>
-            <li>Udemy、YouTube、TED、NVIDIA Academy、Vimeo の字幕テキストおよび cue の時間情報</li>
-            <li>現在の動画または講義を識別する URL、video ID、course ID、lecture ID、字幕言語情報</li>
-            <li>ユーザーが入力した翻訳 provider の API key、endpoint、model、翻訳設定、字幕設定</li>
+            <li>Udemy、YouTube、TED、NVIDIA Academy、Vimeo の字幕テキストおよび字幕キューの時刻情報</li>
+            <li>現在の動画または講義を識別する URL、動画 ID、講座 ID、講義 ID、字幕言語情報</li>
+            <li>ユーザーが入力した翻訳プロバイダーの API キー、エンドポイント、モデル、翻訳設定、字幕設定</li>
             <li>翻訳結果のキャッシュと、ユーザーが作成する暗号化設定バックアップファイル</li>
           </ul>
         </section>
@@ -49,18 +49,18 @@
         <section aria-labelledby="purpose-ja">
           <span class="policy-number">02</span>
           <h2 id="purpose-ja">利用目的</h2>
-          <p>これらのデータは、字幕の取得、翻訳リクエスト、翻訳結果の表示、ユーザー設定の保持、設定のバックアップと復元のためにのみ使用します。パーソナライズ広告、ユーザー profiling、データ販売には使用しません。</p>
+          <p>これらのデータは、字幕の取得、翻訳リクエスト、翻訳結果の表示、ユーザー設定の保持、設定のバックアップと復元のためにのみ使用します。パーソナライズ広告、ユーザーのプロファイリング、データ販売には使用しません。</p>
         </section>
 
         <section aria-labelledby="storage-ja">
           <span class="policy-number">03</span>
           <h2 id="storage-ja">保存と保持期間</h2>
           <ul>
-            <li>設定、翻訳キャッシュ、API key はユーザーのブラウザーの <code>chrome.storage.local</code> に保存します。</li>
-            <li>API key は provider ごとの AES-GCM 暗号文として保存し、一般設定には平文で残しません。復号に必要な断片も同じブラウザープロファイル内にあるため、OS の secure storage やユーザー master password を使用する vault と同等ではありません。</li>
-            <li>storage へのアクセスは trusted extension context に限定し、content script は API key または復号用断片へ直接アクセスできません。</li>
+            <li>設定、翻訳キャッシュ、API キーはユーザーのブラウザーの <code>chrome.storage.local</code> に保存します。</li>
+            <li>API キーはプロバイダーごとの AES-GCM 暗号文として保存し、一般設定には平文で残しません。復号に必要な断片も同じブラウザープロファイル内にあるため、OS の安全な保存領域やユーザーのマスターパスワードで保護する保管庫と同等ではありません。</li>
+            <li>保存領域へのアクセスは信頼された拡張機能コンテキストに限定し、コンテンツスクリプトは API キーまたは復号用断片へ直接アクセスできません。</li>
             <li>設定バックアップはユーザーが入力したパスワードで AES-GCM 暗号化し、パスワードは保存しません。</li>
-            <li>翻訳キャッシュの削除と全設定の初期化が可能です。拡張機能を削除すると Chrome が extension-local storage を削除します。ダウンロード済みの <code>.astbackup</code> ファイルはユーザーが削除する必要があります。</li>
+            <li>翻訳キャッシュの削除と全設定の初期化が可能です。拡張機能を削除すると Chrome が拡張機能のローカル保存領域を削除します。ダウンロード済みの <code>.astbackup</code> ファイルはユーザーが削除する必要があります。</li>
           </ul>
         </section>
 
@@ -68,10 +68,10 @@
           <span class="policy-number">04</span>
           <h2 id="transfer-ja">外部への送信</h2>
           <ul>
-            <li>字幕テキストと翻訳設定は、ユーザーが選択した Google Translate、DeepL、OpenAI、Anthropic、Google AI、OpenRouter、NVIDIA NIM、または Custom LLM endpoint に送信される場合があります。</li>
-            <li>API key は認証が必要な場合に選択した provider へ直接送信され、開発者の server には送信されません。</li>
-            <li>対応サイトの字幕取得リクエストには動画・講義識別子とユーザーの login cookie が含まれる場合があります。拡張機能は cookie 値を別途保存しません。</li>
-            <li>既定またはカスタム Web font を使用すると、Google Fonts、jsDelivr、またはユーザー提供 CSS で指定した font host へリクエストが送信される場合があります。</li>
+            <li>字幕テキストと翻訳設定は、ユーザーが選択した Google Translate、DeepL、OpenAI、Anthropic、Google AI、OpenRouter、NVIDIA NIM、または Custom LLM のエンドポイントに送信される場合があります。</li>
+            <li>API キーは認証が必要な場合に選択したプロバイダーへ直接送信され、開発者のサーバーには送信されません。</li>
+            <li>対応サイトの字幕取得リクエストには動画・講義識別子とユーザーのログイン Cookie が含まれる場合があります。拡張機能は Cookie の値を別途保存しません。</li>
+            <li>既定またはカスタム Web フォントを使用すると、Google Fonts、jsDelivr、またはユーザー提供 CSS で指定したフォント配信サーバーへリクエストが送信される場合があります。</li>
             <li>外部サービスによるデータ処理には各サービスのプライバシーポリシーと利用規約が適用されます。</li>
           </ul>
         </section>
@@ -80,9 +80,9 @@
           <span class="policy-number">05</span>
           <h2 id="permission-ja">権限</h2>
           <ul>
-            <li><code>storage</code>: 設定、暗号化された API key、翻訳キャッシュをローカルに保存します。</li>
+            <li><code>storage</code>: 設定、暗号化された API キー、翻訳キャッシュをローカルに保存します。</li>
             <li><code>scripting</code>: YouTube ページの開始時からプレーヤーの字幕レスポンスを取得します。Cookie、認証ヘッダー、署名付き URL を除き、字幕テキスト、言語、時刻情報のみを拡張機能に渡します。</li>
-            <li>Host permissions: Udemy・YouTube・TED・NVIDIA Academy・Vimeo の字幕取得、選択した翻訳 provider の呼び出し、<code>localhost</code>/<code>127.0.0.1</code> の Custom LLM への接続に使用します。カスタム HTTPS Custom LLM domain には、モデル取得または接続テスト時にユーザーが許可した場合のみアクセスします。</li>
+            <li>ホスト権限: Udemy・YouTube・TED・NVIDIA Academy・Vimeo の字幕取得、選択した翻訳プロバイダーの呼び出し、<code>localhost</code>/<code>127.0.0.1</code> の Custom LLM への接続に使用します。Custom LLM のカスタム HTTPS ドメインには、モデル取得または接続テスト時にユーザーが許可した場合のみアクセスします。</li>
           </ul>
         </section>
 
@@ -95,7 +95,7 @@
         <section aria-labelledby="security-ja">
           <span class="policy-number">07</span>
           <h2 id="security-ja">セキュリティ</h2>
-          <p>すべてのリモート provider リクエストは HTTPS を使用します。Custom LLM は、ユーザーのコンピューターで実行するローカル LLM とユーザー指定サーバーの両方に対応します。ローカル LLM は <code>localhost</code> または <code>127.0.0.1</code> の HTTP endpoint を使用でき、ユーザー指定サーバーには HTTPS とユーザーの実行時 domain アクセス承認が必要です。hosted provider の Base URL は各 provider の公式 HTTPS origin に制限し、redirect 応答を自動追跡しません。</p>
+          <p>すべてのリモートプロバイダーリクエストは HTTPS を使用します。Custom LLM は、ユーザーのコンピューターで実行するローカル LLM とユーザー指定サーバーの両方に対応します。ローカル LLM は <code>localhost</code> または <code>127.0.0.1</code> の HTTP エンドポイントを使用でき、ユーザー指定サーバーには HTTPS とユーザーの実行時のドメインへのアクセス許可が必要です。ホスト型プロバイダーの Base URL は各プロバイダーの公式 HTTPS オリジンに制限し、リダイレクト応答を自動追跡しません。</p>
         </section>
 
         <section aria-labelledby="contact-ja">

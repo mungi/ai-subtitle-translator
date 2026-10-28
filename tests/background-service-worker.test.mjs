@@ -39,6 +39,50 @@ test("provider connection tests reserve output tokens for Gemini thinking models
   assert.equal(PROVIDER_CONNECTION_TEST_MAX_TOKENS, 128);
 });
 
+test("connection test saves the lowest reasoning mode accepted by the selected model", async () => {
+  const requestModes = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.chrome = {
+    runtime: { id: "test-extension", onMessage: { addListener() {} } },
+    storage: {
+      local: {
+        setAccessLevel: async () => {},
+        set: async () => {},
+        get: async () => ({
+          llmSettings: {
+            providers: {
+              local: { model: "test-model", baseUrl: "http://localhost:1234/v1", apiKey: "" }
+            }
+          }
+        })
+      }
+    }
+  };
+  globalThis.fetch = async (_url, init) => {
+    const mode = JSON.parse(init.body).reasoning_effort;
+    requestModes.push(mode);
+    return mode === "low"
+      ? { ok: true, json: async () => ({ choices: [{ message: { content: "OK" } }] }) }
+      : {
+          ok: false,
+          status: 400,
+          statusText: "Bad Request",
+          json: async () => ({ error: { message: `reasoning_effort ${mode} is not supported` } })
+        };
+  };
+
+  try {
+    const { testActiveProvider } = await import("../extension/background/service-worker.js");
+    const result = await testActiveProvider("local");
+    assert.deepEqual(requestModes, ["none", "minimal", "low"]);
+    assert.equal(result.reasoningProfile.mode, "low");
+    assert.equal(result.reasoningProfile.model, "test-model");
+    assert.equal(result.text, "OK");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("AST menu visibility updates are relayed to every frame in the tab", async () => {
   const sentMessages = [];
   globalThis.chrome = {

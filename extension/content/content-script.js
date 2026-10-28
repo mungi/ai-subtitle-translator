@@ -9,6 +9,7 @@ const UDEMY_TRANSCRIPT_CUE_SELECTOR = '[data-purpose="transcript-cue"], [data-pu
 const UDEMY_TRANSCRIPT_CUE_TEXT_SELECTOR = '[data-purpose="cue-text"]';
 const UDEMY_TRANSCRIPT_TRANSLATION_CLASS = "ast-udemy-transcript-translation";
 const WEB_FONT_STYLE_ID = "ast-web-font-style";
+let bundledGowunFontPromise = null;
 const OVERLAY_VERTICAL_MARGIN_PX = 12;
 const OVERLAY_MIN_HEIGHT_PX = 42;
 const OVERLAY_RESIZE_HIT_WIDTH_PX = 18;
@@ -69,6 +70,7 @@ const YOUTUBE_ENTITY_MAP = {
 };
 const subtitleState = {
   enabled: false,
+  autoEnablePending: false,
   loading: false,
   currentLectureId: "",
   currentSessionKey: "",
@@ -89,6 +91,9 @@ const subtitleState = {
   translationGeneration: 0,
   translationRequestSequence: 0,
   translationStyleSelectionGeneration: 0,
+  fallbackRetryTimeoutId: null,
+  fallbackRetryPending: false,
+  retranslatingCurrentVideo: false,
   activeFinalRequestId: "",
   activeTemporaryRequestId: "",
   pendingProviderId: "",
@@ -99,7 +104,7 @@ const subtitleState = {
   lastFallbackToastKey: "",
   toastTimeoutId: null,
   subtitleStyle: null,
-  subtitleDisplayMode: "source",
+  subtitleDisplayMode: "translated",
   targetLanguage: "",
   udemyTranscriptTranslations: new Map(),
   udemyTranscriptObserver: null,
@@ -158,6 +163,7 @@ function isMachineTranslationProvider(providerId) {
 
 function disposeContentScript() {
   clearProviderMenuAutoCloseTimer();
+  clearFallbackProviderRetry();
   removeUdemyTranscriptObserver();
   removeUdemyTranscriptTranslationElements();
   subtitleState.disposed = true;
@@ -458,7 +464,7 @@ function renderProviderMenu(platform = detectPlatform()) {
   menu.dataset.phase = subtitleState.translationPhase;
 
   const toggleButton = createProviderMenuButton(
-    "ast-provider-menu-item ast-provider-toggle-item",
+    "ast-provider-menu-item ast-provider-toggle-control",
     contentText("contentToggleSubtitles")
   );
   toggleButton.setAttribute("role", "menuitemcheckbox");
@@ -467,12 +473,43 @@ function renderProviderMenu(platform = detectPlatform()) {
   toggle.className = "ast-provider-toggle";
   toggle.setAttribute("aria-hidden", "true");
   toggleButton.append(toggle);
-  toggleButton.addEventListener("click", (event) => {
+  const toggleTranslation = (event) => {
     event.stopPropagation();
     Promise.resolve(toggleSubtitles(platform))
       .catch((error) => showToast(error.message))
       .finally(() => renderProviderMenu(platform));
+  };
+  toggleButton.addEventListener("click", toggleTranslation);
+
+  const toggleRow = document.createElement("div");
+  toggleRow.className = "ast-provider-toggle-item";
+  toggleRow.dataset.enabled = String(subtitleState.enabled);
+  toggleRow.append(toggleButton);
+  toggleRow.addEventListener("click", (event) => {
+    if (!event.target) toggleTranslation(event);
   });
+
+  const retranslateButton = document.createElement("button");
+  retranslateButton.type = "button";
+  retranslateButton.className = "ast-provider-retranslate";
+  retranslateButton.title = contentText("contentRetranslateCurrentVideo");
+  retranslateButton.setAttribute("aria-label", contentText("contentRetranslateCurrentVideo"));
+  const retranslateIcon = document.createElement("span");
+  retranslateIcon.className = "ast-provider-retranslate-icon";
+  retranslateIcon.setAttribute("aria-hidden", "true");
+  retranslateIcon.textContent = "↻";
+  retranslateButton.append(retranslateIcon);
+  const currentHandler = platformHandlers[platform];
+  const hasCurrentDocument = Boolean(subtitleState.currentDocument
+    && subtitleState.currentPlatform === platform
+    && subtitleState.currentSessionKey
+    && currentHandler?.getSessionKey() === subtitleState.currentSessionKey);
+  retranslateButton.disabled = !hasCurrentDocument || subtitleState.loading || subtitleState.retranslatingCurrentVideo;
+  retranslateButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    retranslateCurrentVideo(platform).catch((error) => showToast(error.message));
+  });
+  toggleRow.append(retranslateButton);
 
   for (const provider of subtitleState.availableProviders) {
     const isActive = provider.id === subtitleState.activeProviderId;
@@ -511,7 +548,7 @@ function renderProviderMenu(platform = detectPlatform()) {
   lastSeparator.className = "ast-provider-menu-separator";
   lastSeparator.setAttribute("role", "separator");
   menu.append(lastSeparator);
-  menu.append(toggleButton);
+  menu.append(toggleRow);
 
   const settingsButton = createProviderMenuButton(
     "ast-provider-menu-item ast-provider-settings-item",
@@ -524,6 +561,43 @@ function renderProviderMenu(platform = detectPlatform()) {
     sendRuntimeMessage({ type: "ast.openOptions" });
   });
   menu.append(settingsButton);
+}
+
+async function retranslateCurrentVideo(platform) {
+  if (subtitleState.retranslatingCurrentVideo || !subtitleState.currentDocument
+    || subtitleState.currentPlatform !== platform
+    || !subtitleState.currentSessionKey
+    || getCurrentSessionKey(platform) !== subtitleState.currentSessionKey) return;
+
+  subtitleState.retranslatingCurrentVideo = true;
+  renderProviderMenu(platform);
+  try {
+    const response = await sendRuntimeMessage({
+      type: "translation.clearVideoCache",
+      platform,
+      videoId: subtitleState.currentVideoId
+    });
+    if (!response?.ok) throw new Error(response?.error || "Could not clear this video's translation cache.");
+
+    const configuredProviders = await getTranslationProviderIds();
+    const providerId = subtitleState.activeProviderId || configuredProviders.activeProviderId || "googleTranslate";
+    const defaultProviderId = subtitleState.defaultProviderId || configuredProviders.defaultProviderId;
+    subtitleState.enabled = true;
+    setOverlayVisible(subtitleState.currentVideo, true);
+    setButtonState(true, false);
+    startProviderTranslation(
+      subtitleState.currentDocument,
+      platform,
+      subtitleState.currentSessionKey,
+      subtitleState.currentVideo,
+      providerId,
+      defaultProviderId,
+      { skipTemporaryTranslation: true }
+    );
+  } finally {
+    subtitleState.retranslatingCurrentVideo = false;
+    renderProviderMenu(platform);
+  }
 }
 
 function ensureProviderMenu(platform) {
@@ -571,7 +645,7 @@ async function refreshAvailableProviders() {
   subtitleState.translationStyle = settings.translationStyle || "custom";
   subtitleState.targetLanguage = settings.targetLanguage || "";
   subtitleState.subtitleDisplayMode = Object.hasOwn(SUBTITLE_DISPLAY_MESSAGE_KEYS, settings.subtitleDisplayMode)
-    ? settings.subtitleDisplayMode : "source";
+    ? settings.subtitleDisplayMode : "translated";
   subtitleState.defaultProviderId = resolveDefaultTranslationProviderId(settings);
   subtitleState.temporaryPriorityWindowSeconds = resolveTemporaryPriorityWindowSeconds(settings);
   return settings;
@@ -595,10 +669,8 @@ async function toggleProviderMenu(platform) {
     closeProviderMenu();
     return;
   }
-  try {
-    await Promise.all([refreshAvailableProviders(), refreshSourceCaptionTracks(platform)]);
-  } catch (error) {
-    console.warn("[AST] Failed to load provider menu:", error.message);
+
+  if (subtitleState.availableProviders.length === 0) {
     subtitleState.availableProviders = getAvailableProviders();
     subtitleState.activeProviderId ||= "googleTranslate";
     subtitleState.defaultProviderId ||= "googleTranslate";
@@ -608,6 +680,17 @@ async function toggleProviderMenu(platform) {
   document.getElementById(BUTTON_ID)?.setAttribute("aria-expanded", "true");
   void setProviderMenuVisibility(true);
   scheduleProviderMenuAutoClose();
+
+  try {
+    await Promise.all([refreshAvailableProviders(), refreshSourceCaptionTracks(platform)]);
+  } catch (error) {
+    console.warn("[AST] Failed to load provider menu:", error.message);
+    subtitleState.availableProviders = getAvailableProviders();
+    subtitleState.activeProviderId ||= "googleTranslate";
+    subtitleState.defaultProviderId ||= "googleTranslate";
+  }
+  if (menu.hidden || menu.dataset.platform !== platform) return;
+  renderProviderMenu(platform);
 }
 
 async function selectSourceCaptionTrack(platform, trackId) {
@@ -1714,10 +1797,27 @@ function buildTextShadow(style, scale = 1) {
 }
 
 function getOverlayBackgroundColor(style) {
-  if (subtitleState.translationPhase === "temporary") {
+  if (["temporary", "fallback"].includes(subtitleState.translationPhase)) {
     return style.pendingBackgroundColor || "#750000";
   }
   return style.backgroundColor || "#000000";
+}
+
+function loadBundledGowunFont() {
+  if (!bundledGowunFontPromise) {
+    bundledGowunFontPromise = sendRuntimeMessage({ type: "fonts.getBundledGowun" })
+      .then((response) => {
+        if (!response?.ok) throw new Error(response?.error || "Bundled subtitle font is unavailable.");
+        return Uint8Array.from(atob(response.fontBase64), (character) => character.charCodeAt(0));
+      })
+      .then((fontData) => new FontFace("GounBatang", fontData).load())
+      .then((fontFace) => {
+        document.fonts.add(fontFace);
+        return fontFace;
+      })
+      .catch((error) => console.warn("AST: failed to load bundled subtitle font", error));
+  }
+  return bundledGowunFontPromise;
 }
 
 function applyWebFontCss(css) {
@@ -1725,6 +1825,14 @@ function applyWebFontCss(css) {
   if (!css) {
     styleElement?.remove();
     return;
+  }
+  css = String(css || "");
+  const usesBundledGowunFont = css.includes("__AST_GOWUN_BATANG_FONT_URL__") || css.includes(
+    "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2108@1.1/GowunBatang-Regular.woff"
+  );
+  if (usesBundledGowunFont) {
+    css = css.replace(/@font-face\s*\{[^}]*?(?:__AST_GOWUN_BATANG_FONT_URL__|https:\/\/cdn\.jsdelivr\.net\/gh\/projectnoonnu\/noonfonts_2108@1\.1\/GowunBatang-Regular\.woff)[^}]*\}/g, "");
+    loadBundledGowunFont();
   }
   if (!styleElement) {
     styleElement = document.createElement("style");
@@ -1769,8 +1877,8 @@ function applyOverlayStyle(overlay) {
   const style = subtitleState.subtitleStyle || {};
   const x = clampNumber(style.positionX, 0, 100, 50);
   const y = clampNumber(style.positionY, 0, 100, 78);
-  const width = clampNumber(style.width, 160, 1400, 720);
-  const backgroundOpacity = clampNumber(style.backgroundOpacity, 0, 1, 0.5);
+  const width = clampNumber(style.width, 160, 1400, 1024);
+  const backgroundOpacity = clampNumber(style.backgroundOpacity, 0, 1, 0.75);
   const backgroundColor = getOverlayBackgroundColor(style);
   const scale = getOverlayScale(overlay);
   const displayWidth = scalePx(width, scale, 80);
@@ -1859,7 +1967,7 @@ function installOverlayDrag(overlay) {
   const applyResizeWidth = (width) => {
     const scale = getOverlayScale(overlay);
     const minWidth = scalePx(160, scale, 56);
-    resizeCurrentWidth = clampNumber(width, minWidth, resizeMaxWidth, resizeStartWidth || scalePx(720, scale, 252));
+    resizeCurrentWidth = clampNumber(width, minWidth, resizeMaxWidth, resizeStartWidth || scalePx(1024, scale, 358));
     overlay.style.width = formatPx(resizeCurrentWidth);
     if (resizeParentRect?.width) {
       const centerX = resizeStartLeft - resizeParentRect.left + resizeCurrentWidth / 2;
@@ -1884,7 +1992,7 @@ function installOverlayDrag(overlay) {
     const measuredWidth = Math.round(overlay.getBoundingClientRect().width);
     const scale = getOverlayScale(overlay);
     const actualWidth = resizeMoved ? resizeCurrentWidth : measuredWidth;
-    const nextWidth = clampNumber(Math.round(actualWidth / scale), 160, 1400, 720);
+    const nextWidth = clampNumber(Math.round(actualWidth / scale), 160, 1400, 1024);
     const positionXChanged = Math.abs(resizeCurrentPositionX - resizeStartPositionX) >= 0.1;
     const widthChanged = Math.abs(nextWidth - resizeStartStyleWidth) >= 2;
     if (!widthChanged && !positionXChanged) return;
@@ -2089,7 +2197,19 @@ function setButtonState(enabled, loading = false) {
   button.classList.toggle("complete", subtitleState.translationPhase === "complete");
   button.classList.toggle("fallback", subtitleState.translationPhase === "fallback");
   button.setAttribute("aria-pressed", String(enabled));
-  button.title = loading ? contentText("contentTranslationPreparing") : contentText("contentMenuTitle");
+  const statusMessageKeys = {
+    source: "contentStatusSource",
+    temporary: "contentStatusTemporary",
+    current: "contentStatusCurrent",
+    complete: "contentStatusComplete",
+    fallback: "contentStatusFallback"
+  };
+  const statusMessageKey = loading
+    ? "contentTranslationPreparing"
+    : !enabled
+      ? "contentStatusOff"
+      : statusMessageKeys[subtitleState.translationPhase] || "contentStatusEnabled";
+  button.title = contentText(statusMessageKey);
   updateOpenProviderMenuPhase();
 }
 
@@ -2509,6 +2629,10 @@ function buildTemporaryPriorityDocument(
 }
 
 function invalidateTranslationRequests() {
+  clearFallbackProviderRetry();
+  for (const requestId of [subtitleState.activeFinalRequestId, subtitleState.activeTemporaryRequestId]) {
+    if (requestId) sendRuntimeMessage({ type: "translation.cancelRequest", requestId }).catch(() => {});
+  }
   subtitleState.translationGeneration += 1;
   subtitleState.activeFinalRequestId = "";
   subtitleState.activeTemporaryRequestId = "";
@@ -2524,6 +2648,41 @@ function createTranslationRequestId(mode) {
     mode,
     subtitleState.translationRequestSequence
   ].join(":");
+}
+
+function clearFallbackProviderRetry() {
+  if (subtitleState.fallbackRetryTimeoutId !== null) {
+    clearTimeout(subtitleState.fallbackRetryTimeoutId);
+    subtitleState.fallbackRetryTimeoutId = null;
+  }
+  subtitleState.fallbackRetryPending = false;
+}
+
+function scheduleFallbackProviderRetry(platform, sessionKey, video, providerId) {
+  if (subtitleState.fallbackRetryTimeoutId !== null || subtitleState.fallbackRetryPending) return;
+  if (!providerId || providerId === "googleTranslate") return;
+
+  subtitleState.fallbackRetryTimeoutId = setTimeout(() => {
+    subtitleState.fallbackRetryTimeoutId = null;
+    if (!subtitleState.enabled
+      || subtitleState.translationPhase !== "fallback"
+      || subtitleState.activeProviderId !== providerId
+      || !isCurrentSession(platform, sessionKey)
+      || !subtitleState.currentDocument) return;
+
+    if (subtitleState.pendingProviderId === providerId) {
+      subtitleState.fallbackRetryPending = true;
+      return;
+    }
+
+    startFinalTranslation(
+      subtitleState.currentDocument,
+      platform,
+      sessionKey,
+      resolveRenderVideo(video),
+      providerId
+    );
+  }, 10_000);
 }
 
 function requestTemporaryTranslationAtCurrentCue(video = subtitleState.currentVideo) {
@@ -2567,7 +2726,7 @@ function createButton(platform) {
   const button = document.createElement("button");
   button.id = BUTTON_ID;
   button.type = "button";
-  button.title = contentText("contentMenuTitle");
+  button.title = contentText("contentStatusOff");
   button.setAttribute("aria-label", contentText("contentMenuTitle"));
   button.setAttribute("aria-pressed", "false");
   button.setAttribute("aria-haspopup", "menu");
@@ -2908,7 +3067,7 @@ async function loadSubtitleStyle() {
     const settings = await getPublicSettings();
     subtitleState.subtitleStyle = settings.subtitleStyle || null;
     subtitleState.subtitleDisplayMode = Object.hasOwn(SUBTITLE_DISPLAY_MESSAGE_KEYS, settings.subtitleDisplayMode)
-      ? settings.subtitleDisplayMode : "source";
+      ? settings.subtitleDisplayMode : "translated";
     subtitleState.translationStyle = settings.translationStyle || "custom";
     subtitleState.targetLanguage = settings.targetLanguage || "";
   } catch (error) {
@@ -2964,19 +3123,38 @@ function startFinalTranslation(document, platform, sessionKey, video, providerId
     showFallbackToast(translatedDocument);
     trackFinalTranslatedCues(translatedDocument.cues);
     applyTranslatedCues(video, translatedDocument.cues);
-    setTranslationPhase(translatedDocument.fallbackProviderId ? "fallback" : "complete");
+    if (translatedDocument.fallbackProviderId) {
+      setTranslationPhase("fallback");
+      scheduleFallbackProviderRetry(platform, sessionKey, video, providerId);
+    } else {
+      clearFallbackProviderRetry();
+      setTranslationPhase("complete");
+    }
   }).catch((error) => {
     if (requestId === subtitleState.activeFinalRequestId) {
       console.warn(`[AST] ${providerId} translation failed:`, error.message);
+      if (subtitleState.translationPhase === "fallback") {
+        scheduleFallbackProviderRetry(platform, sessionKey, video, providerId);
+      }
     }
   }).finally(() => {
     if (requestId !== subtitleState.activeFinalRequestId) return;
     subtitleState.pendingProviderId = "";
     refreshOpenProviderMenu();
+    if (subtitleState.fallbackRetryPending && subtitleState.translationPhase === "fallback") {
+      subtitleState.fallbackRetryPending = false;
+      startFinalTranslation(
+        subtitleState.currentDocument,
+        platform,
+        sessionKey,
+        resolveRenderVideo(video),
+        providerId
+      );
+    }
   });
 }
 
-function startProviderTranslation(document, platform, sessionKey, video, providerId, defaultProviderId) {
+function startProviderTranslation(document, platform, sessionKey, video, providerId, defaultProviderId, options = {}) {
   if (!document?.cues?.length) return;
   invalidateTranslationRequests();
   subtitleState.activeProviderId = providerId;
@@ -2992,7 +3170,9 @@ function startProviderTranslation(document, platform, sessionKey, video, provide
   setTranslationPhase("source");
   renderOverlay(targetVideo, document.cues);
 
-  if (!isMachineTranslationProvider(providerId) && providerId !== subtitleState.defaultProviderId) {
+  if (!options.skipTemporaryTranslation
+    && !isMachineTranslationProvider(providerId)
+    && providerId !== subtitleState.defaultProviderId) {
     startDefaultCueTranslation(document, platform, sessionKey, targetVideo, subtitleState.defaultProviderId);
   }
   startFinalTranslation(document, platform, sessionKey, targetVideo, providerId);
@@ -3495,6 +3675,12 @@ chrome.runtime.onMessage.addListener((message) => {
     applyTranslatedCues(subtitleState.currentVideo, message.progress?.cues);
     if (isFallback) {
       setTranslationPhase("fallback");
+      scheduleFallbackProviderRetry(
+        subtitleState.currentPlatform,
+        subtitleState.currentSessionKey,
+        subtitleState.currentVideo,
+        subtitleState.activeProviderId
+      );
     } else if (hasCompleteFinalTranslation() || isLastTranslationProgress(message.progress)) {
       setTranslationPhase("complete");
     } else {
@@ -3509,6 +3695,7 @@ chrome.runtime.onMessage.addListener((message) => {
 async function togglePlatformSubtitles(handler) {
   if (subtitleState.disposed || subtitleState.loading) return;
 
+  subtitleState.autoEnablePending = false;
   subtitleState.enabled = !subtitleState.enabled;
   if (!subtitleState.enabled) {
     invalidateTranslationRequests();
@@ -3540,6 +3727,10 @@ async function togglePlatformSubtitles(handler) {
       subtitleState.enabled = false;
       setOverlayVisible(subtitleState.currentVideo, false);
     }
+  } catch (error) {
+    subtitleState.enabled = false;
+    setOverlayVisible(subtitleState.currentVideo, false);
+    throw error;
   } finally {
     subtitleState.loading = false;
     setButtonState(subtitleState.enabled, false);
@@ -3553,7 +3744,18 @@ function toggleSubtitles(platform) {
 
 function watchPlatformChanges(handler) {
   const tryRefresh = () => {
-    if (subtitleState.disposed || !subtitleState.enabled || subtitleState.loading) return;
+    if (subtitleState.disposed || subtitleState.loading) return;
+    if (subtitleState.autoEnablePending) {
+      if (!handler.getSessionKey() || !handler.findVideo()) return;
+      if (handler.platform === "udemy" && !getUdemyCourseId()) return;
+      subtitleState.autoEnablePending = false;
+      togglePlatformSubtitles(handler).catch((error) => {
+        console.warn(`[AST] Failed to start ${handler.platform} subtitles:`, error.message);
+        showToast(contentText("contentCaptionsLoadFailed", [error.message]));
+      });
+      return;
+    }
+    if (!subtitleState.enabled) return;
     if (handler.platform === "ted") {
       const routeKey = getTedTalkSlug();
       const routeChanged = Boolean(routeKey
@@ -3592,6 +3794,7 @@ function watchPlatformChanges(handler) {
   setInterval(() => {
     if (!subtitleState.disposed) tryRefresh();
   }, 1500);
+  tryRefresh();
 }
 
 async function isPlatformEnabled(platform) {
@@ -3656,6 +3859,7 @@ async function initializeContentScript() {
     if (!enabled) return;
     const handler = platformHandlers[platform];
     if (!handler) return;
+    subtitleState.autoEnablePending = true;
 
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", () => {

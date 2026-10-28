@@ -224,7 +224,7 @@ test("simple settings messages are synchronized in Korean, English, and Japanese
   );
   assert.equal(
     message("ko", "simpleGoogleIntroGuide"),
-    "Google AI로 자막을 번역합니다. 아래 안내대로 API 키를 만든 뒤 입력하면 Gemini 3.5 Flash Lite가 자동으로 설정됩니다. API 키 확인을 눌러 연결을 확인하세요."
+    "Google AI로 자막을 번역합니다. 아래 안내대로 API 키를 만든 뒤 입력하면 Gemini 3.1 Flash Lite가 자동으로 설정됩니다. API 키 확인을 눌러 연결을 확인하세요."
   );
   assert.equal(
     message("ko", "simpleGoogleFreeTierNotice"),
@@ -359,7 +359,7 @@ test("temporary translation section explains first-pass translation and gates De
   assert.match(optionsHtml, /<h2 data-i18n="fallbackTitle"><\/h2>/);
   assert.match(optionsHtml, /<p class="section-description" data-i18n="fallbackDescription"><\/p>/);
   assert.equal(message("ko", "fallbackTitle"), "임시 번역");
-  assert.match(message("ko", "fallbackDescription"), /LLM 번역은 시간이 오래 걸립니다/);
+  assert.match(message("ko", "fallbackDescription"), /LLM 번역에는 시간이 걸릴 수 있습니다/);
   assert.equal(message("en", "fallbackTitle"), "Temporary Translation");
   assert.match(message("en", "fallbackDescription"), /LLM translation can take time/);
   assert.match(optionsJs, /function isFallbackProviderAvailable\(provider\)/);
@@ -455,7 +455,7 @@ test("OpenRouter renders a checked Nitro setting next to its model", () => {
   assert.match(optionsJs, /function renderOpenRouterNitroField\(provider\)/);
   assert.match(optionsJs, /input\.name = "nitro";/);
   assert.match(optionsJs, /input\.checked = provider\.nitro !== false;/);
-  assert.equal(message("ko", "openRouterNitro"), "Nitro 사용 (고속 provider 우선)");
+  assert.equal(message("ko", "openRouterNitro"), "Nitro 사용 (고속 제공업체 우선)");
   assert.match(optionsJs, /provider\.id === "openrouter" && field\[0\] === "model"/);
 });
 
@@ -480,7 +480,7 @@ test("subtitle background controls include opacity and temporary fallback color"
   assert.match(optionsHtml, /data-i18n="backgroundOpacity"><\/span>/);
   assert.match(optionsHtml, /data-i18n="pendingBackgroundColor"><\/span>/);
   assert.match(optionsHtml, /id="subtitlePendingBackgroundColor" type="color"/);
-  assert.equal(message("ko", "pendingBackgroundColor"), "임시 번역 중 배경색");
+  assert.equal(message("ko", "pendingBackgroundColor"), "임시·대체 번역 배경색");
   assert.match(optionsJs, /pendingBackgroundColor: document\.getElementById\("subtitlePendingBackgroundColor"\)/);
 });
 
@@ -588,8 +588,8 @@ test("settings backup UI requests a popup password and encrypts backup files", (
 });
 
 test("settings restore can validate every configured API key and update provider status", () => {
-  assert.match(message("ko", "restoreTestKeysConfirm"), /복원된 설정에 저장된 API Key의 연결 유효성을 지금 확인하시겠습니까/);
-  assert.match(message("en", "restoreTestKeysConfirm"), /Test the connection validity of API keys/);
+  assert.match(message("ko", "restoreTestKeysConfirm"), /복원된 설정의 API 키로 지금 연결을 확인할까요/);
+  assert.match(message("en", "restoreTestKeysConfirm"), /Test the API keys in the restored settings/);
   assert.match(message("ja", "restoreTestKeysConfirm"), /復元した設定の API キー接続を今すぐ確認しますか/);
   assert.match(optionsJs, /import \{ getConfiguredKeyProviders, validateConfiguredProviderKeys \} from "\.\.\/shared\/provider-key-validation\.js";/);
   assert.match(optionsJs, /getConfiguredKeyProviders\(settings\)/);

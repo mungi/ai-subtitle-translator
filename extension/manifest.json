@@ -4,7 +4,7 @@
   "description": "__MSG_extensionDescription__",
   "default_locale": "en",
   "minimum_chrome_version": "102",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "action": {
     "default_popup": "popup/popup.html",
     "default_icon": {
@@ -79,6 +79,21 @@
   ],
   "optional_host_permissions": [
     "https://*/*"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/fonts/gowun-batang-regular.woff"],
+      "matches": [
+        "https://*.udemy.com/*",
+        "https://www.youtube.com/*",
+        "https://ted.com/*",
+        "https://www.ted.com/*",
+        "https://www.nvidia.com/*",
+        "https://vimeo.com/*",
+        "https://www.vimeo.com/*",
+        "https://player.vimeo.com/*"
+      ]
+    }
   ],
   "options_page": "options/options.html",
   "permissions": [

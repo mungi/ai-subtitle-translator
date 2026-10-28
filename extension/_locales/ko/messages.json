@@ -3,7 +3,7 @@
     "message": "AI 자막 번역 설정"
   },
   "subtitle": {
-    "message": "Udemy, YouTube, TED, NVIDIA Academy, Vimeo 자막을 전체 문맥 기반으로 번역할 provider를 설정합니다."
+    "message": "Udemy, YouTube, TED, NVIDIA Academy, Vimeo 자막을 전체 문맥에 맞게 번역할 제공업체를 설정합니다."
   },
   "testProvider": {
     "message": "연결 테스트"
@@ -39,7 +39,7 @@
     "message": "API 키 숨기기"
   },
   "simpleGoogleIntroGuide": {
-    "message": "Google AI로 자막을 번역합니다. 아래 안내대로 API 키를 만든 뒤 입력하면 Gemini 3.5 Flash Lite가 자동으로 설정됩니다. API 키 확인을 눌러 연결을 확인하세요."
+    "message": "Google AI로 자막을 번역합니다. 아래 안내대로 API 키를 만든 뒤 입력하면 Gemini 3.1 Flash Lite가 자동으로 설정됩니다. API 키 확인을 눌러 연결을 확인하세요."
   },
   "simpleGoogleTestApiKey": {
     "message": "API 키 확인"
@@ -75,7 +75,7 @@
     "message": "생성한 프로젝트의 결제 등급이 '무료 등급(Free)'인지 꼭 확인하세요."
   },
   "simpleGoogleKeyGuideStep5": {
-    "message": "복사한 키를 위 입력란에 붙여 넣으면 Gemini 3.5 Flash Lite가 자동으로 설정됩니다. API 키 확인을 눌러 연결을 확인하세요."
+    "message": "복사한 키를 위 입력란에 붙여 넣으면 Gemini 3.1 Flash Lite가 자동으로 설정됩니다. API 키 확인을 눌러 연결을 확인하세요."
   },
   "simpleGoogleFreeTierNotice": {
     "message": "무료 등급에는 사용 한도가 있습니다. 일일 요청 한도는 미국 태평양 시간 자정에 초기화됩니다."
@@ -84,13 +84,13 @@
     "message": "API 키는 비밀번호처럼 관리하세요. 다른 사람에게 공유하거나 공개 문서에 넣지 마세요."
   },
   "simpleGoogleApiKeyRequired": {
-    "message": "Google AI API Key를 입력하세요."
+    "message": "Google AI API 키를 입력하세요."
   },
   "simpleGoogleTesting": {
     "message": "Google AI 연결을 확인하는 중입니다."
   },
   "simpleGoogleTestSuccess": {
-    "message": "Google AI 연결을 확인했고 Gemini 3.5 Flash Lite를 활성화했습니다."
+    "message": "Google AI 연결을 확인했고 Gemini 3.1 Flash Lite를 활성화했습니다."
   },
   "simpleGoogleTestFailed": {
     "message": "Google AI 연결에 실패했습니다. 기존 번역 엔진을 유지합니다."
@@ -99,7 +99,7 @@
     "message": "기본 번역 설정"
   },
   "activeProvider": {
-    "message": "사용 provider"
+    "message": "번역 제공업체"
   },
   "targetLanguage": {
     "message": "목표 언어"
@@ -108,13 +108,13 @@
     "message": "번역 스타일"
   },
   "chunkDuration": {
-    "message": "Chunk 최대 시간(분)"
+    "message": "자막 분할 최대 시간(분)"
   },
   "cacheTranslations": {
     "message": "번역 캐시 사용"
   },
   "providerSettings": {
-    "message": "Provider별 설정"
+    "message": "제공업체별 설정"
   },
   "clearCache": {
     "message": "번역 캐시 삭제"
@@ -126,10 +126,10 @@
     "message": "임시 번역"
   },
   "fallbackDescription": {
-    "message": "LLM 번역은 시간이 오래 걸립니다. 번역이 완료되기 전에 먼저 표시할 임시 번역 provider를 선택하세요.\nDeepL은 API 키를 입력하고 연결 테스트에 성공하면 선택할 수 있습니다."
+    "message": "LLM 번역에는 시간이 걸릴 수 있습니다. 번역이 완료되기 전에 먼저 표시할 임시 번역 제공업체를 선택하세요.\nDeepL은 API 키를 입력하고 연결 테스트에 성공하면 선택할 수 있습니다."
   },
   "fallbackProvider": {
-    "message": "임시 번역 provider"
+    "message": "임시 번역 제공업체"
   },
   "subtitleStyle": {
     "message": "자막 스타일"
@@ -159,10 +159,10 @@
     "message": "사용자 웹폰트 CSS"
   },
   "customWebFontGuide": {
-    "message": "눈누에서 폰트를 선택한 뒤 \"웹폰트로 사용\" 부분을 복사해서 아래 텍스트 박스에 붙여넣으세요."
+    "message": "눈누에서 폰트를 선택한 뒤 \"웹폰트로 사용\" 부분을 복사해서 아래 텍스트 상자에 붙여 넣으세요."
   },
   "textColor": {
-    "message": "글자 색"
+    "message": "글자색"
   },
   "shadowEnabled": {
     "message": "그림자 사용"
@@ -171,7 +171,7 @@
     "message": "그림자 색"
   },
   "shadowBlur": {
-    "message": "그림자 Blur"
+    "message": "그림자 흐림"
   },
   "shadowDistance": {
     "message": "그림자 거리"
@@ -189,7 +189,7 @@
     "message": "배경색"
   },
   "pendingBackgroundColor": {
-    "message": "임시 번역 중 배경색"
+    "message": "임시·대체 번역 배경색"
   },
   "backgroundOpacity": {
     "message": "배경 불투명도"
@@ -198,7 +198,7 @@
     "message": "Custom LLM 확인 방법"
   },
   "openRouterNitro": {
-    "message": "Nitro 사용 (고속 provider 우선)"
+    "message": "Nitro 사용 (고속 제공업체 우선)"
   },
   "saved": {
     "message": "설정을 저장했습니다."
@@ -207,7 +207,7 @@
     "message": "설정 저장 실패"
   },
   "testing": {
-    "message": "선택한 provider에 테스트 요청을 보내는 중입니다..."
+    "message": "선택한 제공업체에 테스트 요청을 보내는 중입니다..."
   },
   "loadingModels": {
     "message": "모델 목록을 가져오는 중입니다..."
@@ -291,6 +291,15 @@
   "response": {
     "message": "응답"
   },
+  "reasoningSettingDetected": {
+    "message": "추론 설정: $mode$",
+    "placeholders": {
+      "mode": { "content": "$1", "example": "minimal" }
+    }
+  },
+  "reasoningSettingUnsupported": {
+    "message": "추론 옵션 미지원"
+  },
   "resetDone": {
     "message": "전체 설정을 초기화했습니다."
   },
@@ -307,19 +316,19 @@
     "message": "설정 로드 실패"
   },
   "customLanguage": {
-    "message": "사용자 언어"
+    "message": "사용자 지정 언어"
   },
   "providerTestRequired": {
-    "message": "연결 테스트에 성공한 provider가 없습니다."
+    "message": "연결 테스트에 성공한 제공업체가 없습니다."
   },
   "activeProviderGuide": {
-    "message": "Google Translate는 항상 사용할 수 있으며, 그 외 provider는 연결 테스트에 성공하면 선택할 수 있습니다."
+    "message": "Google Translate는 항상 사용할 수 있으며, 다른 제공업체는 연결 테스트에 성공하면 선택할 수 있습니다."
   },
   "backupRestoreTitle": {
     "message": "현재 설정 백업/복구"
   },
   "backupRestoreDescription": {
-    "message": "API 키를 포함한 현재 설정을 암호화된 파일로 백업하거나 복구합니다. 백업 비밀번호는 저장되지 않으므로 안전하게 보관하세요."
+    "message": "API 키를 포함한 현재 설정을 암호화된 파일로 백업하거나 백업 파일에서 복구합니다. 백업 비밀번호는 저장되지 않으므로 안전하게 보관하세요."
   },
   "backupSeedLabel": {
     "message": "백업 비밀번호"
@@ -334,7 +343,7 @@
     "message": "영문, 숫자, 특수문자 조합 8자 이상"
   },
   "backupSeedGuide": {
-    "message": "비밀번호는 영문, 숫자, 특수문자를 각각 1개 이상 포함해 8자 이상 입력하세요. 비밀번호 중간의 일반 space는 사용할 수 있습니다."
+    "message": "비밀번호는 영문, 숫자, 특수문자를 각각 1개 이상 포함해 8자 이상 입력하세요. 비밀번호 중간에는 일반 공백을 사용할 수 있습니다."
   },
   "backupSettings": {
     "message": "설정 백업"
@@ -355,10 +364,10 @@
     "message": "백업 설정을 복구했습니다."
   },
   "restoreTestKeysConfirm": {
-    "message": "복원된 설정에 저장된 API Key의 연결 유효성을 지금 확인하시겠습니까?\nProvider별로 최소 연결 요청이 한 번씩 전송됩니다."
+    "message": "복원된 설정의 API 키로 지금 연결을 확인할까요?\n제공업체별로 최소한의 연결 요청이 한 번씩 전송됩니다."
   },
   "restoreTestingKey": {
-    "message": "API Key 연결 확인 중 ($current$/$total$): $provider$",
+    "message": "API 키 연결 확인 중 ($current$/$total$): $provider$",
     "placeholders": {
       "current": {
         "content": "$1",
@@ -375,7 +384,7 @@
     }
   },
   "restoreKeyTestComplete": {
-    "message": "설정 복구 및 API Key 연결 확인 완료: $success$/$total$ 성공, $failed$ 실패",
+    "message": "설정 복구 및 API 키 연결 확인 완료: $success$/$total$ 성공, $failed$ 실패",
     "placeholders": {
       "success": {
         "content": "$1",
@@ -414,7 +423,7 @@
     }
   },
   "restoreNoKeysToTest": {
-    "message": "설정을 복구했습니다. 연결 확인할 API Key가 없습니다."
+    "message": "설정을 복구했습니다. 연결을 확인할 API 키가 없습니다."
   },
   "backupFailed": {
     "message": "설정 백업 실패"
@@ -477,7 +486,7 @@
     "message": "AST - AI Subtitle Translator"
   },
   "extensionDescription": {
-    "message": "문맥을 이해하는 LLM으로 Udemy, YouTube, Ted 등 다양한 플랫폼의 자막을 자연스럽게 번역합니다."
+    "message": "문맥을 이해하는 LLM으로 Udemy, YouTube, TED 등 다양한 플랫폼의 자막을 자연스럽게 번역합니다."
   },
   "optionsPageTitle": {
     "message": "AI 자막 번역 설정"
@@ -507,7 +516,7 @@
     "message": "AI 자막 번역"
   },
   "popupProvider": {
-    "message": "Provider"
+    "message": "번역 제공업체"
   },
   "popupTargetLanguage": {
     "message": "목표 언어"
@@ -536,8 +545,32 @@
   "contentMenuTitle": {
     "message": "AST 번역 메뉴"
   },
+  "contentStatusOff": {
+    "message": "자막 꺼짐"
+  },
+  "contentStatusEnabled": {
+    "message": "자막 표시 중"
+  },
+  "contentStatusSource": {
+    "message": "원문 자막 표시 중"
+  },
+  "contentStatusTemporary": {
+    "message": "임시 번역 표시 중"
+  },
+  "contentStatusCurrent": {
+    "message": "현재 자막 번역 완료 · 나머지 번역 중"
+  },
+  "contentStatusComplete": {
+    "message": "번역 완료"
+  },
+  "contentStatusFallback": {
+    "message": "대체 번역 표시 중"
+  },
   "contentToggleSubtitles": {
     "message": "AI 자막 번역"
+  },
+  "contentRetranslateCurrentVideo": {
+    "message": "현재 영상 다시 번역"
   },
   "contentSourceCaptions": {
     "message": "원본 자막"
@@ -549,7 +582,7 @@
     "message": "설정 열기"
   },
   "contentProviderFailed": {
-    "message": "Provider를 변경하지 못했습니다: $error$",
+    "message": "제공업체를 변경하지 못했습니다: $error$",
     "placeholders": {
       "error": {
         "content": "$1",
@@ -570,7 +603,7 @@
     "message": "API 요청이 너무 많아 재시도에 실패했습니다. Google Translate로 대체 번역합니다."
   },
   "contentFallback": {
-    "message": "선택한 번역 Provider에서 번역하지 못해 Google Translate로 대체 번역합니다."
+    "message": "선택한 번역 제공업체에서 번역하지 못해 Google Translate로 대체 번역합니다."
   },
   "contentMissingUdemy": {
     "message": "Udemy 강의 정보를 찾지 못했습니다."
@@ -627,10 +660,10 @@
     "message": "Base URL"
   },
   "fieldApiKey": {
-    "message": "API Key"
+    "message": "API 키"
   },
   "fieldApiKeyOptional": {
-    "message": "API Key (선택 사항)"
+    "message": "API 키 (선택 사항)"
   },
   "fieldPlan": {
     "message": "요금제"
@@ -663,40 +696,40 @@
     }
   },
   "providerGuideGoogleTranslate": {
-    "message": "기본 번역 엔진입니다. API key 없이 Google Translate endpoint를 사용합니다."
+    "message": "기본 번역 엔진입니다. API 키 없이 Google Translate 엔드포인트를 사용합니다."
   },
   "providerGuideDeepl": {
-    "message": "DeepL API provider입니다. API key는 DeepL 계정의 API keys 페이지에서 확인하고, Free/Pro 요금제에 맞는 endpoint를 설정하세요. Free 플랜은 월 문자 사용량 제한이 있습니다."
+    "message": "DeepL API를 사용합니다. API 키는 DeepL 계정의 API keys 페이지에서 확인하고, Free/Pro 요금제에 맞는 엔드포인트를 설정하세요. Free 요금제에는 월간 문자 사용량 제한이 있습니다."
   },
   "providerGuideOpenai": {
-    "message": "OpenAI Responses API를 사용합니다. API key는 OpenAI Platform API keys 페이지에서 발급하고, 모델명은 계정에서 사용할 수 있는 값을 입력하세요. 사용량 제한과 요금은 계정/모델/티어별로 달라질 수 있습니다."
+    "message": "OpenAI Responses API를 사용합니다. API 키는 OpenAI Platform의 API keys 페이지에서 발급하고, 계정에서 사용할 수 있는 모델명을 입력하세요. 사용량 제한과 요금은 계정, 모델, 등급별로 달라질 수 있습니다."
   },
   "providerGuideAnthropic": {
-    "message": "Anthropic Messages API를 사용합니다. API key는 Claude Platform keys 페이지에서 발급하세요. 요청에는 anthropic-version 헤더가 포함됩니다. 사용량 제한과 요금은 계정/모델/티어별로 달라질 수 있습니다."
+    "message": "Anthropic Messages API를 사용합니다. API 키는 Claude Platform의 keys 페이지에서 발급하세요. 요청에는 anthropic-version 헤더가 포함됩니다. 사용량 제한과 요금은 계정, 모델, 등급별로 달라질 수 있습니다."
   },
   "providerGuideGoogle": {
-    "message": "Google AI의 Gemini generateContent API를 사용합니다. API key는 Google AI Studio에서 발급할 수 있으며 URL query로 전달됩니다. 사용량 제한과 요금은 프로젝트/모델/티어별로 달라질 수 있습니다."
+    "message": "Google AI의 Gemini generateContent API를 사용합니다. API 키는 Google AI Studio에서 발급할 수 있으며 URL 쿼리 매개변수로 전달됩니다. 사용량 제한과 요금은 프로젝트, 모델, 등급별로 달라질 수 있습니다."
   },
   "providerGuideOpenrouter": {
-    "message": "OpenRouter의 OpenAI 호환 chat/completions API를 사용합니다. API key는 OpenRouter keys 페이지에서 발급하세요. 무료 플랜/무료 모델 API는 사용량 제한이 있습니다."
+    "message": "OpenRouter의 OpenAI 호환 chat/completions API를 사용합니다. API 키는 OpenRouter의 keys 페이지에서 발급하세요. 무료 요금제와 무료 모델 API에는 사용량 제한이 있습니다."
   },
   "providerGuideNvidiaNim": {
-    "message": "NVIDIA NIM의 OpenAI 호환 chat/completions API를 사용합니다. API key는 NVIDIA API keys 페이지에서 발급하세요. NVIDIA API Catalog는 개발/프로토타이핑용 무료 endpoint를 제공하며 모델별/계정별 사용량 제한이 적용될 수 있습니다."
+    "message": "NVIDIA NIM의 OpenAI 호환 chat/completions API를 사용합니다. API 키는 NVIDIA의 API keys 페이지에서 발급하세요. NVIDIA API Catalog는 개발·시제품 제작용 무료 엔드포인트를 제공하며 모델별·계정별 사용량 제한이 적용될 수 있습니다."
   },
   "providerGuideLocal": {
-    "message": "OpenAI 호환 chat/completions 형식을 사용합니다. localhost/127.0.0.1은 HTTP 또는 HTTPS를 사용할 수 있고, 사용자 지정 서버는 HTTPS만 허용합니다. 사용자 지정 HTTPS 서버는 모델 가져오기 또는 연결 테스트 시 해당 도메인 접근 권한을 승인한 뒤 사용할 수 있습니다. 자막 텍스트와 API Key(입력한 경우)는 이 서버로 직접 전송됩니다. Base URL에는 최종 요청 URL에서 /chat/completions 직전까지만 입력하세요. 예: http://localhost:1234/v1"
+    "message": "OpenAI 호환 chat/completions 형식을 사용합니다. localhost와 127.0.0.1은 HTTP 또는 HTTPS를 사용할 수 있고, 사용자 지정 서버는 HTTPS만 허용합니다. 사용자 지정 HTTPS 서버는 모델 가져오기 또는 연결 테스트 시 해당 도메인 접근 권한을 승인한 뒤 사용할 수 있습니다. 자막 텍스트와 API 키(입력한 경우)는 이 서버로 직접 전송됩니다. Base URL에는 최종 요청 URL에서 /chat/completions 직전까지만 입력하세요. 예: http://localhost:1234/v1"
   },
   "contentSubtitleDisplay": {
-    "message": "자막표시"
+    "message": "자막 표시"
   },
   "contentDualSubtitles": {
-    "message": "이중자막"
+    "message": "이중 자막"
   },
   "contentMainSubtitles": {
-    "message": "메인자막"
+    "message": "원문 자막"
   },
   "contentTranslatedSubtitles": {
-    "message": "번역자막"
+    "message": "번역 자막"
   },
   "contentTranslationFailed": {
     "message": "번역하지 못했습니다. 원문 또는 준비된 자막을 유지합니다: $error$",

@@ -4,6 +4,7 @@ const BACKGROUND_MESSAGE_TYPES = new Set([
   "llm.listModels",
   "llm.testActiveProvider",
   "settings.getPublic",
+  "fonts.getBundledGowun",
   "settings.updateSubtitleStyle",
   "settings.setActiveProvider",
   "settings.setTranslationStyle",
@@ -20,7 +21,9 @@ const BACKGROUND_MESSAGE_TYPES = new Set([
   "platform.nvidia.isCoursePlayer",
   "platform.vimeo.getContext",
   "translation.translateDocument",
-  "translation.clearCache"
+  "translation.cancelRequest",
+  "translation.clearCache",
+  "translation.clearVideoCache"
 ]);
 
 const EXTENSION_PAGE_MESSAGE_TYPES = new Set([
@@ -31,6 +34,7 @@ const EXTENSION_PAGE_MESSAGE_TYPES = new Set([
 
 const CONTENT_SCRIPT_MESSAGE_TYPES = new Set([
   "settings.getPublic",
+  "fonts.getBundledGowun",
   "settings.updateSubtitleStyle",
   "settings.setActiveProvider",
   "settings.setTranslationStyle",
@@ -46,7 +50,9 @@ const CONTENT_SCRIPT_MESSAGE_TYPES = new Set([
   "captions.ted.fetchTranscript",
   "platform.nvidia.isCoursePlayer",
   "platform.vimeo.getContext",
-  "translation.translateDocument"
+  "translation.translateDocument",
+  "translation.cancelRequest",
+  "translation.clearVideoCache"
 ]);
 
 const SUBTITLE_STYLE_PATCH_LIMITS = Object.freeze({
@@ -232,6 +238,17 @@ export function validateBackgroundMessage(message) {
         error = "forceNoCache must be a boolean.";
       }
       if (!error && !isOptionalString(message.requestId)) error = "requestId must be a string.";
+      break;
+    case "translation.cancelRequest":
+      if (!isNonEmptyValue(message.requestId)) error = "requestId is required.";
+      break;
+    case "translation.clearVideoCache":
+      if (!isNonEmptyValue(message.platform)
+        || !["youtube", "udemy", "ted", "nvidia", "vimeo"].includes(message.platform)) {
+        error = "platform must be a supported video platform.";
+      } else if (!isNonEmptyValue(message.videoId)) {
+        error = "videoId is required.";
+      }
       break;
     default:
       break;

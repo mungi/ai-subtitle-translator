@@ -18,36 +18,24 @@ function buildMessages(systemPrompt, input) {
   ];
 }
 
-const OPENAI_REASONING_OPTIONS = {
-  reasoning: {
-    effort: "none"
-  },
-  text: {
-    verbosity: "low"
-  }
-};
-
-const ANTHROPIC_LOW_EFFORT_OPTIONS = {
-  output_config: {
-    effort: "low"
-  }
-};
-
 export const ANTHROPIC_DIRECT_BROWSER_ACCESS_HEADER = "anthropic-dangerous-direct-browser-access";
 
-function buildAnthropicModelOptions(model) {
-  const normalizedModel = String(model || "").toLowerCase();
-  if (normalizedModel.includes("haiku")) {
-    return {};
+function defaultReasoningMode(provider, model) {
+  if (provider.id === "openai" || provider.id === "openrouter") {
+    return provider.id === "openrouter" && provider.disableReasoning === false ? "omit" : "none";
   }
-  if (
+  if (provider.id === "nvidiaNim") return "low";
+  if (provider.apiStyle === "google-generate-content") {
+    if (model.includes("gemini-2.5")) return model.includes("pro") ? "budget:128" : "budget:0";
+    if (model.includes("gemini-3")) return model.includes("flash-lite") ? "minimal" : "low";
+  }
+  if (provider.apiStyle !== "anthropic-messages") return "omit";
+  const normalizedModel = String(model || "").toLowerCase();
+  return (
     normalizedModel.includes("fable")
     || normalizedModel.includes("opus")
     || normalizedModel.includes("sonnet")
-  ) {
-    return ANTHROPIC_LOW_EFFORT_OPTIONS;
-  }
-  return {};
+  ) ? "low" : "omit";
 }
 
 const TRANSLATION_RESPONSE_FORMAT = {
@@ -77,57 +65,70 @@ const TRANSLATION_RESPONSE_FORMAT = {
   }
 };
 
-function buildGoogleThinkingConfig(provider) {
-  const model = String(provider.model || "").toLowerCase();
-
-  if (model.includes("gemini-3")) {
-    return {
-      thinkingLevel: model.includes("flash-lite") ? "minimal" : "low"
-    };
+export function getReasoningProbeModes(provider) {
+  if (provider.apiStyle === "google-generate-content") {
+    const model = String(provider.model || "").toLowerCase();
+    if (model.includes("gemini-2.5")) return [model.includes("pro") ? "budget:128" : "budget:0", "omit"];
+    return ["minimal", "low", "omit"];
   }
-
-  if (model.includes("gemini-2.5")) {
-    if (model.includes("flash") || model.includes("lite")) {
-      return {
-        thinkingBudget: 0
-      };
-    }
-
-    if (model.includes("pro")) {
-      return {
-        thinkingBudget: 128
-      };
-    }
+  if (provider.apiStyle === "anthropic-messages" || provider.id === "nvidiaNim") return ["low", "omit"];
+  if (provider.id === "local" || provider.id === "openai" || provider.id === "openrouter") {
+    return ["none", "minimal", "low", "omit"];
   }
+  return ["omit"];
+}
 
+export function createReasoningProfile(provider, mode) {
+  return {
+    model: resolveProviderModel(provider),
+    apiStyle: provider.apiStyle,
+    baseUrl: provider.baseUrl,
+    mode
+  };
+}
+
+function resolveReasoningMode(provider, model, override) {
+  if (override !== undefined) return override;
+  const profile = provider.reasoningProfile;
+  if (profile?.model === model && profile.apiStyle === provider.apiStyle
+    && profile.baseUrl === provider.baseUrl && getReasoningProbeModes(provider).includes(profile.mode)) {
+    return profile.mode;
+  }
+  if (provider.id === "openrouter" && provider.disableReasoning === false) return "omit";
+  return defaultReasoningMode(provider, model.toLowerCase());
+}
+
+function buildGoogleThinkingConfig(mode) {
+  if (mode === "minimal" || mode === "low") return { thinkingLevel: mode };
+  if (mode === "budget:0" || mode === "budget:128") return { thinkingBudget: Number(mode.slice(7)) };
   return null;
 }
 
-function buildOpenAICompatibleOptions(provider, { structuredOutput = true } = {}) {
+function buildOpenAICompatibleOptions(provider, { structuredOutput = true, reasoningMode } = {}) {
   if (provider.id === "openrouter") {
     return {
-      ...(provider.disableReasoning === false ? {} : {
-        reasoning: {
-          effort: "none"
-        }
-      }),
+      ...(reasoningMode === "omit" ? {} : { reasoning: { effort: reasoningMode } }),
       ...(structuredOutput ? { response_format: TRANSLATION_RESPONSE_FORMAT } : {})
     };
   }
 
-  if (provider.id === "nvidiaNim") {
-    return {
-      reasoning_effort: "low"
-    };
+  if (provider.id === "nvidiaNim" || provider.id === "local") {
+    return reasoningMode === "omit" ? {} : { reasoning_effort: reasoningMode };
   }
 
   return {};
 }
 
-export function shouldRetryOpenRouterWithoutReasoning(provider, error) {
-  if (provider?.id !== "openrouter" || provider.disableReasoning === false) return false;
+export function isReasoningOptionError(error) {
   if (![400, 422].includes(Number(error?.status))) return false;
-  return /\b(reasoning|thinking|reasoning[_ -]?effort)\b/i.test(String(error?.message || ""));
+  return /(reasoning|thinking|output_config)/i
+    .test(`${error?.message || ""} ${error?.details || ""}`);
+}
+
+export function shouldRetryOpenRouterWithoutReasoning(provider, error) {
+  if (provider?.id !== "openrouter"
+    || resolveReasoningMode(provider, resolveProviderModel(provider)) === "omit") return false;
+  return isReasoningOptionError(error);
 }
 
 function resolveProviderModel(provider) {
@@ -138,10 +139,11 @@ function resolveProviderModel(provider) {
   return provider.nitro === false ? baseModel : `${baseModel}:nitro`;
 }
 
-export function buildProviderRequest(provider, { systemPrompt, input, structuredOutput = true, maxTokens: maxTokensOverride }) {
+export function buildProviderRequest(provider, { systemPrompt, input, structuredOutput = true, maxTokens: maxTokensOverride, reasoningMode: reasoningModeOverride }) {
   assertProviderEndpoint(provider);
   const apiStyle = requireValue(provider.apiStyle, "API style");
   const model = resolveProviderModel(provider);
+  const reasoningMode = resolveReasoningMode(provider, model, reasoningModeOverride);
   const temperature = Number(provider.temperature ?? 0.2);
   const maxTokens = Number(maxTokensOverride ?? provider.maxTokens ?? 4096);
 
@@ -162,9 +164,10 @@ export function buildProviderRequest(provider, { systemPrompt, input, structured
             model,
             instructions: systemPrompt,
             input,
-            temperature,
+            ...(reasoningMode === "omit" ? { temperature } : {}),
             max_output_tokens: maxTokens,
-            ...OPENAI_REASONING_OPTIONS
+            ...(reasoningMode === "omit" ? {} : { reasoning: { effort: reasoningMode } }),
+            text: { verbosity: "low" }
           })
         }
       };
@@ -188,7 +191,7 @@ export function buildProviderRequest(provider, { systemPrompt, input, structured
             system: systemPrompt,
             messages: [{ role: "user", content: input }],
             max_tokens: maxTokens,
-            ...buildAnthropicModelOptions(model)
+            ...(reasoningMode === "omit" ? {} : { output_config: { effort: reasoningMode } })
           })
         }
       };
@@ -197,7 +200,7 @@ export function buildProviderRequest(provider, { systemPrompt, input, structured
       const baseUrl = requireValue(provider.baseUrl, "Base URL");
       const apiKey = requireValue(provider.apiKey, "API key");
       const url = `${joinUrl(baseUrl, `models/${encodeURIComponent(model)}:generateContent`)}?key=${encodeURIComponent(apiKey)}`;
-      const thinkingConfig = buildGoogleThinkingConfig(provider);
+      const thinkingConfig = buildGoogleThinkingConfig(reasoningMode);
       return {
         url,
         init: {
@@ -255,7 +258,7 @@ export function buildProviderRequest(provider, { systemPrompt, input, structured
             messages: buildMessages(systemPrompt, input),
             temperature,
             max_tokens: maxTokens,
-            ...buildOpenAICompatibleOptions(provider, { structuredOutput })
+            ...buildOpenAICompatibleOptions(provider, { structuredOutput, reasoningMode })
           })
         }
       };

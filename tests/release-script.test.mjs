@@ -5,7 +5,7 @@ import test from "node:test";
 const releaseScript = readFileSync(new URL("../release.sh", import.meta.url), "utf8");
 const releaseScriptMode = statSync(new URL("../release.sh", import.meta.url)).mode;
 
-test("release script is directly executable as documented", () => {
+test("release script is directly executable as documented", { skip: process.platform === "win32" }, () => {
   assert.notEqual(releaseScriptMode & 0o111, 0);
 });
 

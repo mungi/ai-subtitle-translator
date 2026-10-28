@@ -1,7 +1,37 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { PROVIDERS } from "../extension/shared/defaults.js";
-import { buildProviderRequest, extractText } from "../extension/shared/provider-request.js";
+import { buildProviderRequest, createReasoningProfile, extractText, getReasoningProbeModes, isReasoningOptionError } from "../extension/shared/provider-request.js";
+
+test("connection tests probe the lowest reasoning modes supported by each API", () => {
+  assert.deepEqual(getReasoningProbeModes(PROVIDERS.openai), ["none", "minimal", "low", "omit"]);
+  assert.deepEqual(getReasoningProbeModes(PROVIDERS.anthropic), ["low", "omit"]);
+  assert.deepEqual(getReasoningProbeModes(PROVIDERS.google), ["minimal", "low", "omit"]);
+  assert.deepEqual(getReasoningProbeModes({ ...PROVIDERS.google, model: "gemini-2.5-pro" }), ["budget:128", "omit"]);
+  assert.deepEqual(getReasoningProbeModes(PROVIDERS.local), ["none", "minimal", "low", "omit"]);
+});
+
+test("a detected reasoning mode applies only to the tested model and endpoint", () => {
+  const provider = {
+    ...PROVIDERS.openai,
+    apiKey: "test-key",
+    reasoningProfile: createReasoningProfile(PROVIDERS.openai, "minimal")
+  };
+  const options = { systemPrompt: "Translate.", input: "Hello" };
+  assert.equal(JSON.parse(buildProviderRequest(provider, options).init.body).reasoning.effort, "minimal");
+  assert.equal(JSON.parse(buildProviderRequest({ ...provider, model: "gpt-5.5" }, options).init.body).reasoning.effort, "none");
+
+  const local = { ...PROVIDERS.local, reasoningProfile: createReasoningProfile(PROVIDERS.local, "none") };
+  assert.equal(JSON.parse(buildProviderRequest(local, options).init.body).reasoning_effort, "none");
+  assert.equal(JSON.parse(buildProviderRequest({ ...local, baseUrl: "http://localhost:4321/v1" }, options).init.body).reasoning_effort, undefined);
+});
+
+test("only reasoning-related request validation errors trigger a lower-effort probe", () => {
+  assert.equal(isReasoningOptionError({ status: 400, message: "thinkingLevel minimal is not supported" }), true);
+  assert.equal(isReasoningOptionError({ status: 422, message: "output_config.effort is not supported" }), true);
+  assert.equal(isReasoningOptionError({ status: 401, message: "reasoning effort denied" }), false);
+  assert.equal(isReasoningOptionError({ status: 400, message: "API key is invalid" }), false);
+});
 
 test("NVIDIA NIM uses the OpenAI-compatible chat completions endpoint", () => {
   const request = buildProviderRequest({
@@ -206,11 +236,11 @@ test("Gemini 3 requests use low thinking level by default", () => {
   assert.equal(body.generationConfig.thinkingConfig.thinkingBudget, undefined);
 });
 
-test("Gemini 3.5 Flash Lite uses the minimum thinking level", () => {
+test("Gemini 3.1 Flash Lite uses the minimum thinking level", () => {
   const request = buildProviderRequest({
     ...PROVIDERS.google,
     apiKey: "google-test-key",
-    model: "gemini-3.5-flash-lite"
+    model: "gemini-3.1-flash-lite"
   }, {
     systemPrompt: "Translate naturally.",
     input: "Hello"
@@ -218,8 +248,8 @@ test("Gemini 3.5 Flash Lite uses the minimum thinking level", () => {
 
   const body = JSON.parse(request.init.body);
   assert.equal(body.generationConfig.thinkingConfig.thinkingLevel, "minimal");
-  assert.equal(body.generationConfig.temperature, undefined);
-  assert.match(request.url, /models\/gemini-3\.5-flash-lite:generateContent/);
+  assert.equal(body.generationConfig.temperature, 0.2);
+  assert.match(request.url, /models\/gemini-3\.1-flash-lite:generateContent/);
 });
 
 test("Gemini 2.5 Flash requests disable thinking budget by default", () => {

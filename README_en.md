@@ -34,15 +34,15 @@ After reloading the extension, also refresh any open YouTube pages to activate c
 
 1. Open the extension options. **Simple Settings** is shown by default.
 2. You can translate subtitles with Google Translate without entering an API key.
-3. To use Google Gemini, create a key in [Google AI Studio API Keys](https://aistudio.google.com/api-keys), paste it into **Google AI API key**, and select **Check API key**. On success, Gemini 3.5 Flash Lite is configured automatically.
+3. To use Google Gemini, create a key in [Google AI Studio API Keys](https://aistudio.google.com/api-keys), paste it into **Google AI API key**, and select **Check API key**. On success, Gemini 3.1 Flash Lite is configured automatically.
 4. Use **Advanced Settings** for other translation providers, subtitle appearance, and backup or restore.
 
 ## Usage
 
 1. Open a Udemy course, YouTube video, TED video, NVIDIA Academy course, or Vimeo video with subtitles.
-2. Select the AST icon in the video toolbar to enable subtitles.
+2. Select the AST icon in the video toolbar to open the menu.
 3. Choose a source subtitle language, translation provider, and translation style from the menu, or open the settings page.
-4. Under **Subtitle display**, choose **Dual subtitles**, **Main subtitles**, or **Translated subtitles**. The default, **Main subtitles**, shows the selected source language. **Dual subtitles** shows the source above its translation. The source remains visible while translation is pending or fails. The display mode is shared across supported sites and saved for future use.
+4. Under **Subtitle display**, choose **Dual subtitles**, **Source subtitles**, or **Translated subtitles**. **Translated subtitles** is the default. **Source subtitles** shows the selected source language, and **Dual subtitles** shows the source above its translation. The source remains visible while translation is pending or if it fails. The display mode is shared across supported sites and saved for future use.
 
 Persian and Arabic subtitles use right-to-left text direction. Dual subtitles handle the source and translation directions independently while remaining centered over the video. Translations in the Udemy transcript align to the start of their language's text direction.
 

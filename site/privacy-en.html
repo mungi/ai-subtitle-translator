@@ -57,7 +57,7 @@
           <h2 id="storage-en">Storage and retention</h2>
           <ul>
             <li>Settings, translation cache entries, and API keys are stored in the user's browser through <code>chrome.storage.local</code>.</li>
-            <li>API keys are stored as provider-specific AES-GCM ciphertext and are not left as plaintext in general settings. Because the decryption fragments are also present in the same browser profile, this is not equivalent to an operating-system secure store or a user-master-password vault.</li>
+            <li>API keys are stored as provider-specific AES-GCM ciphertext and are not stored in plaintext in general settings. Because the decryption fragments are also present in the same browser profile, this is not equivalent to a secure operating system store or a vault protected by a user-supplied master password.</li>
             <li>Storage access is restricted to trusted extension contexts. Content scripts cannot directly access API keys or their decryption fragments.</li>
             <li>Settings backups are encrypted with AES-GCM using a password supplied by the user. The password is not stored.</li>
             <li>Users can clear the translation cache or reset all settings. Chrome removes extension-local storage when the extension is uninstalled. Downloaded <code>.astbackup</code> files must be deleted by the user.</li>
@@ -82,7 +82,7 @@
           <ul>
             <li><code>storage</code>: Stores settings, encrypted API keys, and translation cache entries locally.</li>
             <li><code>scripting</code>: Captures the native player's caption responses from the start of YouTube pages. Only subtitle text, language, and timing data are passed to the extension, excluding cookies, authentication headers, and signed URLs.</li>
-            <li>Host permissions: Retrieve subtitles from Udemy, YouTube, TED, NVIDIA Academy, and Vimeo, contact the selected translation provider, and connect to Custom LLM on <code>localhost</code> or <code>127.0.0.1</code>. A custom HTTPS Custom LLM domain is accessed only after the user approves it while fetching models or testing the connection.</li>
+            <li>Host permissions: Used to retrieve subtitles from Udemy, YouTube, TED, NVIDIA Academy, and Vimeo, contact the selected translation provider, and connect to Custom LLM on <code>localhost</code> or <code>127.0.0.1</code>. A custom HTTPS domain for Custom LLM is accessed only after the user approves it while fetching models or testing the connection.</li>
           </ul>
         </section>
 

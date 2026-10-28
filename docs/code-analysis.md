@@ -27,7 +27,7 @@ extension/
     storage.js                      chrome.storage.local 설정 병합/저장
     secret-fields.js                API key 마스킹과 기존 secret 유지
     secret-storage.js               API key AES-GCM vault와 분산 key share
-    settings-backup.js              사용자 백업 비밀번호 기반 설정 파일 암복호화
+    settings-backup.js              사용자 백업 비밀번호 기반 설정 파일 암호화·복호화
     provider-guides.js              옵션 화면 provider 안내 문구
     provider-order.js               provider 표시 순서
     provider-key-validation.js      복구된 API key 일괄 연결 테스트와 상태 계산
@@ -119,7 +119,7 @@ type SubtitleDocument = {
 
 지원 파서는 XML `<text>`, JSON3, SRV3 `<p>`, WebVTT, transcript panel renderer입니다. track 선택은 요청 언어가 있으면 manual track을 우선하고, 언어 요청이 없으면 English manual, English auto, manual, 첫 track 순서입니다.
 
-JSON3의 `segs[].tOffsetMs`는 선택적인 cue `words: [{ text, start, end }]`로 보존합니다. 영상 프레임 시각에 따라 원문을 미발화 단어의 `#666666`에서 설정된 글자색으로 바꾸며 단어 배경은 변경하지 않습니다. 시간 정보가 없거나 잘못되면 원문 단어 길이와 cue의 표시 구간(다음 cue 시작 시각까지)을 기준으로 진행을 추정합니다. 번역문은 단어 순서를 직접 대응시키지 않으며 cue 시간만 따릅니다. 원문과 단어 텍스트는 숫자·16진수 및 중첩 HTML entity를 텍스트로 디코딩합니다.
+JSON3의 `segs[].tOffsetMs`는 선택적인 cue `words: [{ text, start, end }]`로 보존합니다. 영상 프레임 시각에 따라 원문을 미발화 단어의 `#A3A3A3`에서 설정된 글자색으로 바꾸며 단어 배경은 변경하지 않습니다. 시간 정보가 없거나 잘못되면 원문 단어 길이와 cue의 표시 구간(다음 cue 시작 시각까지)을 기준으로 진행을 추정합니다. 번역문은 단어 순서를 직접 대응시키지 않으며 cue 시간만 따릅니다. 원문과 단어 텍스트는 숫자·16진수 및 중첩 HTML entity를 텍스트로 디코딩합니다.
 
 YouTube 플레이어의 `ad-showing`·`ad-interrupting` 상태는 CSS와 class 변경 관찰로 감지합니다. 광고 중에는 자막과 준비/실패 메시지를 숨기고, 광고 종료 시 본영상의 현재 cue를 다시 표시합니다. 광고 재생 중 네이티브 자막 트랙 활성화와 임시 번역 우선 요청도 중단합니다.
 
@@ -184,7 +184,7 @@ CST에서 AST로 명칭을 바꾼 현재 초기 개발 단계에서는 storage n
 - 영상 위 subtitle overlay 생성
 - 현재 video time에 맞는 cue 렌더링
 - 겹치는 cue는 가장 최근에 시작한 활성 cue를 선택하고, 지원 브라우저에서는 영상 프레임 시각으로 자막 경계를 갱신합니다.
-- `자막표시` 메뉴는 메인자막(기본 원문), 번역자막, 이중자막(원문 위·번역 아래)을 제공합니다. 번역은 원문 cue의 시간과 `sourceText`를 보존하며, 표시 모드는 검증된 `settings.setSubtitleDisplayMode` 메시지로 저장하고 지원 사이트에 공유합니다.
+- `자막 표시` 메뉴는 원문 자막, 번역 자막(기본값), 이중 자막(원문 위·번역 아래)을 제공합니다. 번역은 원문 cue의 시간과 `sourceText`를 보존하며, 표시 모드는 검증된 `settings.setSubtitleDisplayMode` 메시지로 저장하고 지원 사이트에 공유합니다.
 - 원문과 번역은 별도 줄 요소로 렌더링하고 언어별 `dir`·`lang` 및 `unicode-bidi: isolate`를 적용합니다. 페르시아어·아랍어는 RTL, 영상 자막은 가운데 정렬, Udemy 대본 번역은 `text-align: start`로 표시합니다.
 - 번역 상태별 버튼 class와 overlay 배경색 적용
 - overlay 드래그 위치 저장
@@ -195,7 +195,7 @@ CST에서 AST로 명칭을 바꾼 현재 초기 개발 단계에서는 storage n
 
 ### Options
 
-`options/options.js`는 기본 `간단 설정`과 전체 `고급 설정`을 렌더링합니다. 간단 설정은 Google AI API key 한 개와 연결 확인만 제공하며, 성공 시 Gemini 3.5 Flash Lite를 자동 설정합니다. 고급 설정은 provider tab, provider별 field, 모델 조회, 연결 테스트, target language, translation style, subtitle style preview, cache clear와 설정 백업/복구를 렌더링합니다. 모델 조회가 끝나면 `model-recommendations.js`로 권장 모델을 선택합니다. 온라인 provider는 즉시 연결 테스트해 상태를 갱신하고, Custom LLM은 `google/gemma-4-e4b` 우선 모델 선택까지만 수행합니다. 사용자 지정 HTTPS Custom LLM은 모델 가져오기 또는 연결 테스트를 시작할 때 해당 origin 접근 권한을 요청합니다. provider field는 `providerFieldDefs`에 모여 있어 provider 추가 시 defaults, request adapter, host permission, field 정의, recommendation과 tests를 함께 갱신해야 합니다.
+`options/options.js`는 기본 `간단 설정`과 전체 `고급 설정`을 렌더링합니다. 간단 설정은 Google AI API key 한 개와 연결 확인만 제공하며, 성공 시 Gemini 3.1 Flash Lite를 자동 설정합니다. 고급 설정은 provider tab, provider별 field, 모델 조회, 연결 테스트, target language, translation style, subtitle style preview, cache clear와 설정 백업/복구를 렌더링합니다. 모델 조회가 끝나면 `model-recommendations.js`로 권장 모델을 선택합니다. 온라인 provider는 즉시 연결 테스트해 상태를 갱신하고, Custom LLM은 `google/gemma-4-e4b` 우선 모델 선택까지만 수행합니다. 사용자 지정 HTTPS Custom LLM은 모델 가져오기 또는 연결 테스트를 시작할 때 해당 origin 접근 권한을 요청합니다. provider field는 `providerFieldDefs`에 모여 있어 provider 추가 시 defaults, request adapter, host permission, field 정의, recommendation과 tests를 함께 갱신해야 합니다.
 
 설정 백업은 API key가 복원된 현재 설정을 사용자 백업 비밀번호에서 파생한 AES-GCM key로 암호화해 `.astbackup` 파일로 저장합니다. 복구 선택창과 파일명 검증은 이 확장자만 허용합니다. 백업/복구 비밀번호는 버튼 동작 시 `<dialog>` 기반 마스킹 팝업에서 입력받고 저장하지 않습니다. PBKDF2-SHA-256 250,000회와 파일별 salt/nonce를 사용합니다. 복구는 파일 형식과 payload를 검증한 뒤 기존 `saveSettings` 흐름을 사용하므로 API key는 다시 내부 secret vault에 암호화 저장됩니다. 사용자가 동의하면 `provider-key-validation.js`가 API key가 있는 provider를 순차 테스트하고 성공 상태를 실제 결과로 갱신합니다.
 
