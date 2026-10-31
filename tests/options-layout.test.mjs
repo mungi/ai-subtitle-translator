@@ -401,6 +401,8 @@ test("settings are saved automatically with delayed text input and immediate sel
 
 test("system prompt editor is a full-width general setting and custom-only editable", () => {
   assert.match(optionsHtml, /<label class="wide system-prompt-field">\s*<textarea id="systemPrompt"[\s\S]*readonly/);
+  // The prompt sits right under the style it describes.
+  assert.match(optionsHtml, /<select id="translationStyle"><\/select>\s*<\/label>\s*<label class="wide system-prompt-field">/);
   assert.doesNotMatch(optionsHtml, /data-i18n="systemPrompt"/);
   assert.match(optionsCss, /\.form-grid \.wide\s*\{[\s\S]*grid-column: 1 \/ -1;/);
   assert.equal(message("ko", "styleCustom"), "Custom 1 - 사용자 번역 스타일 1");
@@ -626,4 +628,43 @@ test("options page exposes the YouTube-provided subtitle preference", () => {
   assert.match(optionsHtml, /<input id="preferYoutubeProvidedTranslation" type="checkbox"/);
   assert.match(optionsJs, /settings.preferYoutubeProvidedTranslation = preferYoutubeProvidedTranslationInput.checked;/);
   assert.match(optionsJs, /preferYoutubeProvidedTranslationInput.checked = settings.preferYoutubeProvidedTranslation !== false;/);
+});
+
+test("options page exposes phrase segmentation, its YouTube exception, and word progress highlighting", () => {
+  for (const id of ["phraseSegmentation", "phraseSegmentationSkipYoutubeManual", "wordProgressHighlight"]) {
+    assert.match(optionsHtml, new RegExp(`<input id="${id}" type="checkbox"`));
+    assert.match(optionsJs, new RegExp(`settings\.${id} = ${id}Input\.checked;`));
+  }
+  assert.match(optionsHtml, /class="wide checkbox-field nested-checkbox-field">\s*<input id="phraseSegmentationSkipYoutubeManual"/);
+  assert.match(optionsJs, /phraseSegmentationSkipYoutubeManualInput\.disabled = !phraseSegmentationInput\.checked;/);
+});
+
+test("subtitle style has a source font group above a translation font group, each with size, font and color", () => {
+  const sourceGroup = optionsHtml.indexOf('<legend data-i18n="sourceFontGroup"></legend>');
+  const translationGroup = optionsHtml.indexOf('<legend data-i18n="translationFontGroup"></legend>');
+  assert.ok(sourceGroup > 0 && translationGroup > sourceGroup);
+  const sourceHtml = optionsHtml.slice(sourceGroup, translationGroup);
+  const translationHtml = optionsHtml.slice(translationGroup, optionsHtml.indexOf("</fieldset>", translationGroup));
+  for (const id of ["subtitleSourceFontSize", "subtitleSourceFontFamily", "subtitleSourceTextColor", "subtitleSourceCustomWebFontCss"]) {
+    assert.match(sourceHtml, new RegExp(`id="${id}"`));
+  }
+  for (const id of ["subtitleFontSize", "subtitleFontFamily", "subtitleTextColor", "subtitleCustomWebFontCss"]) {
+    assert.match(translationHtml, new RegExp(`id="${id}"`));
+  }
+  assert.ok(optionsJs.includes("sourceFontSize: Number(subtitleStyleInputs.sourceFontSize.value || 28),"));
+  assert.ok(optionsJs.includes("sourceTextColor: subtitleStyleInputs.sourceTextColor.value,"));
+  assert.ok(optionsJs.includes('keys: { fontPreset: "sourceFontPreset", fontFamily: "sourceFontFamily", webFontCss: "sourceWebFontCss", customWebFontCss: "sourceCustomWebFontCss" }'));
+});
+
+test("subtitle preview draws one background box around both lines, like the player", () => {
+  assert.ok(optionsJs.includes("subtitleStylePreview.parentElement.style.background = "));
+  assert.doesNotMatch(optionsJs, /subtitleStylePreview\.style\.background = /);
+  assert.match(optionsCss, /\.subtitle-preview-stack \.subtitle-style-preview \{[^}]*padding: 0;/);
+});
+
+test("the line order checkbox sits under the subtitle preview", () => {
+  assert.match(optionsHtml, /<\/div>\s*<\/div>\s*<label class="checkbox-field subtitle-order-field">\s*<input id="subtitleTranslationOnTop" type="checkbox">/);
+  assert.ok(optionsJs.includes("translationOnTop: subtitleStyleInputs.translationOnTop.checked"));
+  assert.equal(JSON.parse(readFileSync("extension/_locales/ko/messages.json", "utf8")).translationOnTop.message, "번역 자막을 원문 자막 상단에 표시");
+  assert.ok(optionsJs.includes('subtitleSourcePreview.style.order = style.translationOnTop ? "1" : "";'));
 });

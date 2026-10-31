@@ -167,3 +167,9 @@ test("translation priority updates require a request ID and valid playback time"
   }
   assert.equal(validateBackgroundMessage({ type: "translation.setPriority", currentTime: 30 }).ok, false);
 });
+
+test("subtitle style patches accept the translation position only as a boolean", () => {
+  assert.equal(validateBackgroundMessage({ type: "settings.updateSubtitleStyle", patch: { translationOnTop: true } }).ok, true);
+  assert.equal(validateBackgroundMessage({ type: "settings.updateSubtitleStyle", patch: { translationOnTop: "true" } }).ok, false);
+  assert.equal(validateBackgroundMessage({ type: "settings.updateSubtitleStyle", patch: { textColor: "#ffffff" } }).ok, false);
+});

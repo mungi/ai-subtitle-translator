@@ -82,6 +82,10 @@ const subtitleState = {
   preferYoutubeProvidedTranslation: true,
   youtubeProvidedTranslationLanguage: "",
   youtubeProvidedTranslationPending: false,
+  phraseSegmentation: true,
+  phraseSegmentationSkipYoutubeManual: false,
+  wordProgressHighlight: true,
+  currentSourceDocument: null,
   defaultProviderId: "",
   sourceCaptionTracks: [],
   sourceCaptionSessionKey: "",
@@ -111,7 +115,7 @@ const subtitleState = {
   lastFallbackToastKey: "",
   toastTimeoutId: null,
   subtitleStyle: null,
-  subtitleDisplayMode: "translated",
+  subtitleDisplayMode: "dual",
   targetLanguage: "",
   udemyTranscriptTranslations: new Map(),
   udemyTranscriptObserver: null,
@@ -480,20 +484,28 @@ function renderTranslationStyleMenu(menu, platform) {
     const enabled = subtitleState.preferYoutubeProvidedTranslation;
     const inUse = subtitleState.youtubeProvidedTranslationLanguage
       ? ` · ${contentText("contentYoutubeCaptionsInUse")}` : "";
+    // Same switch as the "AI subtitle translation" row so the on/off state is obvious.
     const item = createProviderMenuButton(
-      "ast-provider-menu-item ast-translation-style-item ast-youtube-provided-toggle",
+      "ast-provider-menu-item ast-provider-toggle-control ast-youtube-provided-toggle",
       `${contentText("preferYoutubeProvidedTranslation")}${inUse}`
     );
     item.setAttribute("role", "menuitemcheckbox");
     item.setAttribute("aria-checked", String(enabled));
-    if (enabled) item.classList.add("active");
+    const toggle = document.createElement("span");
+    toggle.className = "ast-provider-toggle";
+    toggle.setAttribute("aria-hidden", "true");
+    item.append(toggle);
     item.addEventListener("click", (event) => {
       event.stopPropagation();
       selectPreferYoutubeProvidedTranslation(platform, !enabled).catch((error) => {
         showToast(contentText("contentProviderFailed", [error.message]));
       });
     });
-    list.append(separator, item);
+    const row = document.createElement("div");
+    row.className = "ast-provider-toggle-item ast-youtube-provided-toggle-item";
+    row.dataset.enabled = String(enabled);
+    row.append(item);
+    list.append(separator, row);
   }
   submenu.append(list);
   menu.append(submenu);
@@ -527,8 +539,51 @@ function renderSubtitleDisplayMenu(menu) {
     });
     list.append(item);
   }
+  list.append(...renderTranslationPositionControl());
   submenu.append(list);
   menu.append(submenu);
+}
+
+// "Translation position: top | bottom" at the bottom of the display submenu; it orders the dual lines.
+function renderTranslationPositionControl() {
+  const separator = document.createElement("div");
+  separator.className = "ast-provider-menu-separator";
+  separator.setAttribute("role", "separator");
+  const row = document.createElement("div");
+  row.className = "ast-provider-menu-item ast-translation-position-row";
+  const label = document.createElement("span");
+  label.className = "ast-provider-menu-label";
+  label.textContent = contentText("contentTranslationPosition");
+  const group = document.createElement("div");
+  group.className = "ast-segmented-control";
+  group.setAttribute("role", "group");
+  group.setAttribute("aria-label", contentText("contentTranslationPosition"));
+  const onTop = subtitleState.subtitleStyle?.translationOnTop === true;
+  for (const [value, messageKey] of [[true, "contentTranslationPositionTop"], [false, "contentTranslationPositionBottom"]]) {
+    const option = document.createElement("button");
+    option.type = "button";
+    option.className = "ast-segmented-option";
+    option.textContent = contentText(messageKey);
+    option.dataset.onTop = String(value);
+    option.setAttribute("role", "menuitemradio");
+    option.setAttribute("aria-checked", String(value === onTop));
+    if (value === onTop) option.classList.add("active");
+    option.addEventListener("click", (event) => {
+      event.stopPropagation();
+      selectTranslationPosition(value).catch((error) => showToast(error.message));
+    });
+    group.append(option);
+  }
+  row.append(label, group);
+  return [separator, row];
+}
+
+async function selectTranslationPosition(onTop) {
+  if ((subtitleState.subtitleStyle?.translationOnTop === true) === onTop) return;
+  subtitleState.subtitleStyle = { ...(subtitleState.subtitleStyle || {}), translationOnTop: onTop };
+  if (subtitleState.currentVideo) renderCurrentOverlayCue(subtitleState.currentVideo);
+  refreshOpenProviderMenu();
+  await saveSubtitleStyle({ translationOnTop: onTop });
 }
 
 async function selectSubtitleDisplayMode(mode) {
@@ -727,10 +782,11 @@ async function refreshAvailableProviders() {
   subtitleState.activeProviderId = activeProviderAvailable ? settings.activeProvider : "googleTranslate";
   subtitleState.translationStyle = settings.translationStyle || "custom";
   subtitleState.preferYoutubeProvidedTranslation = settings.preferYoutubeProvidedTranslation !== false;
+  applyCaptionDisplaySettings(settings);
   subtitleState.targetLanguages = settings.targetLanguages || subtitleState.targetLanguages;
   subtitleState.targetLanguage = settings.targetLanguage || "";
   subtitleState.subtitleDisplayMode = Object.hasOwn(SUBTITLE_DISPLAY_MESSAGE_KEYS, settings.subtitleDisplayMode)
-    ? settings.subtitleDisplayMode : "translated";
+    ? settings.subtitleDisplayMode : "dual";
   subtitleState.defaultProviderId = resolveDefaultTranslationProviderId(settings);
   subtitleState.temporaryPriorityWindowSeconds = resolveTemporaryPriorityWindowSeconds(settings);
   return settings;
@@ -1804,6 +1860,15 @@ function fitOverlayHeightToViewport(overlay, yPercent) {
   overlay.style.maxHeight = `${maxHeight}px`;
 }
 
+// The overlay carries the translation line's size, color and font; source lines override them.
+function applySourceLineStyle(line, overlay) {
+  const style = subtitleState.subtitleStyle || {};
+  const fontSize = clampNumber(style.sourceFontSize ?? style.fontSize, 10, 64, 30);
+  line.style.fontSize = formatPx(scalePx(fontSize, getOverlayScale(overlay), 8));
+  line.style.color = style.sourceTextColor || "#f2f2f2";
+  line.style.fontFamily = style.sourceFontFamily || style.fontFamily || "Arial, sans-serif";
+}
+
 function applyOverlayStyle(overlay) {
   if (!overlay) return;
   const style = subtitleState.subtitleStyle || {};
@@ -1818,7 +1883,7 @@ function applyOverlayStyle(overlay) {
   const fontSize = scalePx(clampNumber(style.fontSize, 10, 64, 30), scale, 8);
   const outlineWidth = scalePx(clampNumber(style.outlineWidth, 0, 16, 2), scale);
   const outlineEnabled = style.outlineEnabled ?? true;
-  applyWebFontCss(style.webFontCss || "");
+  applyWebFontCss([...new Set([style.webFontCss, style.sourceWebFontCss].filter(Boolean))].join("\n"));
 
   const parentWidth = overlay.parentElement?.getBoundingClientRect().width;
   const minX = parentWidth ? Math.min(50, (displayWidth / 2 + OVERLAY_HORIZONTAL_MARGIN_PX) / parentWidth * 100) : 0;
@@ -1833,13 +1898,14 @@ function applyOverlayStyle(overlay) {
   overlay.style.padding = `${formatPx(scalePx(8, scale, 3))} ${formatPx(scalePx(14, scale, 5))}`;
   overlay.style.fontSize = formatPx(fontSize);
   overlay.style.fontFamily = style.fontFamily || "Arial, sans-serif";
-  overlay.style.color = style.textColor || "#f2f2f2";
+  overlay.style.color = style.textColor || "#e2ffad";
   overlay.style.textShadow = buildTextShadow(style, scale);
   overlay.style.webkitTextStroke = outlineEnabled
     ? `${formatPx(outlineWidth)} ${style.outlineColor || "#000000"}`
     : "0 transparent";
   overlay.style.paintOrder = "stroke fill";
   overlay.style.background = `rgba(${hexToRgb(backgroundColor)}, ${backgroundOpacity})`;
+  for (const line of overlay.querySelectorAll?.(".ast-subtitle-source-line") || []) applySourceLineStyle(line, overlay);
   fitOverlayHeightToViewport(overlay, y);
 }
 
@@ -2314,6 +2380,20 @@ function getUdemyTranscriptCueIdsByText(document) {
   return cueIdsByText;
 }
 
+// Transcript rows are the site's own lines; a segmented cue appears under the row its first word came from.
+function getUdemyTranscriptRowTranslation(rowCueId) {
+  const translations = subtitleState.udemyTranscriptTranslations;
+  const cues = subtitleState.currentDocument?.cues || [];
+  if (!cues.some((cue) => cue.originId !== undefined)) return translations.get(rowCueId);
+  const parts = cues.filter((cue) => String(cue.originId) === rowCueId)
+    .map((cue) => translations.get(String(cue.id))).filter((translation) => translation?.text);
+  if (!parts.length) return null;
+  return {
+    text: parts.map((part) => part.text).join(" "),
+    phase: parts.every((part) => part.phase === "final") ? "final" : "temporary"
+  };
+}
+
 function removeUdemyTranscriptTranslationElements() {
   for (const element of document.querySelectorAll?.(`.${UDEMY_TRANSCRIPT_TRANSLATION_CLASS}`) || []) {
     element.remove();
@@ -2368,7 +2448,7 @@ function renderUdemyTranscriptTranslations() {
   const panel = document.querySelector(UDEMY_TRANSCRIPT_PANEL_SELECTOR);
   if (!panel) return;
 
-  const cueIdsByText = getUdemyTranscriptCueIdsByText(subtitleState.currentDocument);
+  const cueIdsByText = getUdemyTranscriptCueIdsByText(subtitleState.currentSourceDocument || subtitleState.currentDocument);
   const nextCueIndexByText = new Map();
   const activeCueIds = new Set();
   for (const cueElement of panel.querySelectorAll(UDEMY_TRANSCRIPT_CUE_SELECTOR)) {
@@ -2386,7 +2466,7 @@ function renderUdemyTranscriptTranslations() {
     const container = cueElement.parentElement;
     if (!container) continue;
 
-    const translation = subtitleState.udemyTranscriptTranslations.get(cueId);
+    const translation = getUdemyTranscriptRowTranslation(cueId);
     const existing = container.querySelector(`.${UDEMY_TRANSCRIPT_TRANSLATION_CLASS}`);
     if (!translation?.text) {
       existing?.remove();
@@ -2818,6 +2898,9 @@ function setSubtitleTextDirection(element, language) {
 }
 
 function getSubtitleProgressWords(cue, text, cues) {
+  if (!subtitleState.wordProgressHighlight) return null;
+  // Segmentation estimates word times on every platform; only YouTube showed estimated progress before.
+  if (cue?.words?.some((word) => word.estimated) && subtitleState.currentPlatform !== "youtube") return null;
   if (cue?.words?.length) {
     return cue.words.map((word) => ({ ...word, text: decodeYoutubeXmlEntities(word.text) }));
   }
@@ -2868,16 +2951,18 @@ function renderCurrentOverlayCue(video, frameTime) {
   const mode = subtitleState.subtitleDisplayMode;
   const sourceLanguage = subtitleState.currentDocument?.sourceLanguage;
   const progressWords = getSubtitleProgressWords(activeCue, sourceText, targetVideo.astSubtitleCues);
+  const sourceLine = [sourceText, sourceLanguage, progressWords, true];
+  const translatedLine = [translatedText, subtitleState.targetLanguage, null, false];
   const lines = mode === "dual" && translatedText
-    ? [[sourceText, sourceLanguage, progressWords], [translatedText, subtitleState.targetLanguage]]
-    : mode === "translated" && translatedText
-      ? [[translatedText, subtitleState.targetLanguage]] : [[sourceText, sourceLanguage, progressWords]];
+    ? (subtitleState.subtitleStyle?.translationOnTop ? [translatedLine, sourceLine] : [sourceLine, translatedLine])
+    : mode === "translated" && translatedText ? [translatedLine] : [sourceLine];
   clearElement(overlay);
-  for (const [index, [text, language, words]] of lines.entries()) {
+  for (const [index, [text, language, words, isSource]] of lines.entries()) {
     if (!text) continue;
     if (index > 0) overlay.append(document.createTextNode("\n"));
     const line = document.createElement("div");
-    line.className = "ast-subtitle-line";
+    line.className = isSource ? "ast-subtitle-line ast-subtitle-source-line" : "ast-subtitle-line";
+    if (isSource) applySourceLineStyle(line, overlay);
     setSubtitleTextDirection(line, language);
     if (words?.length) {
       for (const word of words) {
@@ -3042,7 +3127,7 @@ async function loadSubtitleStyle() {
     const settings = await getPublicSettings();
     subtitleState.subtitleStyle = settings.subtitleStyle || null;
     subtitleState.subtitleDisplayMode = Object.hasOwn(SUBTITLE_DISPLAY_MESSAGE_KEYS, settings.subtitleDisplayMode)
-      ? settings.subtitleDisplayMode : "translated";
+      ? settings.subtitleDisplayMode : "dual";
     subtitleState.translationStyle = settings.translationStyle || "custom";
     subtitleState.targetLanguages = settings.targetLanguages || subtitleState.targetLanguages;
     subtitleState.targetLanguage = settings.targetLanguage || "";
@@ -3188,6 +3273,59 @@ function startProviderTranslation(document, platform, sessionKey, video, provide
     });
 }
 
+// Returns true when a setting that changes cue boundaries changed.
+function applyCaptionDisplaySettings(settings = {}) {
+  const before = [subtitleState.phraseSegmentation, subtitleState.phraseSegmentationSkipYoutubeManual];
+  subtitleState.phraseSegmentation = settings.phraseSegmentation !== false;
+  subtitleState.phraseSegmentationSkipYoutubeManual = settings.phraseSegmentationSkipYoutubeManual === true;
+  const highlight = settings.wordProgressHighlight !== false;
+  if (highlight !== subtitleState.wordProgressHighlight) {
+    subtitleState.wordProgressHighlight = highlight;
+    if (subtitleState.currentVideo) renderCurrentOverlayCue(subtitleState.currentVideo);
+  }
+  return before[0] !== subtitleState.phraseSegmentation || before[1] !== subtitleState.phraseSegmentationSkipYoutubeManual;
+}
+
+function isYoutubeAutoGeneratedDocument(document) {
+  const track = getSelectedSourceCaptionTrack("youtube", document.videoId);
+  return track ? Boolean(track.isAutoGenerated) : document.cues.some((cue) => cue.words?.length);
+}
+
+function applyPhraseSegmentation(document, platform) {
+  const segmentCues = globalThis.astPhraseSegmentation?.segmentCues;
+  if (!segmentCues || !subtitleState.phraseSegmentation || !document?.cues?.length) return document;
+  if (platform === "youtube" && subtitleState.phraseSegmentationSkipYoutubeManual
+    && !isYoutubeAutoGeneratedDocument(document)) return document;
+  try {
+    const cues = segmentCues(document.cues, { language: document.sourceLanguage });
+    if (!cues?.length || cues === document.cues) return document;
+    const segmented = { ...document, cues };
+    sourceDocumentsBySegmented.set(segmented, document);
+    return segmented;
+  } catch (error) {
+    console.warn("[AST] Phrase segmentation failed; keeping the original cues:", error.message);
+    return document;
+  }
+}
+
+// Settings can change while a video plays; rebuild its cues from the original lines and translate again.
+function reapplyPhraseSegmentation() {
+  const sourceDocument = subtitleState.currentSourceDocument;
+  const platform = subtitleState.currentPlatform;
+  if (!sourceDocument || !platform || !subtitleState.currentDocument) return;
+  const subtitleDocument = applyPhraseSegmentation(sourceDocument, platform);
+  subtitleState.currentDocument = subtitleDocument;
+  if (!subtitleState.enabled) return;
+  startProviderTranslation(
+    subtitleDocument,
+    platform,
+    subtitleState.currentSessionKey,
+    subtitleState.currentVideo,
+    subtitleState.activeProviderId || "googleTranslate",
+    subtitleState.defaultProviderId
+  );
+}
+
 function isSameBaseLanguage(left, right) {
   const base = (value) => String(value || "").toLowerCase().split(/[-_]/)[0];
   return Boolean(base(left)) && base(left) === base(right);
@@ -3196,7 +3334,8 @@ function isSameBaseLanguage(left, right) {
 function buildYoutubeProvidedTranslation(document, caption) {
   if (caption.videoId !== document.videoId) return null;
   const targetCues = parseYoutubeTranscriptPayloadOnPage(caption.text);
-  if (caption.source === "auto" && !isUsableYoutubeAutoTranslation(document.cues, targetCues)) return null;
+  const sourceCues = sourceDocumentsBySegmented.get(document)?.cues || document.cues;
+  if (caption.source === "auto" && !isUsableYoutubeAutoTranslation(sourceCues, targetCues)) return null;
   const cues = alignTargetCuesToSource(document.cues, targetCues);
   return cues ? { languageCode: caption.languageCode, source: caption.source, cues } : null;
 }
@@ -3715,12 +3854,19 @@ async function loadPlatformSubtitleOverlay(handler, options = {}) {
     throw new Error(`Unexpected YouTube caption language: ${response.document.sourceLanguage}`);
   }
 
+  const captionSettings = await getPublicSettings().catch(() => null);
+  if (!isCurrentLoad()) return false;
+  if (captionSettings) applyCaptionDisplaySettings(captionSettings);
+  const sourceDocument = response.document;
+  response = { ...response, document: applyPhraseSegmentation(sourceDocument, handler.platform) };
+
   subtitleState.currentSessionKey = request.sessionKey;
   subtitleState.currentPlatform = handler.platform;
   subtitleState.currentVideoId = response.document.videoId;
   subtitleState.currentRouteKey = handler.platform === "ted" ? getTedTalkSlug() || "" : "";
   subtitleState.pendingRouteKey = "";
   subtitleState.currentVideo = request.video;
+  subtitleState.currentSourceDocument = sourceDocument;
   subtitleState.currentDocument = response.document;
   subtitleState.activeProviderId = "";
   subtitleState.defaultProviderId = "";
@@ -3728,7 +3874,7 @@ async function loadPlatformSubtitleOverlay(handler, options = {}) {
   subtitleState.finalTranslatedCueIds = new Set();
   subtitleState.lastTemporaryPriorityKey = "";
   subtitleState.lastFallbackToastKey = "";
-  handler.markLoaded?.(request.sessionKey, response.document);
+  handler.markLoaded?.(request.sessionKey, sourceDocument);
 
   clearOverlayStatus(request.video);
   setTranslationPhase("source");
@@ -3766,6 +3912,8 @@ async function loadPlatformSubtitleOverlay(handler, options = {}) {
 }
 
 let subtitlePreferenceUpdateGeneration = 0;
+// Segmented documents keep a link to the caption lines they were built from.
+const sourceDocumentsBySegmented = new WeakMap();
 // Set once initialization resolves the frame; an embedded Vimeo player may belong to NVIDIA.
 let contentPlatform = null;
 
@@ -3806,6 +3954,7 @@ chrome.runtime.onMessage.addListener((message) => {
     if (typeof settings.preferYoutubeProvidedTranslation === "boolean") {
       subtitleState.preferYoutubeProvidedTranslation = settings.preferYoutubeProvidedTranslation;
     }
+    if (applyCaptionDisplaySettings(settings)) reapplyPhraseSegmentation();
     subtitleState.targetLanguages = settings.targetLanguages || subtitleState.targetLanguages;
     subtitleState.targetLanguage = settings.targetLanguage || subtitleState.targetLanguage;
     subtitleState.availableProviders = getAvailableProviders(settings);

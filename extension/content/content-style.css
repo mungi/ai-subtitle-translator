@@ -302,6 +302,42 @@
   transform: translateX(16px);
 }
 
+.ast-translation-position-row {
+  cursor: default;
+}
+
+.ast-segmented-control {
+  display: inline-flex;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 6px;
+}
+
+.ast-segmented-option {
+  padding: 2px 10px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.ast-segmented-option + .ast-segmented-option {
+  border-left: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.ast-segmented-option:hover,
+.ast-segmented-option:focus-visible {
+  outline: none;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.ast-segmented-option.active {
+  background: var(--ast-provider-state-color);
+  color: #ffffff;
+}
+
 .ast-provider-menu-separator {
   height: 0;
   border-top: 1px solid rgba(255, 255, 255, 0.28);

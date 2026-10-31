@@ -129,10 +129,10 @@ export function normalizeSettings(settings = {}) {
       ...settings.platforms
     },
     fallback,
-    subtitleStyle: {
+    subtitleStyle: withSourceFont({
       ...defaults.subtitleStyle,
       ...settings.subtitleStyle
-    },
+    }, settings.subtitleStyle),
     providers,
     providerTestStatus,
     maxChunkDurationSeconds: normalizeChunkDurationSeconds(settings.maxChunkDurationSeconds, defaults.maxChunkDurationSeconds),
@@ -144,8 +144,28 @@ export function normalizeSettings(settings = {}) {
       : defaults.subtitleDisplayMode,
     activeProvider,
     preferYoutubeProvidedTranslation: settings.preferYoutubeProvidedTranslation !== false,
+    phraseSegmentation: settings.phraseSegmentation !== false,
+    phraseSegmentationSkipYoutubeManual: settings.phraseSegmentationSkipYoutubeManual === true,
+    wordProgressHighlight: settings.wordProgressHighlight !== false,
     customSystemPrompt: extractStyleSystemPrompt(settings.customSystemPrompt || defaults.customSystemPrompt || buildDefaultCustomStyleSystemPrompt(targetLanguage)),
     custom2SystemPrompt: extractStyleSystemPrompt(settings.custom2SystemPrompt || defaults.custom2SystemPrompt || buildDefaultCustom2StyleSystemPrompt())
+  };
+}
+
+// Settings saved before the source line had its own font keep showing both lines alike;
+// only a fresh or reset style uses the source defaults.
+function withSourceFont(style, saved = {}) {
+  const sourceFont = style.sourceFontPreset ? {} : {
+    sourceFontPreset: style.fontPreset,
+    sourceFontFamily: style.fontFamily,
+    sourceWebFontCss: style.webFontCss,
+    sourceCustomWebFontCss: style.customWebFontCss
+  };
+  return {
+    ...style,
+    ...sourceFont,
+    sourceFontSize: saved?.sourceFontSize ?? saved?.fontSize ?? style.sourceFontSize,
+    sourceTextColor: saved?.sourceTextColor || saved?.textColor || style.sourceTextColor
   };
 }
 

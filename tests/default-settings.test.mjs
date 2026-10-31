@@ -3,10 +3,10 @@ import test from "node:test";
 import { DEFAULT_SETTINGS, PROVIDERS } from "../extension/shared/defaults.js";
 import { normalizeSettings } from "../extension/shared/storage.js";
 
-test("subtitle display defaults to translated subtitles and validates saved modes", () => {
-  assert.equal(DEFAULT_SETTINGS.subtitleDisplayMode, "translated");
-  assert.equal(normalizeSettings().subtitleDisplayMode, "translated");
-  assert.equal(normalizeSettings({ subtitleDisplayMode: "invalid" }).subtitleDisplayMode, "translated");
+test("subtitle display defaults to dual subtitles and validates saved modes", () => {
+  assert.equal(DEFAULT_SETTINGS.subtitleDisplayMode, "dual");
+  assert.equal(normalizeSettings().subtitleDisplayMode, "dual");
+  assert.equal(normalizeSettings({ subtitleDisplayMode: "invalid" }).subtitleDisplayMode, "dual");
   for (const subtitleDisplayMode of ["dual", "source", "translated"]) {
     assert.equal(normalizeSettings({ subtitleDisplayMode }).subtitleDisplayMode, subtitleDisplayMode);
   }
@@ -35,7 +35,12 @@ test("default translation style and subtitle appearance match the intended initi
   assert.equal(DEFAULT_SETTINGS.subtitleStyle.fontFamily, "'GounBatang', serif");
   assert.match(DEFAULT_SETTINGS.subtitleStyle.webFontCss, /__AST_GOWUN_BATANG_FONT_URL__/);
   assert.equal(DEFAULT_SETTINGS.subtitleStyle.width, 1024);
-  assert.equal(DEFAULT_SETTINGS.subtitleStyle.textColor, "#f2f2f2");
+  assert.equal(DEFAULT_SETTINGS.subtitleStyle.textColor, "#e2ffad");
+  assert.equal(DEFAULT_SETTINGS.subtitleStyle.sourceFontSize, 28);
+  assert.equal(DEFAULT_SETTINGS.subtitleStyle.sourceTextColor, "#f2f2f2");
+  // A fresh install gets the source defaults instead of copying the translation style.
+  assert.equal(normalizeSettings().subtitleStyle.sourceFontSize, 28);
+  assert.equal(normalizeSettings().subtitleStyle.sourceTextColor, "#f2f2f2");
   assert.equal(DEFAULT_SETTINGS.subtitleStyle.shadowBlur, 3);
   assert.equal(DEFAULT_SETTINGS.subtitleStyle.outlineEnabled, true);
   assert.equal(DEFAULT_SETTINGS.subtitleStyle.outlineWidth, 2);
@@ -200,4 +205,45 @@ test("YouTube-provided subtitles are preferred by default and can be turned off"
   assert.equal(normalizeSettings().preferYoutubeProvidedTranslation, true);
   assert.equal(normalizeSettings({ preferYoutubeProvidedTranslation: false }).preferYoutubeProvidedTranslation, false);
   assert.equal(normalizeSettings({ preferYoutubeProvidedTranslation: "off" }).preferYoutubeProvidedTranslation, true);
+});
+
+test("phrase segmentation and word progress are on by default; the YouTube exception is off", () => {
+  const settings = normalizeSettings();
+  assert.equal(settings.phraseSegmentation, true);
+  assert.equal(settings.phraseSegmentationSkipYoutubeManual, false);
+  assert.equal(settings.wordProgressHighlight, true);
+  const changed = normalizeSettings({ phraseSegmentation: false, phraseSegmentationSkipYoutubeManual: true, wordProgressHighlight: false });
+  assert.equal(changed.phraseSegmentation, false);
+  assert.equal(changed.phraseSegmentationSkipYoutubeManual, true);
+  assert.equal(changed.wordProgressHighlight, false);
+});
+
+test("the source subtitle font starts as the translation font and can then differ", () => {
+  const inherited = normalizeSettings({ subtitleStyle: { fontPreset: "noto-sans-kr", fontFamily: "'Noto Sans KR', sans-serif", webFontCss: "/* kr */" } }).subtitleStyle;
+  assert.equal(inherited.sourceFontPreset, "noto-sans-kr");
+  assert.equal(inherited.sourceFontFamily, "'Noto Sans KR', sans-serif");
+  assert.equal(inherited.sourceWebFontCss, "/* kr */");
+  // Size and color were not saved here, so the source line uses its own defaults.
+  assert.equal(inherited.sourceFontSize, 28);
+  assert.equal(inherited.sourceTextColor, "#f2f2f2");
+  // A style saved before the split keeps both lines the same size and color.
+  const saved = normalizeSettings({ subtitleStyle: { fontSize: 30, textColor: "#ffffff" } }).subtitleStyle;
+  assert.equal(saved.sourceFontSize, 30);
+  assert.equal(saved.sourceTextColor, "#ffffff");
+  assert.equal(normalizeSettings().subtitleStyle.textColor, "#e2ffad");
+  const sized = normalizeSettings({ subtitleStyle: { fontSize: 30, sourceFontSize: 22, textColor: "#ffffff", sourceTextColor: "#ffd700" } }).subtitleStyle;
+  assert.equal(sized.sourceFontSize, 22);
+  assert.equal(sized.sourceTextColor, "#ffd700");
+
+  const separate = normalizeSettings({ subtitleStyle: {
+    fontPreset: "noto-sans-kr", fontFamily: "'Noto Sans KR', sans-serif",
+    sourceFontPreset: "system-arial", sourceFontFamily: "Arial, sans-serif", sourceWebFontCss: ""
+  } }).subtitleStyle;
+  assert.equal(separate.fontFamily, "'Noto Sans KR', sans-serif");
+  assert.equal(separate.sourceFontFamily, "Arial, sans-serif");
+});
+
+test("the original line is shown above the translation by default", () => {
+  assert.equal(normalizeSettings().subtitleStyle.translationOnTop, false);
+  assert.equal(normalizeSettings({ subtitleStyle: { translationOnTop: true } }).subtitleStyle.translationOnTop, true);
 });

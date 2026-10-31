@@ -173,9 +173,6 @@
   "previewText": {
     "message": "字幕スタイルのプレビュー - 編集可能"
   },
-  "fontGroup": {
-    "message": "フォント"
-  },
   "shadowGroup": {
     "message": "影"
   },
@@ -835,5 +832,38 @@
         "example": "ko"
       }
     }
+  },
+  "phraseSegmentation": {
+    "message": "字幕をフレーズ単位で再構成"
+  },
+  "phraseSegmentationSkipYoutubeManual": {
+    "message": "アップロードされた字幕はそのまま使用"
+  },
+  "phraseSegmentationGuide": {
+    "message": "自動生成字幕のように短く区切られた字幕や、文の途中で行が分かれたサイトの字幕を、読みやすいフレーズ単位にまとめ直します。単語ごとの時間がある自動生成字幕は、各単語の元の時間をそのまま保ちます。"
+  },
+  "wordProgressHighlight": {
+    "message": "単語の進行を強調表示（YouTube のみ）"
+  },
+  "sourcePreviewText": {
+    "message": "Original subtitle preview"
+  },
+  "sourceFontGroup": {
+    "message": "原文字幕のフォント"
+  },
+  "translationFontGroup": {
+    "message": "翻訳字幕のフォント"
+  },
+  "translationOnTop": {
+    "message": "翻訳字幕を原文字幕の上に表示"
+  },
+  "contentTranslationPosition": {
+    "message": "翻訳字幕の位置"
+  },
+  "contentTranslationPositionTop": {
+    "message": "上"
+  },
+  "contentTranslationPositionBottom": {
+    "message": "下"
   }
 }

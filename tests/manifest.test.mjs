@@ -37,3 +37,8 @@ test("manifest injects into TED talk pages", () => {
   assert.ok(manifest.content_scripts[0].matches.includes("https://ted.com/talks/*"));
   assert.ok(manifest.content_scripts[0].matches.includes("https://www.ted.com/talks/*"));
 });
+
+test("phrase segmentation loads before the content script that uses it", () => {
+  const main = manifest.content_scripts.find((item) => item.js.includes("content/content-script.js"));
+  assert.deepEqual(main.js, ["content/phrase-segmentation.js", "content/content-script.js"]);
+});

@@ -823,7 +823,7 @@ test("overlapping YouTube cues select the latest started cue at the shared bound
   assert.equal(harness.context.findActiveCue(cues, 10), null);
 });
 
-test("subtitle display defaults to translation and switches modes without retranslating", async () => {
+test("subtitle display defaults to dual subtitles and switches modes without retranslating", async () => {
   const harness = createYoutubeHarness({ settings: { subtitleDisplayMode: undefined } });
   vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
   await flushPromises();
@@ -831,25 +831,25 @@ test("subtitle display defaults to translation and switches modes without retran
   await flushPromises();
   const overlay = harness.context.document.getElementById("ast-subtitle-overlay");
   harness.context.applyTranslatedCues(harness.video, [{ id: "yt-0", start: 50, end: 60, text: "안녕하세요" }]);
-  assert.equal(overlay.textContent, "안녕하세요");
+  assert.equal(overlay.textContent, "Hello world\n안녕하세요");
   assert.equal(harness.video.astSubtitleCues[0].start, 0);
   assert.equal(harness.video.astSubtitleCues[0].end, 5);
   const translationCount = harness.sentMessages.filter((m) => m.type === "translation.translateDocument").length;
   const list = harness.context.document.getElementById("ast-provider-menu").querySelector(".ast-subtitle-display-list");
   assert.ok(list);
-  assert.deepEqual(list.children.map((item) => item.dataset.mode), ["dual", "source", "translated"]);
-  assert.equal(list.children[2].getAttribute("aria-checked"), "true");
-  list.children[0].dispatchEvent({ type: "click", stopPropagation() {} });
+  assert.deepEqual(list.children.filter((item) => item.dataset.mode).map((item) => item.dataset.mode), ["dual", "source", "translated"]);
+  assert.equal(list.children[0].getAttribute("aria-checked"), "true");
+  list.children[2].dispatchEvent({ type: "click", stopPropagation() {} });
   await flushPromises();
-  assert.equal(overlay.textContent, "Hello world\n안녕하세요");
-  assert.ok(harness.sentMessages.some((m) => m.type === "settings.setSubtitleDisplayMode" && m.mode === "dual"));
+  assert.equal(overlay.textContent, "안녕하세요");
+  assert.ok(harness.sentMessages.some((m) => m.type === "settings.setSubtitleDisplayMode" && m.mode === "translated"));
   const updatedList = harness.context.document.getElementById("ast-provider-menu").querySelector(".ast-subtitle-display-list");
-  assert.equal(updatedList.children[0].getAttribute("aria-checked"), "true");
-  assert.equal(updatedList.children[1].getAttribute("aria-checked"), "false");
+  assert.equal(updatedList.children[2].getAttribute("aria-checked"), "true");
+  assert.equal(updatedList.children[0].getAttribute("aria-checked"), "false");
   harness.context.applyTranslatedCues(harness.video, [{ id: "yt-0", start: 0, end: 5, text: "최종 번역" }]);
-  assert.equal(overlay.textContent, "Hello world\n최종 번역");
-  await harness.context.selectSubtitleDisplayMode("translated");
   assert.equal(overlay.textContent, "최종 번역");
+  await harness.context.selectSubtitleDisplayMode("dual");
+  assert.equal(overlay.textContent, "Hello world\n최종 번역");
   await harness.context.selectSubtitleDisplayMode("source");
   assert.equal(overlay.textContent, "Hello world");
   assert.equal(harness.sentMessages.filter((m) => m.type === "translation.translateDocument").length, translationCount);
@@ -1091,7 +1091,9 @@ for (const platform of ["youtube", "udemy", "ted", "nvidia", "vimeo"]) {
     harness.context.ensureProviderMenu(platform);
     harness.context.renderProviderMenu(platform);
     const menu = harness.context.document.getElementById("ast-provider-menu");
-    assert.equal(menu.querySelector(".ast-subtitle-display-list").children.length, 3);
+    const displayList = menu.querySelector(".ast-subtitle-display-list");
+    assert.equal(displayList.children.filter((item) => item.dataset.mode).length, 3);
+    assert.equal(displayList.children.at(-1).className, "ast-provider-menu-item ast-translation-position-row");
   });
 }
 
@@ -1182,13 +1184,20 @@ test("toolbar button opens a platform-styled provider menu before toggling AST",
   const styleSubmenu = menu.children.find((item) => item.className === "ast-translation-style-submenu");
   assert.ok(styleSubmenu, "expected the translation style submenu to be rendered");
   assert.equal(styleSubmenu.children[0].children[0].textContent, "번역 스타일: Custom 1");
-  const styleItems = styleSubmenu.children[1].children.filter((item) => item.className !== "ast-provider-menu-separator");
+  const styleItems = styleSubmenu.children[1].children.filter((item) => item.className.includes("ast-translation-style-item"));
   assert.deepEqual(
     styleItems.map((item) => item.children[0].textContent),
-    ["Natural", "Lecture", "Technical", "Custom 1", "Custom 2", "YouTube 제공 자막 우선"]
+    ["Natural", "Lecture", "Technical", "Custom 1", "Custom 2"]
   );
-  assert.equal(styleItems.at(-1).getAttribute("role"), "menuitemcheckbox");
-  assert.equal(styleItems.at(-1).getAttribute("aria-checked"), "true");
+  // The YouTube preference uses the same on/off switch row as the AI subtitle toggle.
+  const youtubeToggleRow = styleSubmenu.children[1].children.at(-1);
+  assert.equal(youtubeToggleRow.className, "ast-provider-toggle-item ast-youtube-provided-toggle-item");
+  assert.equal(youtubeToggleRow.dataset.enabled, "true");
+  const youtubeToggle = youtubeToggleRow.children[0];
+  assert.equal(youtubeToggle.children[0].textContent, "YouTube 제공 자막 우선");
+  assert.equal(youtubeToggle.children[1].className, "ast-provider-toggle");
+  assert.equal(youtubeToggle.getAttribute("role"), "menuitemcheckbox");
+  assert.equal(youtubeToggle.getAttribute("aria-checked"), "true");
   sourceCaptionSubmenu.children[0].dispatchEvent({
     type: "click",
     stopPropagation: () => {},
@@ -4251,6 +4260,7 @@ test("translation requests keep one lifecycle connection so a page reload stops 
   vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), h.context);
   await flushPromises();
   await flushPromises();
+  await flushPromises();
   assert.ok(h.sentMessages.some((message) => message.type === "translation.translateDocument"));
   assert.deepEqual(ports.map((port) => port.name), ["ast.translation.lifecycle"]);
 
@@ -4463,4 +4473,170 @@ test("YouTube auto-translation with a different line count falls back to our tra
   await flushPromises();
 
   assert.ok(harness.sentMessages.some((message) => message.type === "translation.translateDocument"));
+});
+
+const phraseSegmentationSource = readFileSync("extension/content/phrase-segmentation.js", "utf8");
+const asrDocument = {
+  platform: "youtube",
+  videoId: "abc123def45",
+  sourceLanguage: "en",
+  cues: [
+    { id: "yt-0", start: 0, end: 4, text: "so today we are going to", words: ["so", " today", " we", " are", " going", " to"].map((text, index) => ({ text, start: index * 0.35, end: (index + 1) * 0.35 })) },
+    { id: "yt-1", start: 2.1, end: 6, text: "talk about the new model", words: ["talk", " about", " the", " new", " model"].map((text, index) => ({ text, start: 2.1 + index * 0.35, end: 2.1 + (index + 1) * 0.35 })) }
+  ]
+};
+const manualDocument = {
+  platform: "youtube",
+  videoId: "abc123def45",
+  sourceLanguage: "en",
+  cues: [
+    { id: "yt-0", start: 0, end: 2, text: "This caption was split" },
+    { id: "yt-1", start: 2, end: 4, text: "in the middle." }
+  ]
+};
+
+async function startSegmentedYoutube(settings, transcriptDocument = asrDocument) {
+  const harness = createYoutubeHarness({ settings: { subtitleDisplayMode: "source", ...settings }, transcriptDocument });
+  vm.runInNewContext(phraseSegmentationSource, harness.context);
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
+  await flushPromises();
+  await clickAstToggle(harness.controls.querySelector("#ast-toolbar-button"));
+  await flushPromises();
+  return harness;
+}
+
+test("auto-generated YouTube captions are regrouped into phrases with their word times", async () => {
+  const harness = await startSegmentedYoutube({});
+  const cues = harness.video.astSubtitleCues;
+  assert.deepEqual([...cues.map((cue) => cue.text)], ["so today we are going to talk about the new model"]);
+  assert.deepEqual([...cues[0].words.map((word) => Number(word.start.toFixed(2)))],
+    [0, 0.35, 0.7, 1.05, 1.4, 1.75, 2.1, 2.45, 2.8, 3.15, 3.5]);
+  // The original lines stay available for checks that compare against YouTube's own lines.
+  assert.equal(vm.runInNewContext("subtitleState.currentSourceDocument.cues.length", harness.context), 2);
+});
+
+test("phrase segmentation can be turned off in settings", async () => {
+  const harness = await startSegmentedYoutube({ phraseSegmentation: false });
+  assert.deepEqual([...harness.video.astSubtitleCues.map((cue) => cue.id)], ["yt-0", "yt-1"]);
+});
+
+test("YouTube manual captions can be excluded while auto-generated ones are still regrouped", async () => {
+  const manual = await startSegmentedYoutube({ phraseSegmentationSkipYoutubeManual: true }, manualDocument);
+  assert.deepEqual([...manual.video.astSubtitleCues.map((cue) => cue.text)], ["This caption was split", "in the middle."]);
+
+  const included = await startSegmentedYoutube({}, manualDocument);
+  assert.deepEqual([...included.video.astSubtitleCues.map((cue) => cue.text)], ["This caption was split in the middle."]);
+
+  const automatic = await startSegmentedYoutube({ phraseSegmentationSkipYoutubeManual: true });
+  assert.equal(automatic.video.astSubtitleCues.length, 1);
+});
+
+test("changing the segmentation setting rebuilds the current video's cues", async () => {
+  const harness = await startSegmentedYoutube({});
+  assert.equal(harness.video.astSubtitleCues.length, 1);
+  harness.runtimeMessageListeners[0]({ type: "settings.changed", settings: { phraseSegmentation: false } });
+  await flushPromises();
+  assert.deepEqual(harness.video.astSubtitleCues.map((cue) => cue.id), ["yt-0", "yt-1"]);
+});
+
+test("word progress highlighting can be turned off so each line appears at once", async () => {
+  const highlighted = await startSegmentedYoutube({});
+  highlighted.video.currentTime = 1;
+  vm.runInNewContext("renderCurrentOverlayCue(subtitleState.currentVideo)", highlighted.context);
+  const wordSpans = highlighted.context.document.getElementById("ast-subtitle-overlay").querySelectorAll(".ast-subtitle-word");
+  assert.ok(wordSpans.length > 0);
+
+  const plain = await startSegmentedYoutube({ wordProgressHighlight: false });
+  plain.video.currentTime = 1;
+  vm.runInNewContext("renderCurrentOverlayCue(subtitleState.currentVideo)", plain.context);
+  const overlay = plain.context.document.getElementById("ast-subtitle-overlay");
+  assert.equal(overlay.querySelectorAll(".ast-subtitle-word").length, 0);
+  assert.equal(overlay.textContent, "so today we are going to talk about the new model");
+});
+
+test("Udemy transcript rows show the segmented translations that start in them", () => {
+  const harness = createYoutubeHarness();
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
+  vm.runInNewContext(`
+    subtitleState.currentDocument = { cues: [
+      { id: "p0", start: 0, end: 4, text: "a b", originId: "u1" },
+      { id: "p1", start: 4, end: 6, text: "c", originId: "u1" },
+      { id: "p2", start: 6, end: 8, text: "d", originId: "u3" }
+    ] };
+    subtitleState.udemyTranscriptTranslations = new Map([
+      ["p0", { text: "가 나", phase: "final" }],
+      ["p1", { text: "다", phase: "temporary" }],
+      ["p2", { text: "라", phase: "final" }]
+    ]);
+  `, harness.context);
+  const row = (id) => JSON.parse(JSON.stringify(vm.runInNewContext(`getUdemyTranscriptRowTranslation("${id}")`, harness.context)));
+  assert.deepEqual(row("u1"), { text: "가 나 다", phase: "temporary" });
+  assert.equal(row("u2"), null);
+  assert.deepEqual(row("u3"), { text: "라", phase: "final" });
+});
+
+test("source and translated lines use their own size, color and font", async () => {
+  const harness = createYoutubeHarness({ settings: {
+    subtitleDisplayMode: "dual",
+    subtitleStyle: {
+      fontFamily: "'Noto Sans KR', sans-serif", fontSize: 30, textColor: "#ffffff",
+      sourceFontFamily: "Arial, sans-serif", sourceFontSize: 20, sourceTextColor: "#ffd700"
+    }
+  } });
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
+  await flushPromises();
+  await clickAstToggle(harness.controls.querySelector("#ast-toolbar-button"));
+  await flushPromises();
+  harness.video.astSubtitleCues = [{ id: "yt-0", start: 0, end: 5, text: "안녕 세상", sourceText: "Hello world" }];
+  vm.runInNewContext("renderCurrentOverlayCue(subtitleState.currentVideo)", harness.context);
+
+  const overlay = harness.context.document.getElementById("ast-subtitle-overlay");
+  const lines = overlay.children.filter((child) => child.className?.includes("ast-subtitle-line"));
+  assert.equal(overlay.style.fontFamily, "'Noto Sans KR', sans-serif");
+  assert.equal(lines[0].className, "ast-subtitle-line ast-subtitle-source-line");
+  assert.equal(lines[0].style.fontFamily, "Arial, sans-serif");
+  assert.equal(lines[0].style.color, "#ffd700");
+  assert.ok(parseFloat(lines[0].style.fontSize) < parseFloat(overlay.style.fontSize));
+  assert.equal(overlay.style.color, "#ffffff");
+  assert.equal(lines[1].style.fontFamily || "", "");
+  assert.equal(lines[1].style.fontSize || "", "");
+});
+
+test("the translation line can be shown above the original", async () => {
+  for (const [translationOnTop, expected] of [[false, ["Hello world", "안녕 세상"]], [true, ["안녕 세상", "Hello world"]]]) {
+    const harness = createYoutubeHarness({ settings: { subtitleDisplayMode: "dual", subtitleStyle: { translationOnTop } } });
+    vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
+    await flushPromises();
+    await clickAstToggle(harness.controls.querySelector("#ast-toolbar-button"));
+    await flushPromises();
+    harness.video.astSubtitleCues = [{ id: "yt-0", start: 0, end: 5, text: "안녕 세상", sourceText: "Hello world" }];
+    vm.runInNewContext("renderCurrentOverlayCue(subtitleState.currentVideo)", harness.context);
+    const overlay = harness.context.document.getElementById("ast-subtitle-overlay");
+    const lines = overlay.children.filter((child) => child.className?.includes("ast-subtitle-line"));
+    assert.deepEqual(lines.map((line) => line.textContent), expected);
+  }
+});
+
+test("the display submenu switches the translation between top and bottom", async () => {
+  const harness = createYoutubeHarness({ settings: { subtitleDisplayMode: "dual" } });
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
+  await flushPromises();
+  await clickAstToggle(harness.controls.querySelector("#ast-toolbar-button"));
+  await flushPromises();
+  harness.video.astSubtitleCues = [{ id: "yt-0", start: 0, end: 5, text: "안녕 세상", sourceText: "Hello world" }];
+  harness.context.ensureProviderMenu("youtube");
+  harness.context.renderProviderMenu("youtube");
+
+  const options = () => harness.context.document.getElementById("ast-provider-menu")
+    .querySelector(".ast-subtitle-display-list").children.at(-1).children[1].children;
+  assert.deepEqual(options().map((option) => [option.textContent, option.getAttribute("aria-checked")]),
+    [["상단", "false"], ["하단", "true"]]);
+
+  options()[0].dispatchEvent({ type: "click", stopPropagation() {} });
+  await flushPromises();
+  const lines = harness.context.document.getElementById("ast-subtitle-overlay").children
+    .filter((child) => child.className?.includes("ast-subtitle-line"));
+  assert.deepEqual(lines.map((line) => line.textContent), ["안녕 세상", "Hello world"]);
+  assert.ok(harness.sentMessages.some((message) => message.type === "settings.updateSubtitleStyle"
+    && message.patch.translationOnTop === true));
 });

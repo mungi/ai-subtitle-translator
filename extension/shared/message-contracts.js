@@ -68,6 +68,7 @@ const SUBTITLE_STYLE_PATCH_LIMITS = Object.freeze({
   positionY: [0, 100],
   width: [160, 32768]
 });
+const SUBTITLE_STYLE_BOOLEAN_PATCH_KEYS = new Set(["translationOnTop"]);
 
 function isNonEmptyValue(value) {
   return (typeof value === "string" || typeof value === "number")
@@ -83,11 +84,16 @@ function validateSubtitleStylePatch(patch) {
     return "patch must be an object.";
   }
   const keys = Object.keys(patch);
-  if (keys.length === 0 || keys.some((key) => !Object.hasOwn(SUBTITLE_STYLE_PATCH_LIMITS, key))) {
+  if (keys.length === 0 || keys.some((key) => !Object.hasOwn(SUBTITLE_STYLE_PATCH_LIMITS, key)
+    && !SUBTITLE_STYLE_BOOLEAN_PATCH_KEYS.has(key))) {
     return "patch contains unsupported subtitle style fields.";
   }
   for (const key of keys) {
     const value = patch[key];
+    if (SUBTITLE_STYLE_BOOLEAN_PATCH_KEYS.has(key)) {
+      if (typeof value !== "boolean") return `patch.${key} must be a boolean.`;
+      continue;
+    }
     const [min, max] = SUBTITLE_STYLE_PATCH_LIMITS[key];
     if (!Number.isFinite(value) || value < min || value > max) {
       return `patch.${key} must be between ${min} and ${max}.`;

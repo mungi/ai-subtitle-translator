@@ -151,13 +151,26 @@
             <span data-i18n="translationStyle"></span>
             <select id="translationStyle"></select>
           </label>
-          <label class="wide checkbox-field">
-            <input id="preferYoutubeProvidedTranslation" type="checkbox" aria-describedby="preferYoutubeProvidedTranslationGuide">
-            <span data-i18n="preferYoutubeProvidedTranslation"></span>
-          </label>
-          <p id="preferYoutubeProvidedTranslationGuide" class="wide active-provider-guide" data-i18n="preferYoutubeProvidedTranslationGuide"></p>
           <label class="wide system-prompt-field">
             <textarea id="systemPrompt" class="system-prompt-textarea" rows="8" spellcheck="false" readonly data-i18n-aria-label="systemPromptAriaLabel"></textarea>
+          </label>
+          <label class="wide checkbox-field">
+            <input id="preferYoutubeProvidedTranslation" type="checkbox" aria-describedby="preferYoutubeProvidedTranslationGuide">
+            <span class="checkbox-title" data-i18n="preferYoutubeProvidedTranslation"></span>
+            <span id="preferYoutubeProvidedTranslationGuide" class="checkbox-guide" data-i18n="preferYoutubeProvidedTranslationGuide"></span>
+          </label>
+          <label class="wide checkbox-field">
+            <input id="phraseSegmentation" type="checkbox" aria-describedby="phraseSegmentationGuide">
+            <span class="checkbox-title" data-i18n="phraseSegmentation"></span>
+            <span id="phraseSegmentationGuide" class="checkbox-guide" data-i18n="phraseSegmentationGuide"></span>
+          </label>
+          <label class="wide checkbox-field nested-checkbox-field">
+            <input id="phraseSegmentationSkipYoutubeManual" type="checkbox">
+            <span class="checkbox-title" data-i18n="phraseSegmentationSkipYoutubeManual"></span>
+          </label>
+          <label class="wide checkbox-field">
+            <input id="wordProgressHighlight" type="checkbox">
+            <span class="checkbox-title" data-i18n="wordProgressHighlight"></span>
           </label>
           <div class="wide cache-action-row">
             <label class="checkbox-field">
@@ -193,11 +206,44 @@
           </div>
         </div>
         <div class="subtitle-preview-frame">
-          <div id="subtitleStylePreview" class="subtitle-style-preview" contenteditable="true" role="textbox" aria-multiline="true"></div>
+          <div class="subtitle-preview-stack">
+            <div id="subtitleSourcePreview" class="subtitle-style-preview subtitle-source-preview" aria-hidden="true"></div>
+            <div id="subtitleStylePreview" class="subtitle-style-preview" contenteditable="true" role="textbox" aria-multiline="true"></div>
+          </div>
         </div>
+        <label class="checkbox-field subtitle-order-field">
+          <input id="subtitleTranslationOnTop" type="checkbox">
+          <span data-i18n="translationOnTop"></span>
+        </label>
         <div class="subtitle-style-groups">
           <fieldset class="subtitle-style-group">
-            <legend data-i18n="fontGroup"></legend>
+            <legend data-i18n="sourceFontGroup"></legend>
+            <div class="form-grid subtitle-style-grid">
+              <label>
+                <span data-i18n="fontSize"></span>
+                <input id="subtitleSourceFontSize" type="number" min="10" max="64" step="1">
+              </label>
+              <label>
+                <span data-i18n="fontFamily"></span>
+                <select id="subtitleSourceFontFamily"></select>
+              </label>
+              <label>
+                <span data-i18n="textColor"></span>
+                <input id="subtitleSourceTextColor" type="color">
+              </label>
+              <label class="wide hidden" id="sourceCustomWebFontField">
+                <span data-i18n="customWebFontCss"></span>
+                <textarea id="subtitleSourceCustomWebFontCss" rows="7" spellcheck="false"></textarea>
+              </label>
+              <p class="font-guide hidden" id="sourceCustomWebFontGuide">
+                <span data-i18n="customWebFontGuide"></span>
+                <a href="https://noonnu.cc/index?locale=ko&category_use_ids=6" target="_blank" rel="noreferrer">noonnu.cc</a>
+              </p>
+            </div>
+          </fieldset>
+
+          <fieldset class="subtitle-style-group">
+            <legend data-i18n="translationFontGroup"></legend>
             <div class="form-grid subtitle-style-grid">
               <label>
                 <span data-i18n="fontSize"></span>

@@ -323,7 +323,37 @@ label {
   min-height: 38px;
 }
 
+/* A sub-option sits close under the option it belongs to. */
+.nested-checkbox-field {
+  margin-top: -12px;
+  padding-left: 28px;
+}
+
+/* An option's description sits to the right of its title and wraps within the row. */
+.checkbox-title {
+  flex: 0 0 auto;
+}
+
+/* Reads as a continuation of the title: same line, same baseline, twice the usual gap. */
+.checkbox-field:has(.checkbox-guide) {
+  align-items: baseline;
+}
+
+.checkbox-guide {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-left: 9px;
+  color: var(--muted);
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.checkbox-field input:disabled + span {
+  opacity: 0.5;
+}
+
 .checkbox-field input {
+  flex: 0 0 auto;
   width: 18px;
   min-height: 18px;
 }
@@ -598,6 +628,31 @@ textarea:focus {
   line-height: 1.45;
   text-align: center;
   white-space: pre-wrap;
+}
+
+/* The stack is the subtitle box; its lines carry text styles only, like the player overlay. */
+.subtitle-preview-stack {
+  display: grid;
+  justify-items: center;
+  box-sizing: border-box;
+  max-width: min(88%, 760px);
+  min-width: min(88%, 520px);
+  padding: 8px 14px;
+  border-radius: 6px;
+}
+
+.subtitle-preview-stack .subtitle-style-preview {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  min-height: 0;
+  padding: 0;
+  border-radius: 0;
+}
+
+.subtitle-order-field {
+  margin-top: 8px;
 }
 
 .subtitle-style-preview:focus {

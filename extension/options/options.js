@@ -139,6 +139,9 @@ const llmParallelRequestsInput = document.getElementById("llmParallelRequests");
 const maxChunkDurationValue = document.getElementById("maxChunkDurationValue");
 const cacheTranslationsInput = document.getElementById("cacheTranslations");
 const preferYoutubeProvidedTranslationInput = document.getElementById("preferYoutubeProvidedTranslation");
+const phraseSegmentationInput = document.getElementById("phraseSegmentation");
+const phraseSegmentationSkipYoutubeManualInput = document.getElementById("phraseSegmentationSkipYoutubeManual");
+const wordProgressHighlightInput = document.getElementById("wordProgressHighlight");
 const fallbackProviderSelect = document.getElementById("fallbackProvider");
 const providerTabs = document.getElementById("providerTabs");
 const providerForm = document.getElementById("providerForm");
@@ -187,7 +190,10 @@ const platformToggleInputs = {
 let backupPasswordResolver = null;
 let backupPasswordMode = "backup";
 const subtitleStylePreview = document.getElementById("subtitleStylePreview");
+const subtitleSourcePreview = document.getElementById("subtitleSourcePreview");
 const customWebFontField = document.getElementById("customWebFontField");
+const sourceCustomWebFontField = document.getElementById("sourceCustomWebFontField");
+const sourceCustomWebFontGuide = document.getElementById("sourceCustomWebFontGuide");
 const customWebFontGuide = document.getElementById("customWebFontGuide");
 const customPreviewFontStyle = document.createElement("style");
 customPreviewFontStyle.id = "ast-custom-preview-font";
@@ -196,6 +202,10 @@ const subtitleStyleInputs = {
   fontSize: document.getElementById("subtitleFontSize"),
   fontFamily: document.getElementById("subtitleFontFamily"),
   customWebFontCss: document.getElementById("subtitleCustomWebFontCss"),
+  sourceFontSize: document.getElementById("subtitleSourceFontSize"),
+  sourceFontFamily: document.getElementById("subtitleSourceFontFamily"),
+  sourceTextColor: document.getElementById("subtitleSourceTextColor"),
+  sourceCustomWebFontCss: document.getElementById("subtitleSourceCustomWebFontCss"),
   textColor: document.getElementById("subtitleTextColor"),
   shadowEnabled: document.getElementById("subtitleShadowEnabled"),
   shadowColor: document.getElementById("subtitleShadowColor"),
@@ -206,7 +216,8 @@ const subtitleStyleInputs = {
   outlineWidth: document.getElementById("subtitleOutlineWidth"),
   backgroundColor: document.getElementById("subtitleBackgroundColor"),
   pendingBackgroundColor: document.getElementById("subtitlePendingBackgroundColor"),
-  backgroundOpacity: document.getElementById("subtitleBackgroundOpacity")
+  backgroundOpacity: document.getElementById("subtitleBackgroundOpacity"),
+  translationOnTop: document.getElementById("subtitleTranslationOnTop")
 };
 
 function applyLocaleText() {
@@ -621,14 +632,28 @@ function extractFontFamilyFromCss(css) {
   return `${fontFamily}, Arial, sans-serif`;
 }
 
-function getSelectedFontPreset() {
-  return WEB_FONT_PRESETS.find((preset) => preset.id === subtitleStyleInputs.fontFamily.value);
-}
+// The source and translation lines each have a font; the original font fields belong to the translation.
+const fontSlots = {
+  translation: {
+    select: subtitleStyleInputs.fontFamily,
+    customCss: subtitleStyleInputs.customWebFontCss,
+    customField: customWebFontField,
+    guide: customWebFontGuide,
+    keys: { fontPreset: "fontPreset", fontFamily: "fontFamily", webFontCss: "webFontCss", customWebFontCss: "customWebFontCss" }
+  },
+  source: {
+    select: subtitleStyleInputs.sourceFontFamily,
+    customCss: subtitleStyleInputs.sourceCustomWebFontCss,
+    customField: sourceCustomWebFontField,
+    guide: sourceCustomWebFontGuide,
+    keys: { fontPreset: "sourceFontPreset", fontFamily: "sourceFontFamily", webFontCss: "sourceWebFontCss", customWebFontCss: "sourceCustomWebFontCss" }
+  }
+};
 
-function getFontSettingsFromInputs() {
-  const presetId = subtitleStyleInputs.fontFamily.value;
+function getFontSettingsFromInputs(slot) {
+  const presetId = slot.select.value;
+  const customWebFontCss = slot.customCss.value.trim() || DEFAULT_CUSTOM_WEB_FONT_CSS;
   if (presetId === "custom") {
-    const customWebFontCss = subtitleStyleInputs.customWebFontCss.value.trim() || DEFAULT_CUSTOM_WEB_FONT_CSS;
     return {
       fontPreset: "custom",
       fontFamily: extractFontFamilyFromCss(customWebFontCss),
@@ -637,26 +662,38 @@ function getFontSettingsFromInputs() {
     };
   }
 
-  const preset = getSelectedFontPreset() || WEB_FONT_PRESETS[0];
+  const preset = WEB_FONT_PRESETS.find((item) => item.id === presetId) || WEB_FONT_PRESETS[0];
   return {
     fontPreset: preset.id,
     fontFamily: preset.fontFamily,
     webFontCss: preset.css,
-    customWebFontCss: subtitleStyleInputs.customWebFontCss.value.trim() || DEFAULT_CUSTOM_WEB_FONT_CSS
+    customWebFontCss
   };
 }
 
+function readFontSlots() {
+  const values = {};
+  for (const slot of Object.values(fontSlots)) {
+    const font = getFontSettingsFromInputs(slot);
+    for (const [name, key] of Object.entries(slot.keys)) values[key] = font[name];
+  }
+  return values;
+}
+
 function renderFontPresetOptions() {
-  subtitleStyleInputs.fontFamily.innerHTML = [
+  const options = [
     ...WEB_FONT_PRESETS.map((preset) => `<option value="${preset.id}">${escapeHtml(getWebFontPresetLabel(preset, uiLanguage))}</option>`),
     `<option value="custom">${t("customWebFontSettings")}</option>`
   ].join("");
+  for (const slot of Object.values(fontSlots)) slot.select.innerHTML = options;
 }
 
 function updateCustomWebFontVisibility() {
-  const isCustom = subtitleStyleInputs.fontFamily.value === "custom";
-  customWebFontField.classList.toggle("hidden", !isCustom);
-  customWebFontGuide.classList.toggle("hidden", !isCustom);
+  for (const slot of Object.values(fontSlots)) {
+    const isCustom = slot.select.value === "custom";
+    slot.customField.classList.toggle("hidden", !isCustom);
+    slot.guide.classList.toggle("hidden", !isCustom);
+  }
 }
 
 function escapeHtml(value) {
@@ -680,6 +717,9 @@ function readGeneralSettings() {
   settings.llmParallelRequests = normalizeLlmParallelRequests(llmParallelRequestsInput.value);
   settings.cacheTranslations = cacheTranslationsInput.checked;
   settings.preferYoutubeProvidedTranslation = preferYoutubeProvidedTranslationInput.checked;
+  settings.phraseSegmentation = phraseSegmentationInput.checked;
+  settings.phraseSegmentationSkipYoutubeManual = phraseSegmentationSkipYoutubeManualInput.checked;
+  settings.wordProgressHighlight = wordProgressHighlightInput.checked;
   settings.fallback.providerId = resolveFallbackProviderId(fallbackProviderSelect.value || "googleTranslate");
 }
 
@@ -695,14 +735,12 @@ function updateChunkDurationValue() {
 }
 
 function readSubtitleStyleSettings() {
-  const fontSettings = getFontSettingsFromInputs();
   settings.subtitleStyle = {
     ...(settings.subtitleStyle || {}),
     fontSize: Number(subtitleStyleInputs.fontSize.value || 30),
-    fontPreset: fontSettings.fontPreset,
-    fontFamily: fontSettings.fontFamily,
-    webFontCss: fontSettings.webFontCss,
-    customWebFontCss: fontSettings.customWebFontCss,
+    sourceFontSize: Number(subtitleStyleInputs.sourceFontSize.value || 28),
+    sourceTextColor: subtitleStyleInputs.sourceTextColor.value,
+    ...readFontSlots(),
     textColor: subtitleStyleInputs.textColor.value,
     shadowEnabled: subtitleStyleInputs.shadowEnabled.checked,
     shadowColor: subtitleStyleInputs.shadowColor.value,
@@ -713,7 +751,8 @@ function readSubtitleStyleSettings() {
     outlineWidth: Number(subtitleStyleInputs.outlineWidth.value || 0),
     backgroundColor: subtitleStyleInputs.backgroundColor.value,
     pendingBackgroundColor: subtitleStyleInputs.pendingBackgroundColor.value,
-    backgroundOpacity: Number(subtitleStyleInputs.backgroundOpacity.value || 0)
+    backgroundOpacity: Number(subtitleStyleInputs.backgroundOpacity.value || 0),
+    translationOnTop: subtitleStyleInputs.translationOnTop.checked
   };
 }
 
@@ -721,7 +760,7 @@ function applySubtitlePreview() {
   readSubtitleStyleSettings();
   const style = settings.subtitleStyle || {};
   updateCustomWebFontVisibility();
-  customPreviewFontStyle.textContent = String(style.webFontCss || "")
+  customPreviewFontStyle.textContent = [...new Set([style.webFontCss, style.sourceWebFontCss].filter(Boolean))].join("\n")
     .replaceAll(
       "__AST_GOWUN_BATANG_FONT_URL__",
       chrome.runtime.getURL("assets/fonts/gowun-batang-regular.woff")
@@ -732,14 +771,23 @@ function applySubtitlePreview() {
     );
   subtitleStylePreview.style.fontSize = `${clampNumber(style.fontSize, 10, 64, 30)}px`;
   subtitleStylePreview.style.fontFamily = style.fontFamily || "Arial, sans-serif";
-  subtitleStylePreview.style.color = style.textColor || "#f2f2f2";
+  subtitleStylePreview.style.color = style.textColor || "#e2ffad";
   subtitleStylePreview.style.textShadow = buildPreviewTextShadow(style);
   const outlineWidth = clampNumber(style.outlineWidth, 0, 16, 2);
   subtitleStylePreview.style.webkitTextStroke = style.outlineEnabled ?? true
     ? `${outlineWidth}px ${style.outlineColor || "#000000"}`
     : "0 transparent";
   subtitleStylePreview.style.paintOrder = "stroke fill";
-  subtitleStylePreview.style.background = `rgba(${hexToRgb(style.backgroundColor)}, ${clampNumber(style.backgroundOpacity, 0, 1, 0.75)})`;
+  // Both lines share one background box, as in the player overlay.
+  subtitleStylePreview.parentElement.style.background = `rgba(${hexToRgb(style.backgroundColor)}, ${clampNumber(style.backgroundOpacity, 0, 1, 0.75)})`;
+  // The source line shares every style except its size, color and font.
+  subtitleSourcePreview.style.cssText = subtitleStylePreview.style.cssText;
+  subtitleSourcePreview.style.fontFamily = style.sourceFontFamily || style.fontFamily || "Arial, sans-serif";
+  subtitleSourcePreview.style.fontSize = `${clampNumber(style.sourceFontSize ?? style.fontSize, 10, 64, 30)}px`;
+  subtitleSourcePreview.style.color = style.sourceTextColor || "#f2f2f2";
+  subtitleSourcePreview.textContent = t("sourcePreviewText");
+  // Grid order moves the source line below the translation without touching the editable element.
+  subtitleSourcePreview.style.order = style.translationOnTop ? "1" : "";
 }
 
 function renderGeneralSettings() {
@@ -766,6 +814,11 @@ function renderGeneralSettings() {
   llmParallelRequestsInput.value = normalizeLlmParallelRequests(settings.llmParallelRequests);
   cacheTranslationsInput.checked = Boolean(settings.cacheTranslations);
   preferYoutubeProvidedTranslationInput.checked = settings.preferYoutubeProvidedTranslation !== false;
+  phraseSegmentationInput.checked = settings.phraseSegmentation !== false;
+  phraseSegmentationSkipYoutubeManualInput.checked = settings.phraseSegmentationSkipYoutubeManual === true;
+  // The YouTube exception only matters while phrase segmentation is on.
+  phraseSegmentationSkipYoutubeManualInput.disabled = !phraseSegmentationInput.checked;
+  wordProgressHighlightInput.checked = settings.wordProgressHighlight !== false;
   updateSystemPromptTextarea();
   renderFallbackProviderSelect();
 }
@@ -815,12 +868,14 @@ function renderSubtitleStyleSettings() {
   const style = settings.subtitleStyle || {};
   renderFontPresetOptions();
   subtitleStyleInputs.fontSize.value = style.fontSize ?? 30;
-  subtitleStyleInputs.fontFamily.value = style.fontPreset || "gangwon-moduche";
-  if (!subtitleStyleInputs.fontFamily.value) {
-    subtitleStyleInputs.fontFamily.value = "gangwon-moduche";
+  subtitleStyleInputs.sourceFontSize.value = style.sourceFontSize ?? 28;
+  subtitleStyleInputs.sourceTextColor.value = style.sourceTextColor || "#f2f2f2";
+  for (const slot of Object.values(fontSlots)) {
+    slot.select.value = style[slot.keys.fontPreset] || style.fontPreset || "gangwon-moduche";
+    if (!slot.select.value) slot.select.value = "gangwon-moduche";
+    slot.customCss.value = style[slot.keys.customWebFontCss] || DEFAULT_CUSTOM_WEB_FONT_CSS;
   }
-  subtitleStyleInputs.customWebFontCss.value = style.customWebFontCss || DEFAULT_CUSTOM_WEB_FONT_CSS;
-  subtitleStyleInputs.textColor.value = style.textColor || "#f2f2f2";
+  subtitleStyleInputs.textColor.value = style.textColor || "#e2ffad";
   subtitleStyleInputs.shadowEnabled.checked = Boolean(style.shadowEnabled);
   subtitleStyleInputs.shadowColor.value = style.shadowColor || "#000000";
   subtitleStyleInputs.shadowBlur.value = style.shadowBlur ?? 3;
@@ -831,6 +886,7 @@ function renderSubtitleStyleSettings() {
   subtitleStyleInputs.backgroundColor.value = style.backgroundColor || "#000000";
   subtitleStyleInputs.pendingBackgroundColor.value = style.pendingBackgroundColor || "#750000";
   subtitleStyleInputs.backgroundOpacity.value = style.backgroundOpacity ?? 0.75;
+  subtitleStyleInputs.translationOnTop.checked = style.translationOnTop === true;
   updateCustomWebFontVisibility();
   applySubtitlePreview();
 }
@@ -1471,7 +1527,10 @@ async function resetGeneralSettingsSection() {
     maxChunkDurationSeconds: DEFAULT_SETTINGS.maxChunkDurationSeconds,
     llmParallelRequests: DEFAULT_SETTINGS.llmParallelRequests,
     cacheTranslations: DEFAULT_SETTINGS.cacheTranslations,
-    preferYoutubeProvidedTranslation: DEFAULT_SETTINGS.preferYoutubeProvidedTranslation
+    preferYoutubeProvidedTranslation: DEFAULT_SETTINGS.preferYoutubeProvidedTranslation,
+    phraseSegmentation: DEFAULT_SETTINGS.phraseSegmentation,
+    phraseSegmentationSkipYoutubeManual: DEFAULT_SETTINGS.phraseSegmentationSkipYoutubeManual,
+    wordProgressHighlight: DEFAULT_SETTINGS.wordProgressHighlight
   });
   await persistSectionReset();
 }
@@ -1601,6 +1660,15 @@ async function init() {
   preferYoutubeProvidedTranslationInput.addEventListener("change", () => {
     scheduleAutomaticSave({ immediate: true });
   });
+  phraseSegmentationInput.addEventListener("change", () => {
+    phraseSegmentationSkipYoutubeManualInput.disabled = !phraseSegmentationInput.checked;
+    scheduleAutomaticSave({ immediate: true });
+  });
+  for (const input of [phraseSegmentationSkipYoutubeManualInput, wordProgressHighlightInput]) {
+    input.addEventListener("change", () => {
+      scheduleAutomaticSave({ immediate: true });
+    });
+  }
   fallbackProviderSelect.addEventListener("change", () => {
     scheduleAutomaticSave({ immediate: true });
   });

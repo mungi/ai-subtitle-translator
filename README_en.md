@@ -17,6 +17,7 @@ Chrome 102 or later is required.
 - Uses the full subtitle context and current playback position for LLM translation, splitting long videos into manageable parts.
 - Provides Natural, Lecture, Technical, and custom translation styles.
 - Instead of translating, shows YouTube's human-made subtitles in the target language, or YouTube's auto-translation when there are none. Turn off "Prefer YouTube-provided subtitles" under Translation style in the player menu or in settings to translate with your selected style.
+- Regroups choppy auto-generated captions and subtitles split mid-sentence into phrases. Auto-generated captions keep each word's original time, so word progress highlighting follows the speech. Restructuring into phrases, the exception for subtitles uploaded by people on YouTube, and word progress highlighting (YouTube only) can each be turned on or off in settings.
 - Lets you adjust subtitle position, size, font, color, shadow, outline, and background.
 - Caches translations and falls back to Google Translate when an LLM quota is exceeded.
 - Provides provider connection tests, model discovery, and settings backup and restore.
