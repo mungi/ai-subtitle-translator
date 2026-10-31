@@ -4,13 +4,6 @@ const VIDEO_ID_PATTERN = /(?:v=|\/|embed\/|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:[?&
 const TRANSCRIPT_TEXT_PATTERN = /<text\b([^>]*)>([\s\S]*?)<\/text>/g;
 const TRANSCRIPT_P_PATTERN = /<p\b([^>]*)>([\s\S]*?)<\/p>/g;
 const ATTRIBUTE_PATTERN = /(\w+)="([^"]*)"/g;
-const ANDROID_INNERTUBE_CONTEXT = {
-  client: {
-    clientName: "ANDROID",
-    clientVersion: "20.10.38"
-  }
-};
-
 export function getYoutubeVideoId(urlOrId) {
   if (/^[a-zA-Z0-9_-]{11}$/.test(urlOrId)) {
     return urlOrId;
@@ -99,21 +92,6 @@ function parseInitialPlayerResponse(html) {
   return parseJsonObjectAfter(html, "ytInitialPlayerResponse");
 }
 
-function parseInnertubeApiKey(html, ytcfg = parseYtcfg(html)) {
-  if (ytcfg?.INNERTUBE_API_KEY) {
-    return ytcfg.INNERTUBE_API_KEY;
-  }
-
-  const match = html.match(/"INNERTUBE_API_KEY":"([^"]+)"/)
-    || html.match(/INNERTUBE_API_KEY\\":\\"([^\\"]+)\\"/);
-
-  if (!match) {
-    throw new Error("Could not find YouTube Innertube API key.");
-  }
-
-  return match[1];
-}
-
 function buildInnertubeContext(ytcfg = {}) {
   if (ytcfg.INNERTUBE_CONTEXT) {
     return ytcfg.INNERTUBE_CONTEXT;
@@ -125,10 +103,6 @@ function buildInnertubeContext(ytcfg = {}) {
       clientVersion: ytcfg.INNERTUBE_CLIENT_VERSION || "2.20260706.00.00"
     }
   };
-}
-
-function buildAndroidInnertubeContext() {
-  return JSON.parse(JSON.stringify(ANDROID_INNERTUBE_CONTEXT));
 }
 
 async function fetchJson(url, init) {
@@ -168,56 +142,7 @@ export async function fetchYoutubeCaptionTracks(urlOrId) {
     return initialTracks;
   }
 
-  const ytcfg = parseYtcfg(html);
-  const apiKey = parseInnertubeApiKey(html, ytcfg);
-  const playerJson = await fetchYoutubeAndroidPlayer(videoId, apiKey);
-
-  const tracks = normalizeYoutubeCaptionTracks(playerJson, videoId);
-
-  if (tracks.length === 0) {
-    throw new Error("No YouTube captions are available for this video.");
-  }
-
-  return tracks;
-}
-
-async function fetchYoutubeAndroidPlayer(videoId, apiKey, languageCode) {
-  return fetchJson(`https://www.youtube.com/youtubei/v1/player?key=${encodeURIComponent(apiKey)}`, {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      "Accept-Language": languageCode || "en"
-    },
-    body: JSON.stringify({
-      context: buildAndroidInnertubeContext(),
-      videoId,
-      contentCheckOk: true,
-      racyCheckOk: true
-    })
-  });
-}
-
-async function fetchYoutubeAndroidCaptionTracks({ videoId, urlOrId, apiKey, languageCode }) {
-  let resolvedApiKey = apiKey;
-  if (!resolvedApiKey) {
-    const watchUrl = `https://www.youtube.com/watch?v=${encodeURIComponent(videoId || getYoutubeVideoId(urlOrId))}`;
-    const html = await fetchText(watchUrl, {
-      credentials: "include",
-      headers: {
-        "Accept-Language": languageCode || "en"
-      }
-    });
-    resolvedApiKey = parseInnertubeApiKey(html, parseYtcfg(html));
-  }
-
-  const resolvedVideoId = videoId || getYoutubeVideoId(urlOrId);
-  const playerJson = await fetchYoutubeAndroidPlayer(resolvedVideoId, resolvedApiKey, languageCode);
-  const tracks = normalizeYoutubeCaptionTracks(playerJson, resolvedVideoId);
-  if (tracks.length === 0) {
-    throw new Error("No YouTube captions are available for this video.");
-  }
-  return tracks;
+  throw new Error("No YouTube captions are available for this video.");
 }
 
 function normalizeYoutubeCaptionTracks(playerJson, videoId) {
@@ -658,24 +583,6 @@ export async function fetchYoutubeTranscript({
     cues = await fetchCuesFromYoutubeTrack(selectedTrack);
   } catch (error) {
     lastError = error;
-  }
-
-  if (!cues) {
-    try {
-      const androidTracks = await fetchYoutubeAndroidCaptionTracks({
-        videoId: resolvedVideoId,
-        urlOrId,
-        apiKey: innertubeApiKey,
-        languageCode: languageCode || selectedTrack.languageCode
-      });
-      const androidTrack = selectCaptionTrack(androidTracks, languageCode || selectedTrack.languageCode);
-      if (androidTrack?.baseUrl && androidTrack.baseUrl !== selectedTrack.baseUrl) {
-        cues = await fetchCuesFromYoutubeTrack(androidTrack, { preferPlainXml: true });
-      }
-    } catch (error) {
-      const prefix = lastError?.message ? `${lastError.message}; ` : "";
-      lastError = new Error(`${prefix}android player fallback failed: ${error.message}`);
-    }
   }
 
   if (!cues && transcriptParams && innertubeApiKey) {

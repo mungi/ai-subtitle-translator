@@ -147,3 +147,32 @@ test("provider failure replaces only its failed chunk and reports exact fallback
   assert.deepEqual(result.fallbackCueIds, ["yt-4", "yt-5", "yt-6", "yt-7"]);
   assert.equal(result[0].text, "완료 yt-0");
 });
+
+
+test("LLM input omits playback metadata and repeated response templates while retaining cue identities", () => {
+  const doc = makeDocument(3);
+  const input = JSON.parse(internals.buildTranslationInput(doc));
+  assert.equal(input.sourceLanguage, "en");
+  assert.equal("platform" in input, false);
+  assert.equal("videoId" in input, false);
+  assert.equal("responseFormat" in input, false);
+  assert.deepEqual(input.cues, doc.cues.map(({ id, text }) => ({ id, text })));
+});
+
+
+test("failed alignment retries split at the nearest sentence boundary", async () => {
+  const originalFetch = globalThis.fetch;
+  const doc = makeDocument(8, (i) => i === 2 || i === 7 ? `fragment ${i}.` : `fragment ${i}`);
+  const sizes = [];
+  globalThis.fetch = async (_url, init) => {
+    const input = JSON.parse(JSON.parse(init.body).contents[0].parts[0].text);
+    sizes.push(input.cues.length);
+    const cues = sizes.length === 1 ? input.cues.slice(0, -1) : input.cues;
+    return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify({ translations: cues.map(({ id }) => ({ id, text: `translated ${id}` })) }) }] } }] }));
+  };
+  try {
+    const result = await internals.translateLlmChunkWithRetry({ ...PROVIDERS.google, apiKey: "test-key" }, { targetLanguage: "ko" }, doc);
+    assert.deepEqual(sizes, [8, 3, 5]);
+    assert.equal(result.length, 8);
+  } finally { globalThis.fetch = originalFetch; }
+});

@@ -1,12 +1,13 @@
+import { buildSentenceGroups, distributeGroupTranslation } from "./sentence-groups.js";
 import { classifyProviderLimit, providerRetryDelay } from "./provider-limits.js";
 import { buildProviderRequest, createReasoningProfile, extractText, shouldRetryOpenRouterWithoutReasoning } from "./provider-request.js";
 import { assertProviderEndpoint } from "./provider-security.js";
-import { getCustomSystemPromptSettingKey, isCustomTranslationStyle, buildSystemPromptFromSettings, normalizeLlmParallelRequests } from "./defaults.js";
+import { getCustomSystemPromptSettingKey, isCustomTranslationStyle, buildSystemPromptFromSettings, buildStyleSystemPrompt, extractStyleSystemPrompt, normalizeLlmParallelRequests } from "./defaults.js";
 import { getSettings } from "./storage.js";
 import { decodeXmlEntities, normalizeCue, validateCues } from "./subtitles.js";
 
 const TRANSLATION_CACHE_KEY = "translationCache";
-const TRANSLATION_CACHE_VERSION = "v5";
+const TRANSLATION_CACHE_VERSION = "v6";
 export const TRANSLATION_CACHE_MAX_ENTRIES = 30;
 export const TRANSLATION_CACHE_MAX_BYTES = 4 * 1024 * 1024;
 const DEFAULT_MAX_CUE_CHARS_PER_CHUNK = 24000;
@@ -73,20 +74,10 @@ function selectSentenceContext(cues, before = false) {
 
 function buildTranslationInput(document, { contextBefore = [], contextAfter = document.contextAfter || [] } = {}) {
   return JSON.stringify({
-    platform: document.platform,
-    videoId: document.videoId,
     sourceLanguage: document.sourceLanguage,
     contextBefore: selectSentenceContext(contextBefore, true),
     contextAfter: selectSentenceContext(contextAfter),
-    cues: document.cues.map((cue) => ({
-      id: cue.id,
-      start: cue.start,
-      end: cue.end,
-      text: cue.text
-    })),
-    responseFormat: {
-      translations: document.cues.map((cue) => ({ id: cue.id, text: "translation of ONLY this cue" }))
-    }
+    cues: document.cues.map(({ id, text }) => ({ id, text }))
   });
 }
 
@@ -533,6 +524,45 @@ async function writeCachedTranslation(cacheKey, document) {
   return cacheWriteQueue;
 }
 
+function buildGroupCacheKey(document, settings, provider) {
+  return `sentence-v1:${buildCacheKey({ ...document, cues: [] }, settings, provider)}:${provider.baseUrl || ""}`;
+}
+
+async function createGroupCache(document, settings, provider) {
+  const key = buildGroupCacheKey(document, settings, provider);
+  const stored = await readCachedTranslation(key);
+  const groups = { ...(stored?.groups || {}) };
+  return {
+    hits: 0,
+    get(source) {
+      const entry = groups[String(hashString(source))];
+      if (entry?.source !== source || typeof entry.text !== "string" || !entry.text.trim()) return null;
+      this.hits += 1;
+      return entry.text;
+    },
+    async save(entries) {
+      if (!entries.length) return;
+      for (const { source, text } of entries) groups[String(hashString(source))] = { source, text };
+      cacheWriteQueue = cacheWriteQueue.catch(() => {}).then(async () => {
+        const all = await chrome.storage.local.get(TRANSLATION_CACHE_KEY);
+        const cache = all[TRANSLATION_CACHE_KEY] || {};
+        const current = cache[key];
+        cache[key] = {
+          createdAt: new Date().toISOString(),
+          document: { platform: document.platform, videoId: document.videoId },
+          groups: { ...(current?.groups || {}), ...groups }
+        };
+        await chrome.storage.local.set({ [TRANSLATION_CACHE_KEY]: pruneTranslationCache(cache) });
+      });
+      try { await cacheWriteQueue; }
+      catch (error) {
+        this.writeFailed = true;
+        console.warn("[AST] Could not persist sentence translations:", error.message);
+      }
+    }
+  };
+}
+
 async function fetchProviderJson(provider, payload, signal) {
   throwIfAborted(signal);
   const response = await fetch(payload.url, { ...payload.init, signal });
@@ -680,8 +710,16 @@ function createLlmRequestController({
 }
 
 async function fetchLlmChunkTranslations(provider, settings, chunk, contextBefore = [], requestController) {
+  const groupedPrompt = settings.sentenceGroupTranslation ? [
+    "Translate each input sentence group naturally. Correct clear ASR errors; preserve facts, ambiguity, names and technical terms. Each ID is one sentence group: keep its meaning within that group. Context is reference only.",
+    "Return only JSON: {\"translations\":[{\"id\":\"input ID\",\"text\":\"translation\"}]}. Return every input ID exactly once, nonempty; no extra IDs or commentary.",
+    isCustomTranslationStyle(settings.translationStyle)
+      ? extractStyleSystemPrompt(settings[getCustomSystemPromptSettingKey(settings.translationStyle)] || buildSystemPromptFromSettings(settings))
+      : buildStyleSystemPrompt(settings.translationStyle || "lecture"),
+    `Target language: ${settings.targetLanguage || "ko"}.`
+  ].join("\n") : null;
   const requestOptions = {
-    systemPrompt: `${buildSystemPromptFromSettings(settings)}\nMandatory alignment check: Fill every entry of responseFormat.translations with its own cue translation, preserving the exact IDs. Return no context entries or other IDs. Never combine cues or leave entries empty; translate fillers and fragments as fragments. Count the entries before returning.`,
+    systemPrompt: groupedPrompt || `${buildSystemPromptFromSettings(settings)}\nMandatory alignment check: Translate every input cue, preserving its exact ID. Return no context entries or other IDs. Never combine cues or leave entries empty; translate fillers and fragments as fragments. Count the entries before returning.`,
     input: buildTranslationInput(chunk, { contextBefore })
   };
   const request = buildProviderRequest(provider, requestOptions);
@@ -726,7 +764,17 @@ async function translateLlmChunkWithRetry(provider, settings, chunk, contextBefo
       throw error;
     }
 
-    const midpoint = Math.ceil(chunk.cues.length / 2);
+    const middle = Math.ceil(chunk.cues.length / 2);
+    const boundaries = [];
+    for (let index = 1; index < chunk.cues.length; index += 1) {
+      const previous = chunk.cues[index - 1];
+      const next = chunk.cues[index];
+      if (/[.!?。！？]["'”’」』)\]]*\s*$/u.test(previous.text)
+        || next.start - previous.end >= 1.2) boundaries.push(index);
+    }
+    const midpoint = boundaries.length
+      ? boundaries.reduce((best, candidate) => Math.abs(candidate - middle) < Math.abs(best - middle) ? candidate : best)
+      : middle;
     const leftChunk = {
       ...chunk,
       cues: chunk.cues.slice(0, midpoint),
@@ -747,7 +795,67 @@ async function translateLlmChunkWithRetry(provider, settings, chunk, contextBefo
   }
 }
 
-async function translateLlmChunksWithPriority(provider, settings, document, chunks, onProgress, signal) {
+async function translateSentenceGroups(provider, settings, chunk, contextBefore, requestController) {
+  const request = async (document) => {
+    while (true) {
+      try { return await fetchLlmChunkTranslations(provider, settings, document, contextBefore, requestController); }
+      catch (error) {
+        if (!isRateLimitError(error) || !requestController) throw error;
+        await requestController.recordRateLimitError(error);
+      }
+    }
+  };
+  const groups = chunk.sentenceGroups || buildSentenceGroups(chunk.cues);
+  const cache = settings.groupCache;
+  const cached = new Map();
+  for (const group of groups) {
+    const text = cache?.get(group.text);
+    if (text) cached.set(group.id, text);
+  }
+  const pending = groups.filter((group) => !cached.has(group.id));
+  const groupDocument = { ...chunk, cues: pending };
+  let response = [];
+  if (pending.length) {
+    try {
+      response = await request(groupDocument);
+    } catch (error) {
+      if (!error.retryWithSmallerChunk) throw error;
+    }
+  }
+  const analysis = analyzeChunkTranslations(groupDocument, response);
+  // Any unknown or duplicate ID invalidates the batch; missing groups do not invalidate other sentences.
+  const trusted = !analysis.invalidIds.length && !analysis.unexpectedIds.length && !analysis.duplicateIds.length;
+  const result = [];
+  const fallbackIds = [];
+  // Persist every valid sentence before waiting on a retry or another chunk.
+  if (trusted && cache) await cache.save(pending.filter((group) => analysis.translationById.has(group.id))
+    .map((group) => ({ source: group.text, text: analysis.translationById.get(group.id) })));
+  for (const group of groups) {
+    let text = cached.get(group.id) || (trusted ? analysis.translationById.get(group.id) : null);
+    if (!text) {
+      try {
+        const retry = await request({ ...chunk, cues: [group] });
+        const checked = analyzeChunkTranslations({ cues: [group] }, retry);
+        if (!checked.ok) throw buildChunkTranslationError(checked);
+        text = checked.translationById.get(group.id);
+        if (cache) await cache.save([{ source: group.text, text }]);
+      } catch (error) {
+        throwIfAborted(requestController?.signal);
+        if (!error.retryWithSmallerChunk || settings.allowAlignmentFallback === false) throw error;
+        const fallback = settings.providers?.[GOOGLE_TRANSLATE_PROVIDER_ID];
+        if (!fallback) throw error;
+        result.push(...await translateWithMachineProvider({ ...chunk, cues: group.members }, settings, fallback, { signal: requestController?.signal }));
+        fallbackIds.push(...group.members.map((cue) => String(cue.id)));
+        continue;
+      }
+    }
+    result.push(...distributeGroupTranslation(group, text));
+  }
+  result.fallbackCueIds = fallbackIds;
+  return result;
+}
+
+async function translateLlmChunksWithPriority(provider, settings, document, chunks, onProgress, signal, getPriorityTime) {
   const translationsByChunk = new Array(chunks.length);
   const parallelLimit = settings.settingsMode === "advanced"
     ? normalizeLlmParallelRequests(settings.llmParallelRequests) : LLM_PARALLEL_CHUNK_LIMIT;
@@ -767,7 +875,15 @@ async function translateLlmChunksWithPriority(provider, settings, document, chun
     let fallbackProvider;
     let fallbackReason;
     try {
-      chunkTranslations = await translateLlmChunkWithRetry(provider, settings, chunk, contextBefore, requestController);
+      chunkTranslations = settings.sentenceGroupTranslation
+        ? await translateSentenceGroups(provider, settings, chunk, contextBefore, requestController)
+        : await translateLlmChunkWithRetry(provider, settings, chunk, contextBefore, requestController);
+      if (chunkTranslations.fallbackCueIds?.length) {
+        fallbackProvider = settings.providers[GOOGLE_TRANSLATE_PROVIDER_ID];
+        fallbackReason = ALIGNMENT_FALLBACK_REASON;
+        for (const id of chunkTranslations.fallbackCueIds) fallbackCueIds.add(id);
+        documentFallbackReason = fallbackReason;
+      }
     } catch (error) {
       throwIfAborted(signal);
       fallbackProvider = settings.providers?.[GOOGLE_TRANSLATE_PROVIDER_ID];
@@ -777,8 +893,16 @@ async function translateLlmChunksWithPriority(provider, settings, document, chun
       fallbackRetryPolicy.fallbackRetryAfterMs = Math.max(fallbackRetryPolicy.fallbackRetryAfterMs, providerRetryDelay(error) || 0);
       // An invalid response is not a transient service error. Finish this range once,
       // without discarding valid translations from the rest of the video.
-      chunkTranslations = await translateWithMachineProvider(chunk, settings, fallbackProvider, { signal });
-      for (const cue of chunk.cues) fallbackCueIds.add(String(cue.id));
+      const reusable = [];
+      for (const group of chunk.sentenceGroups || []) {
+        const text = settings.groupCache?.get(group.text);
+        if (text) reusable.push(...distributeGroupTranslation(group, text));
+      }
+      const reusableIds = new Set(reusable.map((item) => String(item.id)));
+      const missing = chunk.cues.filter((cue) => !reusableIds.has(String(cue.id)));
+      chunkTranslations = [...reusable, ...await translateWithMachineProvider({ ...chunk, cues: missing }, settings, fallbackProvider, { signal })];
+      chunkTranslations.fallbackCueIds = missing.map((cue) => String(cue.id));
+      for (const id of chunkTranslations.fallbackCueIds) fallbackCueIds.add(id);
       documentFallbackReason = fallbackReason;
     }
     translationsByChunk[index] = chunkTranslations;
@@ -791,7 +915,7 @@ async function translateLlmChunksWithPriority(provider, settings, document, chun
         completedChunkCount,
         isComplete: completedChunkCount === chunks.length,
         cues: createTranslatedCues(chunk, chunkTranslations),
-        ...(fallbackProvider ? { fallbackProviderId: fallbackProvider.id, fallbackReason, ...fallbackRetryPolicy, fallbackCueIds: chunk.cues.map((cue) => String(cue.id)) } : {})
+        ...(fallbackProvider ? { fallbackProviderId: fallbackProvider.id, fallbackReason, ...fallbackRetryPolicy, fallbackCueIds: chunkTranslations.fallbackCueIds || chunk.cues.map((cue) => String(cue.id)) } : {})
       });
     }
   };
@@ -799,11 +923,20 @@ async function translateLlmChunksWithPriority(provider, settings, document, chun
   if (chunks.length === 0) return [];
 
   await translateChunkAt(0);
-  let nextChunkIndex = 1;
+  const pendingChunks = chunks.slice(1).map((_, index) => index + 1);
   const worker = async () => {
-    while (nextChunkIndex < chunks.length) {
-      const index = nextChunkIndex;
-      nextChunkIndex += 1;
+    while (pendingChunks.length) {
+      const time = getPriorityTime?.();
+      if (Number.isFinite(time)) pendingChunks.sort((a, b) => {
+        const activeCue = document.cues.findLast((cue) => cue.start <= time && cue.end > time);
+        const rank = (index) => {
+          if (activeCue && chunks[index].cues.some((cue) => cue.id === activeCue.id)) return -1;
+          const start = chunks[index].cues[0].start;
+          return start >= time ? start - time : 1e12 + start;
+        };
+        return rank(a) - rank(b);
+      });
+      const index = pendingChunks.shift();
       await translateChunkAt(index);
     }
   };
@@ -1104,6 +1237,7 @@ export async function translateSubtitleDocument(document, {
   providerId,
   forceNoCache = false,
   initialStartTime = 0,
+  getPriorityTime,
   allowFallback = true,
   signal
 } = {}) {
@@ -1155,12 +1289,27 @@ export async function translateSubtitleDocument(document, {
   const effectiveChunkSize = provider.id === "local"
     ? Math.min(configuredChunkSize, DEFAULT_MAX_CUE_CHARS_PER_CHUNK)
     : configuredChunkSize;
-  const chunks = splitLlmChunksAtSentenceBoundaries(splitDocumentIntoChunks(document, effectiveChunkSize, DEFAULT_MAX_CUES_PER_CHUNK, {
+  const sentenceGroups = buildSentenceGroups(document.cues);
+  const groupCache = settings.cacheTranslations && !forceNoCache
+    ? await createGroupCache(document, settings, provider) : null;
+  const cachedTranslations = [];
+  for (const group of sentenceGroups) {
+    const text = groupCache?.get(group.text);
+    if (text) cachedTranslations.push(...distributeGroupTranslation(group, text));
+  }
+  if (cachedTranslations.length && onProgress) {
+    onProgress({ chunkIndex: -1, chunkCount: 0, completedChunkCount: 0,
+      isComplete: cachedTranslations.length === document.cues.length,
+      cacheHit: true,
+      cues: createTranslatedCues({ ...document, cues: document.cues.filter((cue) => cachedTranslations.some((item) => item.id === cue.id)) }, cachedTranslations) });
+  }
+  const groupedDocument = { ...document, cues: sentenceGroups };
+  const chunks = splitLlmChunksAtSentenceBoundaries(splitDocumentIntoChunks(groupedDocument, Math.min(effectiveChunkSize, 3000), 40, {
     initialStartTime,
     maxDurationSeconds: settings.maxChunkDurationSeconds
-  }));
+  })).map((chunk) => ({ ...chunk, sentenceGroups: chunk.cues, cues: chunk.cues.flatMap((group) => group.members) }));
   try {
-    const translations = await translateLlmChunksWithPriority(provider, { ...settings, allowAlignmentFallback: allowFallback }, document, chunks, onProgress, signal);
+    const translations = await translateLlmChunksWithPriority(provider, { ...settings, sentenceGroupTranslation: true, groupCache, allowAlignmentFallback: allowFallback }, document, chunks, onProgress, signal, getPriorityTime);
     throwIfAborted(signal);
     const translatedDocument = mergeTranslations(document, translations);
     const result = {
@@ -1168,8 +1317,11 @@ export async function translateSubtitleDocument(document, {
       targetLanguage: settings.targetLanguage,
       providerId: provider.id,
       chunkCount: chunks.length,
+      cachedCueCount: cachedTranslations.length,
+      cacheMissCueCount: document.cues.length - cachedTranslations.length,
+      cacheWriteFailed: Boolean(groupCache?.writeFailed),
       ...(translations.fallbackProviderId ? { fallbackProviderId: translations.fallbackProviderId, fallbackReason: translations.fallbackReason, fallbackRetryBlocked: translations.fallbackRetryBlocked, fallbackRetryAfterMs: translations.fallbackRetryAfterMs, fallbackCueIds: translations.fallbackCueIds } : {}),
-      cacheHit: false
+      cacheHit: cachedTranslations.length === document.cues.length
     };
 
     if (settings.cacheTranslations && !forceNoCache && !result.fallbackProviderId) {
@@ -1187,6 +1339,9 @@ export async function translateSubtitleDocument(document, {
 export const translationInternals = {
   buildSystemPrompt: buildSystemPromptFromSettings,
   buildTranslationInput,
+  buildGroupCacheKey,
+  createGroupCache,
+  translateSentenceGroups,
   selectSentenceContext,
   splitDocumentIntoChunks,
   splitLlmChunksAtSentenceBoundaries,

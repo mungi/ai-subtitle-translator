@@ -127,7 +127,39 @@ export async function relayProviderMenuVisibility(tabId, open) {
   }).catch(() => {});
 }
 
+const TRANSLATION_LIFECYCLE_PORT = "ast.translation.lifecycle";
+
+function getSenderDocumentKey(sender) {
+  return sender?.documentId || `${sender?.tab?.id ?? "tab"}:${sender?.frameId ?? 0}`;
+}
+
+// A content script holds this port open; Chrome closes it when the page reloads,
+// navigates away or the tab closes, so that page's remaining LLM work stops.
+export function handleTranslationLifecyclePort(port) {
+  const sender = port?.sender;
+  if (port?.name !== TRANSLATION_LIFECYCLE_PORT || !sender || sender.id !== chrome.runtime.id
+    || !Number.isInteger(sender.tab?.id) || sender.tab.id < 0) {
+    port?.disconnect?.();
+    return;
+  }
+  const owner = getSenderDocumentKey(sender);
+  port.onDisconnect.addListener(() => {
+    for (const controller of activeTranslationRequests.values()) {
+      if (controller.owner === owner) controller.abort();
+    }
+  });
+}
+
+chrome.runtime?.onConnect?.addListener(handleTranslationLifecyclePort);
+
+// Any writer of the stored OFF state (popup, toolbar, settings import) stops running work.
+export function abortTranslationsWhenDisabled(changes, areaName) {
+  if (areaName !== "local" || changes.subtitleEnabled?.newValue !== false) return;
+  for (const controller of activeTranslationRequests.values()) controller.abort();
+}
+
 chrome.storage?.onChanged?.addListener((changes, areaName) => {
+  abortTranslationsWhenDisabled(changes, areaName);
   if (areaName === "local" && changes.llmSettings?.newValue) {
     broadcastPublicSettings().catch(() => {});
   }
@@ -428,7 +460,7 @@ export function buildYoutubeTranscriptErrorResponse(error) {
   return response;
 }
 
-function dispatchBackgroundMessage(message, sender, sendResponse) {
+export function dispatchBackgroundMessage(message, sender, sendResponse) {
   if (message?.type === "fonts.getBundledGowun") {
     fetch(chrome.runtime.getURL("assets/fonts/gowun-batang-regular.woff"))
       .then((response) => {
@@ -450,6 +482,31 @@ function dispatchBackgroundMessage(message, sender, sendResponse) {
   if (message?.type === "settings.getPublic") {
     getPublicSettings()
       .then((settings) => sendResponse({ ok: true, settings }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.type === "settings.getSubtitleEnabled") {
+    enqueueSettingsMutation(async () => {
+      const stored = await chrome.storage.local.get("subtitleEnabled");
+      return stored.subtitleEnabled !== false;
+    }).then((enabled) => sendResponse({ ok: true, enabled }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.type === "settings.setSubtitleEnabled") {
+    enqueueSettingsMutation(async () => {
+      await chrome.storage.local.set({ subtitleEnabled: message.enabled });
+      if (!message.enabled) {
+        for (const controller of activeTranslationRequests.values()) controller.abort();
+      }
+      const tabs = await chrome.tabs.query({}).catch(() => []);
+      await Promise.all(tabs.filter((tab) => Number.isInteger(tab.id)).map((tab) => chrome.tabs.sendMessage(tab.id, {
+        type: "subtitles.setEnabled", enabled: message.enabled
+      }).catch(() => {})));
+    })
+      .then(() => sendResponse({ ok: true }))
       .catch((error) => sendResponse({ ok: false, error: error.message }));
     return true;
   }
@@ -616,14 +673,30 @@ function dispatchBackgroundMessage(message, sender, sendResponse) {
   }
 
   if (message?.type === "translation.translateDocument") {
-    const requestKey = `${sender.tab?.id ?? "tab"}:${sender.frameId ?? 0}:${message.requestId || crypto.randomUUID()}`;
+    // A reloaded page restarts its request IDs, so the document keeps both pages' requests apart.
+    const requestKey = `${getSenderDocumentKey(sender)}:${message.requestId || crypto.randomUUID()}`;
+    // Register before the OFF check so a cancel or OFF that arrives while waiting still reaches it.
     const controller = new AbortController();
+    controller.owner = getSenderDocumentKey(sender);
     activeTranslationRequests.set(requestKey, controller);
-    translateSubtitleDocument(message.document, {
+    const release = () => {
+      if (activeTranslationRequests.get(requestKey) === controller) activeTranslationRequests.delete(requestKey);
+    };
+    enqueueSettingsMutation(async () => {
+      const stored = await chrome.storage.local.get("subtitleEnabled");
+      return stored.subtitleEnabled !== false;
+    }).then((enabled) => {
+      if (!enabled || controller.signal.aborted) {
+        release();
+        sendResponse({ ok: false, error: enabled ? "Translation request was cancelled." : "Subtitle translation is disabled." });
+        return;
+      }
+      translateSubtitleDocument(message.document, {
       providerId: message.providerId,
       forceNoCache: Boolean(message.forceNoCache),
       allowFallback: message.allowFallback !== false,
       initialStartTime: message.initialStartTime,
+      getPriorityTime: () => controller.priorityTime,
       signal: controller.signal,
       onProgress: (progress) => {
         if (!controller.signal.aborted && Number.isInteger(sender.tab?.id) && sender.tab.id >= 0) {
@@ -639,14 +712,24 @@ function dispatchBackgroundMessage(message, sender, sendResponse) {
     })
       .then((document) => sendResponse({ ok: true, document }))
       .catch((error) => sendResponse({ ok: false, error: error.message, errorKind: classifyProviderLimit(error), retryAfterMs: providerRetryDelay(error) }))
-      .finally(() => {
-        if (activeTranslationRequests.get(requestKey) === controller) activeTranslationRequests.delete(requestKey);
-      });
+      .finally(release);
+    }).catch((error) => {
+      release();
+      sendResponse({ ok: false, error: error.message });
+    });
     return true;
   }
 
+  if (message?.type === "translation.setPriority") {
+    const requestKey = `${getSenderDocumentKey(sender)}:${message.requestId}`;
+    const controller = activeTranslationRequests.get(requestKey);
+    if (controller) controller.priorityTime = message.currentTime;
+    sendResponse({ ok: true });
+    return false;
+  }
+
   if (message?.type === "translation.cancelRequest") {
-    const requestKey = `${sender.tab?.id ?? "tab"}:${sender.frameId ?? 0}:${message.requestId}`;
+    const requestKey = `${getSenderDocumentKey(sender)}:${message.requestId}`;
     activeTranslationRequests.get(requestKey)?.abort();
     sendResponse({ ok: true });
     return false;

@@ -373,6 +373,14 @@ function createYoutubeHarness(options = {}) {
       },
       sendMessage: async (message) => {
         sentMessages.push(message);
+        if (message.type === "settings.getSubtitleEnabled") {
+          if (options.getSubtitleEnabled) return options.getSubtitleEnabled();
+          return { ok: true, enabled: options.subtitlePreference?.enabled !== false };
+        }
+        if (message.type === "settings.setSubtitleEnabled") {
+          if (options.subtitlePreference) options.subtitlePreference.enabled = message.enabled;
+          return { ok: true };
+        }
         if (message.type === "settings.getPublic") {
           return { ok: true, settings: storedSettings };
         }
@@ -586,6 +594,7 @@ function createUdemyHarness(options = {}) {
       },
       sendMessage: async (message) => {
         sentMessages.push(message);
+        if (message.type === "settings.getSubtitleEnabled") return { ok: true, enabled: true };
         if (message.type === "settings.getPublic") {
           if (options.storageGetError) {
             throw new Error(options.storageGetError);
@@ -745,6 +754,32 @@ test("YouTube subtitles start enabled and stay off after a manual toggle", async
   await flushPromises();
   assert.equal(button.getAttribute("aria-pressed"), "false");
   assert.equal(harness.sentMessages.filter((message) => message.type === "captions.youtube.fetchTranscript").length, 1);
+});
+
+test("YouTube restores the last toggle state in a new page", async () => {
+  const subtitlePreference = {};
+  const source = readFileSync("extension/content/content-script.js", "utf8");
+  const first = createYoutubeHarness({ subtitlePreference });
+  vm.runInNewContext(source, first.context);
+  await flushPromises();
+  await flushPromises();
+  await vm.runInNewContext('toggleSubtitles("youtube")', first.context);
+  assert.equal(subtitlePreference.enabled, false);
+
+  const second = createYoutubeHarness({ subtitlePreference });
+  vm.runInNewContext(source, second.context);
+  await flushPromises();
+  await flushPromises();
+  assert.equal(second.controls.querySelector("#ast-toolbar-button").getAttribute("aria-pressed"), "false");
+  assert.equal(second.sentMessages.some((message) => message.type === "captions.youtube.fetchTranscript"), false);
+  await vm.runInNewContext('toggleSubtitles("youtube")', second.context);
+  assert.equal(subtitlePreference.enabled, true);
+
+  const third = createYoutubeHarness({ subtitlePreference });
+  vm.runInNewContext(source, third.context);
+  await flushPromises();
+  await flushPromises();
+  assert.equal(third.controls.querySelector("#ast-toolbar-button").getAttribute("aria-pressed"), "true");
 });
 
 test("YouTube subtitles start when a late video player becomes ready", async () => {
@@ -2639,100 +2674,6 @@ test("YouTube transcript panel 403 from the background worker is retried on the 
   assert.equal(translationMessage.document.cues[0].text, "Page panel caption");
 });
 
-test("YouTube background network failures are retried with ref-style Android player tracks on the current page", async () => {
-  const fetchCalls = [];
-  const androidBaseUrl = "https://www.youtube.com/api/timedtext?v=abc123def45&lang=en&kind=asr&fmt=json3&sig=android";
-  const androidPlainUrl = "https://www.youtube.com/api/timedtext?v=abc123def45&lang=en&kind=asr&sig=android";
-  const { context, controls, sentMessages } = createYoutubeHarness({
-    sendMessage: async (message) => {
-      if (message.type === "captions.youtube.fetchTranscript") {
-        return {
-          ok: false,
-          error: "Transcript response is empty.; android player fallback failed: HTTP 403: ; transcript panel fallback failed: HTTP 403:",
-          retryOnPage: {
-            type: "youtubeTranscriptPanel",
-            videoId: "abc123def45",
-            languageCode: "en",
-            params: "panel%3D%3D",
-            innertubeApiKey: "test-key",
-            innertubeContext: {
-              client: {
-                clientName: "WEB",
-                clientVersion: "2.20260706.00.00"
-              }
-            }
-          }
-        };
-      }
-      if (message.type === "translation.translateDocument") {
-        return { ok: true, document: message.document };
-      }
-      return { ok: true };
-    },
-    fetch: async (url, init = {}) => {
-      fetchCalls.push({ url: String(url), init });
-
-      if (String(url).includes("/youtubei/v1/player")) {
-        return jsonFetchResponse({
-          captions: {
-            playerCaptionsTracklistRenderer: {
-              captionTracks: [
-                {
-                  languageCode: "en",
-                  kind: "asr",
-                  name: { simpleText: "English auto" },
-                  baseUrl: androidBaseUrl
-                }
-              ]
-            }
-          }
-        });
-      }
-
-      if (String(url) === androidPlainUrl) {
-        return textFetchResponse(`<transcript><text start="0" dur="5">Page Android caption</text></transcript>`);
-      }
-
-      if (String(url).includes("/youtubei/v1/get_transcript")) {
-        return textFetchResponse("", {
-          ok: false,
-          status: 400,
-          statusText: "Precondition check failed."
-        });
-      }
-
-      return textFetchResponse("", {
-        ok: false,
-        status: 404,
-        statusText: "Not Found"
-      });
-    }
-  });
-  const source = readFileSync("extension/content/content-script.js", "utf8");
-
-  vm.runInNewContext(source, context, {
-    filename: "extension/content/content-script.js"
-  });
-  await flushPromises();
-
-  const button = controls.querySelector("#ast-toolbar-button");
-  await clickAstToggle(button);
-  await flushPromises();
-  await flushPromises();
-  await flushPromises();
-
-  const overlay = context.document.getElementById("ast-subtitle-overlay");
-  const playerCall = fetchCalls.find((call) => call.url.includes("/youtubei/v1/player"));
-  const translationMessage = sentMessages.find((message) => message.type === "translation.translateDocument");
-  assert.ok(playerCall, "expected current page Android player fallback to be called");
-  assert.equal(JSON.parse(playerCall.init.body).context.client.clientName, "ANDROID");
-  assert.equal(fetchCalls.some((call) => call.url.includes("/youtubei/v1/get_transcript")), false);
-  assert.equal(fetchCalls.find((call) => call.url === androidPlainUrl)?.url, androidPlainUrl);
-  assert.ok(translationMessage, "expected recovered transcript to be sent for translation");
-  assert.equal(overlay.textContent, "Page Android caption");
-  assert.equal(translationMessage.document.cues[0].text, "Page Android caption");
-});
-
 async function loadYoutubeOverlay(options = {}) {
   const harness = createYoutubeHarness(options);
   const source = readFileSync("extension/content/content-script.js", "utf8");
@@ -3191,6 +3132,10 @@ test("seeking prioritizes temporary translation at the current YouTube cue", asy
   video.dispatchEvent({ type: "seeked" });
   await flushPromises();
   await flushPromises();
+
+  const priorityMessage = harness.sentMessages.find((message) => message.type === "translation.setPriority");
+  assert.equal(priorityMessage.currentTime, 11);
+  assert.equal(priorityMessage.requestId, harness.sentMessages.find((message) => message.type === "translation.translateDocument" && message.mode === "final").requestId);
 
   const temporaryMessages = harness.sentMessages.filter((message) => (
     message.type === "translation.translateDocument" && message.mode === "temporary"
@@ -4196,4 +4141,137 @@ test("fallback retries wait for the server delay and ambiguous restrictions do n
   assert.ok(timer.delay > 55000 && timer.delay <= 60000);
   assert.equal(vm.runInNewContext("subtitleState.fallbackRetryBlocked", h.context), false);
   assert.match(h.context.document.getElementById("ast-toast").textContent, /소진 여부를 확인할 수 없습니다/);
+});
+
+
+test("toolbar popup toggle updates an open video's subtitles without echoing a settings write", async () => {
+  const h = createYoutubeHarness();
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), h.context);
+  await flushPromises();
+  await flushPromises();
+  const button = h.controls.querySelector("#ast-toolbar-button");
+  assert.equal(button.getAttribute("aria-pressed"), "true");
+  for (const listener of h.runtimeMessageListeners) listener({ type: "subtitles.setEnabled", enabled: false });
+  await flushPromises();
+  assert.equal(button.getAttribute("aria-pressed"), "false");
+  for (const callback of h.intervalCallbacks) callback();
+  await flushPromises();
+  assert.equal(button.getAttribute("aria-pressed"), "false");
+  for (const listener of h.runtimeMessageListeners) listener({ type: "subtitles.setEnabled", enabled: true });
+  await flushPromises();
+  await flushPromises();
+  assert.equal(button.getAttribute("aria-pressed"), "true");
+  assert.equal(h.sentMessages.some((message) => message.type === "settings.setSubtitleEnabled"), false);
+});
+
+
+test("presented video frame uses its displayed cue for translation background", async () => {
+  const transcriptDocument = { platform: "youtube", videoId: "abc123def45", sourceLanguage: "en", cues: [
+    { id: "a", start: 0, end: 3, text: "First" },
+    { id: "b", start: 3, end: 6, text: "Second" },
+    { id: "c", start: 6, end: 9, text: "Third" }
+  ] };
+  const h = createYoutubeHarness({ transcriptDocument, pendingFinalTranslation: true });
+  let frame;
+  h.video.requestVideoFrameCallback = (callback) => { frame = callback; return 1; };
+  h.video.paused = false;
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), h.context);
+  await flushPromises();
+  await flushPromises();
+  h.context.applyTranslatedCues(h.video, [{ id: "b", text: "번역됨" }]);
+  vm.runInNewContext('subtitleState.finalTranslatedCueIds.add("b"); subtitleState.translationPhase = "temporary";', h.context);
+  h.video.currentTime = 2.99;
+  frame(1, { mediaTime: 3.01 });
+  const overlay = h.context.document.getElementById("ast-subtitle-overlay");
+  assert.equal(overlay.textContent, "번역됨");
+  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.75)");
+  assert.equal(vm.runInNewContext("subtitleState.translationPhase", h.context), "current");
+  h.video.currentTime = 5.99;
+  frame(2, { mediaTime: 6.01 });
+  assert.equal(overlay.textContent, "Third");
+  assert.equal(overlay.style.background, "rgba(117, 0, 0, 0.75)");
+  assert.equal(vm.runInNewContext("subtitleState.translationPhase", h.context), "temporary");
+});
+
+
+test("an OFF update wins over an earlier in-flight startup preference read", async () => {
+  let resolvePreference;
+  const h = createYoutubeHarness({ getSubtitleEnabled: () => new Promise((resolve) => { resolvePreference = resolve; }) });
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), h.context);
+  await flushPromises();
+  h.runtimeMessageListeners.forEach((listener) => listener({ type: "subtitles.setEnabled", enabled: false }));
+  resolvePreference({ ok: true, enabled: true });
+  await flushPromises();
+  await flushPromises();
+  h.intervalCallbacks.forEach((callback) => callback());
+  await flushPromises();
+  assert.equal(h.controls.querySelector("#ast-toolbar-button").getAttribute("aria-pressed"), "false");
+  assert.equal(h.sentMessages.some((message) => message.type === "translation.translateDocument"), false);
+});
+
+test("a failed startup preference read does not start translation", async () => {
+  const h = createYoutubeHarness({ getSubtitleEnabled: () => ({ ok: false, error: "storage unavailable" }) });
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), h.context);
+  await flushPromises();
+  await flushPromises();
+  h.intervalCallbacks.forEach((callback) => callback());
+  await flushPromises();
+  assert.equal(h.sentMessages.some((message) => message.type === "translation.translateDocument"), false);
+});
+
+test("an OFF update applies even after the platform was disabled in settings", async () => {
+  const platforms = { youtube: true, udemy: true };
+  const h = createYoutubeHarness({ settings: { platforms } });
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), h.context);
+  await flushPromises();
+  await flushPromises();
+  const button = h.controls.querySelector("#ast-toolbar-button");
+  assert.equal(button.getAttribute("aria-pressed"), "true");
+
+  platforms.youtube = false;
+  h.runtimeMessageListeners.forEach((listener) => listener({ type: "subtitles.setEnabled", enabled: false }));
+  await flushPromises();
+  assert.equal(button.getAttribute("aria-pressed"), "false");
+  assert.equal(vm.runInNewContext("subtitleState.enabled", h.context), false);
+});
+
+test("translation requests keep one lifecycle connection so a page reload stops them", async () => {
+  const h = createYoutubeHarness({ pendingFinalTranslation: true });
+  const ports = [];
+  h.context.chrome.runtime.connect = ({ name }) => {
+    const disconnectListeners = [];
+    const port = { name, onDisconnect: { addListener: (listener) => disconnectListeners.push(listener) },
+      fireDisconnect: () => disconnectListeners.forEach((listener) => listener()) };
+    ports.push(port);
+    return port;
+  };
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), h.context);
+  await flushPromises();
+  await flushPromises();
+  assert.ok(h.sentMessages.some((message) => message.type === "translation.translateDocument"));
+  assert.deepEqual(ports.map((port) => port.name), ["ast.translation.lifecycle"]);
+
+  const document = '{ platform: "youtube", videoId: "abc123def45", sourceLanguage: "en", cues: [{ id: "0", start: 0, end: 1, text: "Hi" }] }';
+  void vm.runInNewContext(`translateDocument(${document}, { mode: "temporary", requestId: "again" })`, h.context);
+  assert.equal(ports.length, 1);
+
+  // A restarted service worker drops the old connection; the next request opens a new one.
+  ports[0].fireDisconnect();
+  void vm.runInNewContext(`translateDocument(${document}, { mode: "temporary", requestId: "after-restart" })`, h.context);
+  assert.equal(ports.length, 2);
+});
+
+test("translation requests are not sent while subtitles are OFF", async () => {
+  const h = createYoutubeHarness({ subtitlePreference: { enabled: false } });
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), h.context);
+  await flushPromises();
+  await flushPromises();
+  assert.equal(vm.runInNewContext("subtitleState.enabled", h.context), false);
+
+  const result = await vm.runInNewContext(
+    'translateDocument({ platform: "youtube", videoId: "abc123def45", sourceLanguage: "en", cues: [{ id: "0", start: 0, end: 1, text: "Hi" }] }, { requestId: "late" })',
+    h.context
+  );
+  assert.equal(result, null);
+  assert.equal(h.sentMessages.some((message) => message.type === "translation.translateDocument"), false);
 });

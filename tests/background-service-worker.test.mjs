@@ -449,3 +449,154 @@ test("provider model errors redact echoed authentication secrets", async () => {
     globalThis.fetch = originalFetch;
   }
 });
+
+const offGateDocument = {
+  platform: "youtube",
+  videoId: "abc123def45",
+  sourceLanguage: "en",
+  cues: [{ id: "0", start: 0, end: 1, text: "Hello" }]
+};
+
+async function waitUntil(condition) {
+  for (let attempt = 0; attempt < 100 && !condition(); attempt += 1) {
+    await new Promise((resolve) => setImmediate(resolve));
+  }
+  assert.ok(condition(), "condition was not reached");
+}
+
+test("a translation cancelled while waiting for the OFF check never starts", async () => {
+  let releaseGate;
+  const settingsReads = [];
+  globalThis.chrome = {
+    runtime: { id: "test-extension", onMessage: { addListener() {} } },
+    storage: {
+      local: {
+        setAccessLevel: async () => {},
+        set: async () => {},
+        get: async (key) => {
+          if (key === "subtitleEnabled") {
+            await new Promise((resolve) => { releaseGate = resolve; });
+            return { subtitleEnabled: true };
+          }
+          settingsReads.push(key);
+          return {};
+        }
+      }
+    }
+  };
+  const { dispatchBackgroundMessage } = await import("../extension/background/service-worker.js");
+  const sender = { tab: { id: 7 }, frameId: 0 };
+  const response = new Promise((resolve) => dispatchBackgroundMessage({
+    type: "translation.translateDocument",
+    requestId: "seek-1",
+    mode: "temporary",
+    document: offGateDocument
+  }, sender, resolve));
+  dispatchBackgroundMessage({ type: "translation.cancelRequest", requestId: "seek-1" }, sender, () => {});
+
+  await waitUntil(() => releaseGate);
+  releaseGate();
+  const result = await response;
+  assert.equal(result.ok, false);
+  assert.deepEqual(settingsReads, []);
+});
+
+test("a stored OFF change aborts translations already running in the background", async () => {
+  let releaseSettings;
+  globalThis.chrome = {
+    runtime: { id: "test-extension", onMessage: { addListener() {} } },
+    storage: {
+      local: {
+        setAccessLevel: async () => {},
+        set: async () => {},
+        get: async (key) => {
+          if (key === "subtitleEnabled") return { subtitleEnabled: true };
+          if (key === "llmSettings") await new Promise((resolve) => { releaseSettings = resolve; });
+          return {};
+        }
+      }
+    }
+  };
+  const { dispatchBackgroundMessage, abortTranslationsWhenDisabled } = await import("../extension/background/service-worker.js");
+  const response = new Promise((resolve) => dispatchBackgroundMessage({
+    type: "translation.translateDocument",
+    requestId: "final-1",
+    document: offGateDocument
+  }, { tab: { id: 8 }, frameId: 0 }, resolve));
+
+  await waitUntil(() => releaseSettings);
+  abortTranslationsWhenDisabled({ subtitleEnabled: { oldValue: true, newValue: false } }, "local");
+  releaseSettings();
+  const result = await response;
+  assert.equal(result.ok, false);
+});
+
+function createLifecyclePort(sender, name = "ast.translation.lifecycle") {
+  const disconnectListeners = [];
+  return {
+    name,
+    sender,
+    disconnected: false,
+    onDisconnect: { addListener: (listener) => disconnectListeners.push(listener) },
+    disconnect() { this.disconnected = true; },
+    fireDisconnect: () => disconnectListeners.forEach((listener) => listener())
+  };
+}
+
+test("closing or reloading a page stops only that page's background translations", async () => {
+  const settingsReleases = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => { throw new TypeError("stub network unavailable"); };
+  globalThis.chrome = {
+    runtime: { id: "test-extension", onMessage: { addListener() {} } },
+    storage: {
+      local: {
+        setAccessLevel: async () => {},
+        set: async () => {},
+        get: async (key) => {
+          if (key === "subtitleEnabled") return { subtitleEnabled: true };
+          if (key === "llmSettings") await new Promise((resolve) => settingsReleases.push(resolve));
+          return {};
+        }
+      }
+    }
+  };
+  try {
+    const { dispatchBackgroundMessage, handleTranslationLifecyclePort } = await import("../extension/background/service-worker.js");
+    const oldPage = { id: "test-extension", tab: { id: 9 }, frameId: 0, documentId: "old-document" };
+    const newPage = { id: "test-extension", tab: { id: 9 }, frameId: 0, documentId: "new-document" };
+    const oldPort = createLifecyclePort(oldPage);
+    handleTranslationLifecyclePort(oldPort);
+    handleTranslationLifecyclePort(createLifecyclePort(newPage));
+    const translate = (sender, requestId) => new Promise((resolve) => dispatchBackgroundMessage({
+      type: "translation.translateDocument",
+      requestId,
+      document: offGateDocument
+    }, sender, resolve));
+    const oldResponse = translate(oldPage, "final-1");
+    const newResponse = translate(newPage, "final-1");
+
+    await waitUntil(() => settingsReleases.length === 2);
+    oldPort.fireDisconnect();
+    settingsReleases.forEach((release) => release());
+    const [oldResult, newResult] = await Promise.all([oldResponse, newResponse]);
+    assert.equal(oldResult.ok, false);
+    assert.match(oldResult.error, /abort/i);
+    assert.doesNotMatch(String(newResult.error || ""), /abort/i);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("translation lifecycle ports from other names or senders are rejected", async () => {
+  globalThis.chrome = {
+    runtime: { id: "test-extension", onMessage: { addListener() {} } },
+    storage: { local: { setAccessLevel: async () => {} } }
+  };
+  const { handleTranslationLifecyclePort } = await import("../extension/background/service-worker.js");
+  const wrongName = createLifecyclePort({ id: "test-extension", tab: { id: 1 }, frameId: 0 }, "other");
+  const otherExtension = createLifecyclePort({ id: "other-extension", tab: { id: 1 }, frameId: 0 });
+  const noTab = createLifecyclePort({ id: "test-extension", url: "chrome-extension://test-extension/popup/popup.html" });
+  for (const port of [wrongName, otherExtension, noTab]) handleTranslationLifecyclePort(port);
+  assert.deepEqual([wrongName, otherExtension, noTab].map((port) => port.disconnected), [true, true, true]);
+});

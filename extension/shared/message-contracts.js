@@ -4,6 +4,8 @@ const BACKGROUND_MESSAGE_TYPES = new Set([
   "llm.listModels",
   "llm.testActiveProvider",
   "settings.getPublic",
+  "settings.getSubtitleEnabled",
+  "settings.setSubtitleEnabled",
   "fonts.getBundledGowun",
   "settings.updateSubtitleStyle",
   "settings.setActiveProvider",
@@ -23,6 +25,7 @@ const BACKGROUND_MESSAGE_TYPES = new Set([
   "platform.vimeo.getContext",
   "translation.translateDocument",
   "translation.cancelRequest",
+  "translation.setPriority",
   "translation.clearCache",
   "translation.clearVideoCache"
 ]);
@@ -54,6 +57,7 @@ const CONTENT_SCRIPT_MESSAGE_TYPES = new Set([
   "platform.vimeo.getContext",
   "translation.translateDocument",
   "translation.cancelRequest",
+  "translation.setPriority",
   "translation.clearVideoCache"
 ]);
 
@@ -139,6 +143,10 @@ export function validateMessageSender(message, sender = {}, extensionId = global
     && sender.tab.id >= 0
     && isSupportedContentUrl(senderUrl, sender.tab?.url);
 
+  if (["settings.getSubtitleEnabled", "settings.setSubtitleEnabled"].includes(message?.type)
+    && !isExtensionPage && !isContentScript) {
+    return { ok: false, error: "Message requires an extension page or supported content script." };
+  }
   if (EXTENSION_PAGE_MESSAGE_TYPES.has(message?.type) && !isExtensionPage) {
     return { ok: false, error: "Message is restricted to extension pages." };
   }
@@ -180,6 +188,9 @@ export function validateBackgroundMessage(message) {
       break;
     case "settings.updateSubtitleStyle":
       error = validateSubtitleStylePatch(message.patch);
+      break;
+    case "settings.setSubtitleEnabled":
+      if (typeof message.enabled !== "boolean") error = "enabled must be a boolean.";
       break;
     case "settings.setActiveProvider":
       if (!isNonEmptyValue(message.providerId)) error = "providerId is required.";
@@ -243,6 +254,10 @@ export function validateBackgroundMessage(message) {
         error = "forceNoCache must be a boolean.";
       }
       if (!error && !isOptionalString(message.requestId)) error = "requestId must be a string.";
+      break;
+    case "translation.setPriority":
+      if (!isNonEmptyValue(message.requestId)) error = "requestId is required.";
+      else if (!Number.isFinite(message.currentTime) || message.currentTime < 0) error = "currentTime must be a non-negative finite number.";
       break;
     case "translation.cancelRequest":
       if (!isNonEmptyValue(message.requestId)) error = "requestId is required.";

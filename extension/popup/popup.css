@@ -147,3 +147,56 @@ button:focus-visible {
     border-top-color: #334155;
   }
 }
+
+
+.translation-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  padding: 13px;
+  margin-bottom: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.translation-toggle input {
+  position: absolute;
+  right: 13px;
+  width: 40px;
+  height: 24px;
+  margin: 0;
+  opacity: 0;
+}
+
+.switch-track {
+  width: 40px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: #94a3b8;
+  transition: background 120ms ease;
+}
+
+.switch-track::before {
+  content: "";
+  display: block;
+  width: 18px;
+  height: 18px;
+  margin: 3px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 120ms ease;
+}
+
+.translation-toggle input:checked + .switch-track { background: #2563eb; }
+.translation-toggle input:checked + .switch-track::before { transform: translateX(16px); }
+.translation-toggle input:focus-visible + .switch-track { outline: 3px solid #38bdf8; outline-offset: 3px; }
+.translation-toggle input:disabled + .switch-track { opacity: 0.5; }
+
+@media (prefers-color-scheme: dark) {
+  .translation-toggle { border-color: #334155; background: #1e293b; }
+}

@@ -40,6 +40,28 @@ function formatTranslationStyle(style) {
 
 async function init() {
   applyLocaleText();
+  const toggle = document.getElementById("subtitleEnabled");
+  const preference = await chrome.runtime.sendMessage({ type: "settings.getSubtitleEnabled" });
+  if (!preference?.ok) throw new Error(preference?.error || "Could not load subtitle state.");
+  toggle.checked = preference.enabled;
+  toggle.disabled = false;
+  toggle.addEventListener("change", async () => {
+    const enabled = toggle.checked;
+    toggle.disabled = true;
+    document.getElementById("statusLine").textContent = "";
+    try {
+      const response = await chrome.runtime.sendMessage({ type: "settings.setSubtitleEnabled", enabled });
+      if (!response?.ok) throw new Error(response?.error || "Could not save subtitle state.");
+    } catch (error) {
+      toggle.checked = !enabled;
+      document.getElementById("statusLine").textContent = t("popupLoadFailed", [error.message]);
+    } finally {
+      toggle.disabled = false;
+    }
+  });
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === "local" && changes.subtitleEnabled) toggle.checked = changes.subtitleEnabled.newValue !== false;
+  });
   settings = await getSettings();
   const provider = settings.providers[settings.activeProvider];
 

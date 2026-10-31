@@ -149,3 +149,12 @@ test("large player subtitle widths can be saved without the old 1400px cap", () 
   assert.deepEqual(validateBackgroundMessage({ type: "settings.updateSubtitleStyle", patch: { width: 3416 } }), { handled: true, ok: true });
   assert.equal(validateBackgroundMessage({ type: "settings.updateSubtitleStyle", patch: { width: Infinity } }).ok, false);
 });
+
+
+test("translation priority updates require a request ID and valid playback time", () => {
+  assert.equal(validateBackgroundMessage({ type: "translation.setPriority", requestId: "final-1", currentTime: 30 }).ok, true);
+  for (const currentTime of [-1, NaN, Infinity, "30"]) {
+    assert.equal(validateBackgroundMessage({ type: "translation.setPriority", requestId: "final-1", currentTime }).ok, false);
+  }
+  assert.equal(validateBackgroundMessage({ type: "translation.setPriority", currentTime: 30 }).ok, false);
+});
