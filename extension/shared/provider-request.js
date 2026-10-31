@@ -71,7 +71,8 @@ export function getReasoningProbeModes(provider) {
     if (model.includes("gemini-2.5")) return [model.includes("pro") ? "budget:128" : "budget:0", "omit"];
     return ["minimal", "low", "omit"];
   }
-  if (provider.apiStyle === "anthropic-messages" || provider.id === "nvidiaNim") return ["low", "omit"];
+  if (provider.apiStyle === "anthropic-messages") return ["low", "omit"];
+  if (provider.id === "nvidiaNim") return ["low", "omit"];
   if (provider.id === "local" || provider.id === "openai" || provider.id === "openrouter") {
     return ["none", "minimal", "low", "omit"];
   }
@@ -191,7 +192,8 @@ export function buildProviderRequest(provider, { systemPrompt, input, structured
             system: systemPrompt,
             messages: [{ role: "user", content: input }],
             max_tokens: maxTokens,
-            ...(reasoningMode === "omit" ? {} : { output_config: { effort: reasoningMode } })
+            ...(reasoningMode === "none" ? { thinking: { type: "disabled" }, output_config: { effort: "low" } }
+              : reasoningMode === "omit" ? {} : { output_config: { effort: reasoningMode } })
           })
         }
       };

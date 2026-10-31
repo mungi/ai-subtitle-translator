@@ -143,3 +143,9 @@ test("background message validation leaves unrelated message types unhandled", (
     error: "Unknown message type."
   });
 });
+
+
+test("large player subtitle widths can be saved without the old 1400px cap", () => {
+  assert.deepEqual(validateBackgroundMessage({ type: "settings.updateSubtitleStyle", patch: { width: 3416 } }), { handled: true, ok: true });
+  assert.equal(validateBackgroundMessage({ type: "settings.updateSubtitleStyle", patch: { width: Infinity } }).ok, false);
+});

@@ -275,7 +275,7 @@ function selectCaptionTrack(tracks, languageCode) {
   if (languageCode) {
     const languageTrack = tracks.find((track) => matchesLanguage(track, languageCode) && isManualTrack(track))
       || tracks.find((track) => matchesLanguage(track, languageCode));
-    if (languageTrack) return languageTrack;
+    return languageTrack;
   }
 
   if (tracks.length === 1) return tracks[0];
@@ -504,7 +504,7 @@ function decodeTranscriptParams(params) {
   }
 }
 
-async function fetchYoutubeTranscriptPanel({ params, apiKey, context, languageCode }) {
+async function fetchYoutubeTranscriptPanel({ params, apiKey, context, languageCode, captionTracks }) {
   if (!params || !apiKey) {
     throw new Error("YouTube transcript panel data is missing.");
   }
@@ -531,7 +531,29 @@ async function fetchYoutubeTranscriptPanel({ params, apiKey, context, languageCo
     })
   });
 
+  assertYoutubeTranscriptPanelLanguage(body, languageCode, captionTracks);
   return parseYoutubeTranscriptPanelResponse(body);
+}
+
+export function assertYoutubeTranscriptPanelLanguage(body, languageCode, tracks = []) {
+  if (!languageCode) return;
+  const languages = new Set(tracks.map((track) => track.languageCode));
+  function findLanguageMenu(value) {
+    if (!value || typeof value !== "object") return null;
+    if (value.sortFilterSubMenuRenderer?.subMenuItems) return value.sortFilterSubMenuRenderer.subMenuItems;
+    for (const child of Object.values(value)) {
+      const found = findLanguageMenu(child);
+      if (found) return found;
+    }
+    return null;
+  }
+  const selected = findLanguageMenu(body)?.find((item) => item.selected);
+  const title = selected && readTextValue(selected.title);
+  const actualLanguage = selected?.languageCode
+    || tracks.find((track) => track.label === title)?.languageCode;
+  if (actualLanguage ? actualLanguage !== languageCode : languages.size !== 1 || !languages.has(languageCode)) {
+    throw new Error(`Could not verify transcript panel language: ${languageCode}`);
+  }
 }
 
 function isTranscriptPanelPageRetryError(error) {
@@ -662,7 +684,8 @@ export async function fetchYoutubeTranscript({
         params: transcriptParams,
         apiKey: innertubeApiKey,
         context: innertubeContext,
-        languageCode: selectedTrack.languageCode
+        languageCode: selectedTrack.languageCode,
+        captionTracks: tracks
       });
     } catch (error) {
       const prefix = lastError?.message ? `${lastError.message}; ` : "";
@@ -672,6 +695,7 @@ export async function fetchYoutubeTranscript({
           type: "youtubeTranscriptPanel",
           videoId: selectedTrack.videoId,
           languageCode: selectedTrack.languageCode,
+          captionTracks: tracks,
           params: transcriptParams,
           innertubeApiKey,
           innertubeContext

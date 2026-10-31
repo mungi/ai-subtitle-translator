@@ -234,6 +234,8 @@ const COMMON_SYSTEM_PROMPT_LINES = [
   "Do not invent facts that are not supported by the context. If the source is genuinely ambiguous, preserve that ambiguity.",
   "Keep names, product terms, code identifiers, commands, UI labels, and technical terminology consistent across all cues.",
   "Preserve every original cue id and return exactly one translation for each input cue id. Keep each translated cue concise enough to fit the original subtitle timing.",
+  "Subtitle alignment takes priority over stylistic rewriting. Each output id must translate only the source text belonging to that same input id. Never merge, summarize, renumber, or move meaning between cue ids, even when a sentence spans multiple cues.",
+  "Use contextBefore and contextAfter only to understand incomplete sentences and terminology. Do not translate those context entries or copy their meaning into the requested cues. A cue may remain a sentence fragment; do not complete it with speech from a later cue.",
   "Return only minified valid JSON with this exact shape: {\"translations\":[{\"id\":\"cue id\",\"text\":\"translated text\"}]}",
   "Do not include markdown fences, explanations, trailing commas, or extra keys."
 ];
@@ -379,7 +381,14 @@ export function buildSystemPromptFromSettings(settings = {}) {
   return buildPresetSystemPrompt(settings.translationStyle || "lecture", settings.targetLanguage);
 }
 
+export function normalizeLlmParallelRequests(value) {
+  const count = Number(value);
+  return Number.isFinite(count) ? Math.min(8, Math.max(1, Math.trunc(count))) : 4;
+}
+
 export const DEFAULT_SETTINGS = {
+  settingsMode: "simple",
+  llmParallelRequests: 4,
   subtitleDisplayMode: "translated",
   activeProvider: "googleTranslate",
   targetLanguage: "",

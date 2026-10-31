@@ -155,11 +155,12 @@ test("simple settings use the Google helper, test the key, and retain the curren
   assert.match(optionsJs, /function clearPendingSimpleGoogleApiKey\(\) \{\s*simpleGoogleTestRunId \+= 1;/);
   assert.match(optionsJs, /finally \{\s*setSimpleGoogleTestControlsDisabled\(false\);\s*\}/);
   assert.match(optionsJs, /async function resetProviderSettingsSection\(\) \{[\s\S]*clearPendingSimpleGoogleApiKey\(\);/);
-  assert.match(optionsJs, /document\.getElementById\("resetSettings"\)\.addEventListener\("click", async \(\) => \{\s*clearPendingSimpleGoogleApiKey\(\);/);
+  assert.match(optionsJs, /async function resetAllSettings\(\) \{[\s\S]*clearPendingSimpleGoogleApiKey\(\);/);
+  assert.match(optionsJs, /document\.getElementById\("resetSettings"\)\.addEventListener\("click", \(\) => \{\s*resetAllSettings\(\)/);
   assert.match(optionsJs, /async function restoreSettingsFromFile\(file\) \{[\s\S]*if \(!globalThis\.confirm\(t\("restoreConfirm"\)\)\) return;\s*clearPendingSimpleGoogleApiKey\(\);/);
-  assert.match(optionsJs, /settings = await getSettings\(\);\s*selectedProviderId = settings\.activeProvider;\s*renderAll\(\);\s*setSettingsMode\("simple"\);/);
+  assert.match(optionsJs, /settings = await getSettings\(\);\s*selectedProviderId = settings\.activeProvider;\s*renderAll\(\);/);
   const renderAllBlock = optionsJs.match(/function renderAll\(\) \{([\s\S]*?)\n\}/)?.[1] || "";
-  assert.doesNotMatch(renderAllBlock, /setSettingsMode/);
+  assert.match(renderAllBlock, /setSettingsMode\(settings\.settingsMode\)/);
   assert.match(optionsJs, /SIMPLE_GOOGLE_GUIDE_LINKS/);
   assert.match(optionsJs, /simpleGoogleGuide\.textContent = t\("simpleGoogleIntroGuide"\);/);
 });
@@ -220,7 +221,7 @@ test("simple settings messages are synchronized in Korean, English, and Japanese
   );
   assert.equal(
     message("ko", "simpleGoogleKeyGuideStep4"),
-    "생성한 프로젝트의 결제 등급이 '무료 등급(Free)'인지 꼭 확인하세요."
+    "생성한 프로젝트의 결제 등급과 사용 한도를 확인하세요. 무료·유료 API 이용 안내는 아래를 참고하세요."
   );
   assert.equal(
     message("ko", "simpleGoogleIntroGuide"),
@@ -279,9 +280,10 @@ test("section reset handlers reset only their own settings group", () => {
 });
 
 test("cache controls are part of general settings instead of provider actions", () => {
-  const generalStart = optionsHtml.indexOf('<section class="settings-section">');
+  const generalStart = optionsHtml.lastIndexOf('<section class="settings-section">', optionsHtml.indexOf('<h2 data-i18n="generalSettings">'));
   const providerStart = optionsHtml.indexOf('<h2 data-i18n="providerSettings">');
-  const generalHtml = optionsHtml.slice(generalStart, providerStart);
+  const generalHtml = optionsHtml.slice(generalStart, optionsHtml.indexOf('</section>', generalStart));
+  assert.ok(providerStart < generalStart);
   const sectionActions = extractBlock(optionsHtml, '<div class="section-actions">');
 
   assert.match(generalHtml, /class="wide cache-action-row"[\s\S]*id="cacheTranslations"[\s\S]*id="clearCache"/);

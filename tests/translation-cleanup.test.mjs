@@ -51,14 +51,14 @@ test("machine translation cache keys do not change with the LLM translation styl
   }
 });
 
-test("translation cache v3 rejects incomplete or timing-mismatched cached documents", () => {
+test("translation cache v5 rejects incomplete or timing-mismatched cached documents", () => {
   const provider = { id: "google", apiStyle: "google-generate-content", model: "gemini-test" };
   const cacheKey = translationInternals.buildCacheKey(sourceDocument, {
     targetLanguage: "ko",
     translationStyle: "technical"
   }, provider);
 
-  assert.match(cacheKey, /^v3:/);
+  assert.match(cacheKey, /^v5:/);
   assert.equal(translationInternals.getReusableCachedTranslation(sourceDocument, {
     ...sourceDocument,
     providerId: "google",
@@ -491,8 +491,8 @@ test("LLM translation retries incomplete YouTube-style chunks before fallback", 
       onProgress: (progress) => progressCueCounts.push(progress.cues.length)
     });
 
-    assert.deepEqual(requestCueCounts, [50, 15]);
-    assert.deepEqual(progressCueCounts, [50]);
+    assert.deepEqual(requestCueCounts, [40, 20, 20, 10]);
+    assert.deepEqual(progressCueCounts, [40, 10]);
     assert.equal(translated.providerId, "openrouter");
     assert.equal(translated.fallbackProviderId, undefined);
     assert.equal(translated.cues.length, 50);
@@ -630,13 +630,14 @@ test("LLM translation continues from the priority minute through later and earli
     };
     const translated = await translateSubtitleDocument(document, { initialStartTime: 200 });
 
-    assert.deepEqual(requestedRanges, [
-      ["yt-20", "yt-25"],
-      ["yt-26", "yt-85"],
-      ["yt-86", "yt-145"],
-      ["yt-146", "yt-149"],
-      ["yt-0", "yt-19"]
-    ]);
+    assert.deepEqual(requestedRanges[0], ["yt-20", "yt-25"]);
+    const requestedIds = requestedRanges.flatMap(([first, last]) => {
+      const start = Number(first.slice(3));
+      const end = Number(last.slice(3));
+      assert.ok((end - start) * 10 < 90, "each actual request stays within its alignment window");
+      return Array.from({ length: end - start + 1 }, (_, index) => start + index);
+    });
+    assert.deepEqual(requestedIds, [...Array.from({ length: 130 }, (_, index) => index + 20), ...Array.from({ length: 20 }, (_, index) => index)]);
     assert.equal(translated.cues.length, 150);
     assert.equal(translated.cues[149].text, "번역 yt-149");
   } finally {
@@ -895,7 +896,7 @@ test("LLM serializes later requests after a 429 and retries the affected chunk",
   }
 });
 
-test("LLM translation retries only empty cue translations", async () => {
+test("LLM translation discards the whole response when any cue translation is empty", async () => {
   const originalChrome = globalThis.chrome;
   const originalFetch = globalThis.fetch;
   const requestCueIds = [];
@@ -967,8 +968,9 @@ test("LLM translation retries only empty cue translations", async () => {
 
     const translated = await translateSubtitleDocument(document);
 
-    assert.deepEqual(requestCueIds.map((ids) => ids.length), [50, 15]);
-    assert.deepEqual(requestCueIds[1], Array.from({ length: 15 }, (_, index) => `yt-${index + 35}`));
+    assert.deepEqual(requestCueIds.map((ids) => ids.length), [40, 20, 20, 10]);
+    assert.deepEqual(requestCueIds[1], Array.from({ length: 20 }, (_, index) => `yt-${index}`));
+    assert.deepEqual(requestCueIds[2], Array.from({ length: 20 }, (_, index) => `yt-${index + 20}`));
     assert.equal(translated.cues[34].text, "번역 yt-34");
     assert.equal(translated.cues[35].text, "번역 yt-35");
     assert.equal(translated.cues[49].text, "번역 yt-49");

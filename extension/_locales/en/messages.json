@@ -3,7 +3,10 @@
     "message": "AST - AI Subtitle Translator Settings"
   },
   "subtitle": {
-    "message": "Configure a provider to translate Udemy, YouTube, TED, NVIDIA Academy, and Vimeo subtitles using the full subtitle context."
+    "message": "Natural subtitle translations that preserve the video's context."
+  },
+  "supportedPlatformsDescription": {
+    "message": "Supported platforms: Udemy, YouTube, TED, NVIDIA Academy, Vimeo"
   },
   "testProvider": {
     "message": "Test connection"
@@ -72,7 +75,7 @@
     "message": "Click Create API key, then copy the new key."
   },
   "simpleGoogleKeyGuideStep4": {
-    "message": "Make sure the billing tier for the project you created is 'Free'."
+    "message": "Check your project's billing tier and usage limits. See the free and paid API usage guide below."
   },
   "simpleGoogleKeyGuideStep5": {
     "message": "Paste the key above. Gemini 3.1 Flash Lite is set automatically. Select Check API key to verify the connection."
@@ -82,6 +85,33 @@
   },
   "simpleGoogleKeySecurityNotice": {
     "message": "Treat your API key like a password. Do not share it or put it in public documents."
+  },
+  "simpleTranslationUsageGuideTitle": {
+    "message": "Free and Paid API Usage"
+  },
+  "simpleTranslationFreeTitle": {
+    "message": "Using the free tier"
+  },
+  "simpleTranslationFreeDescription": {
+    "message": "You can use Gemini's free tier for AI subtitle translation. Usage limits or high demand may delay translations or cause requests to fail temporarily."
+  },
+  "simpleTranslationPaidTitle": {
+    "message": "For faster, smoother translation"
+  },
+  "simpleTranslationPaidDescription": {
+    "message": "If you translate frequently or need faster responses, consider a paid API plan from your chosen provider."
+  },
+  "simpleTranslationApiKeyGuidePrefix": {
+    "message": "To use a paid API, sign up with the provider and obtain an API key. Enter the key in the "
+  },
+  "simpleTranslationApiKeyGuideSuffix": {
+    "message": " tab."
+  },
+  "simpleTranslationLightweightModels": {
+    "message": "Lightweight models such as GPT-6 Luna, Claude Haiku 5.5, and Gemini 3.1 Flash-Lite let you enjoy much faster, more accurate translations at a low cost."
+  },
+  "simpleTranslationUsageNotice": {
+    "message": "Costs depend on usage. Paid APIs may also experience temporary errors during periods of high demand."
   },
   "simpleGoogleApiKeyRequired": {
     "message": "Enter a Google AI API key."
@@ -106,6 +136,12 @@
   },
   "translationStyle": {
     "message": "Translation style"
+  },
+  "llmParallelRequests": {
+    "message": "Concurrent LLM translations"
+  },
+  "llmParallelRequestsGuide": {
+    "message": "Process 1–8 LLM chunks concurrently in advanced settings (default: 4). Simple settings always use 2. Changes apply to the next translation job. Higher values may reach API rate limits sooner."
   },
   "chunkDuration": {
     "message": "Maximum chunk duration (minutes)"
@@ -294,7 +330,10 @@
   "reasoningSettingDetected": {
     "message": "Reasoning setting: $mode$",
     "placeholders": {
-      "mode": { "content": "$1", "example": "minimal" }
+      "mode": {
+        "content": "$1",
+        "example": "minimal"
+      }
     }
   },
   "reasoningSettingUnsupported": {
@@ -302,6 +341,21 @@
   },
   "resetDone": {
     "message": "All settings reset."
+  },
+  "resetAllConfirm": {
+    "message": "All settings will be reset to their defaults, and saved API keys will be removed. Do you want to continue?"
+  },
+  "resetGeneralConfirm": {
+    "message": "Translation settings and custom prompts will be reset to their defaults. Do you want to continue?"
+  },
+  "resetProvidersConfirm": {
+    "message": "Model and connection settings for all translation providers will be reset, and saved API keys will be removed. Do you want to continue?"
+  },
+  "resetFallbackConfirm": {
+    "message": "Temporary translation settings will be reset to their defaults. Do you want to continue?"
+  },
+  "resetSubtitleStyleConfirm": {
+    "message": "Subtitle style settings will be reset to their defaults. Do you want to continue?"
   },
   "sectionResetDone": {
     "message": "Section settings reset."
@@ -364,7 +418,7 @@
     "message": "Settings restored from backup."
   },
   "restoreTestKeysConfirm": {
-    "message": "Test the API keys in the restored settings now?\nOne minimal connection request will be sent to each provider."
+    "message": "Test the API keys in the restored settings now?\nConnection requests will be sent to each provider. Anthropic also compares reasoning settings using a short translation sample."
   },
   "restoreTestingKey": {
     "message": "Testing API key connection ($current$/$total$): $provider$",
@@ -560,6 +614,12 @@
   "contentStatusCurrent": {
     "message": "Current subtitle translated; translating the rest"
   },
+  "contentStatusCompleteWithFallback": {
+    "message": "Translation complete (includes Google Translate fallback)"
+  },
+  "contentPartialFallback": {
+    "message": "Some sections had invalid translation responses and were translated with Google Translate."
+  },
   "contentStatusComplete": {
     "message": "Translation complete"
   },
@@ -597,10 +657,10 @@
     "message": "This video does not provide source captions that can be translated."
   },
   "contentQuotaFallback": {
-    "message": "API quota exceeded. Falling back to Google Translate."
+    "message": "The API daily allowance or credit balance is exhausted. Using Google Translate instead. Check your limits or billing status. Automatic retries have stopped."
   },
   "contentRateLimitFallback": {
-    "message": "Too many API requests. Retries failed, so translation is falling back to Google Translate."
+    "message": "The API is temporarily rate limited. Using Google Translate and retrying the selected model after a wait."
   },
   "contentFallback": {
     "message": "The selected translation provider failed. Falling back to Google Translate."
@@ -732,12 +792,24 @@
     "message": "Translated subtitles"
   },
   "contentTranslationFailed": {
-    "message": "Translation failed. The source or available subtitles remain visible: $error$",
+    "message": "Translation failed. The source or available subtitles remain visible: \n\n$error$",
     "placeholders": {
       "error": {
         "content": "$1",
         "example": "HTTP 429"
       }
     }
+  },
+  "contentRequestRestrictedFallback": {
+    "message": "The API request was restricted. Using Google Translate and retrying after a wait. The response does not confirm that your allowance is exhausted."
+  },
+  "contentQuotaError": {
+    "message": "The API daily allowance or credit balance is exhausted. Check your limits or billing status. Automatic retries have stopped."
+  },
+  "contentRateLimitError": {
+    "message": "The API is temporarily rate limited. Retrying after a wait."
+  },
+  "contentRequestRestrictedError": {
+    "message": "The API request was restricted. Allowance exhaustion has not been confirmed. Retrying after a wait."
   }
 }

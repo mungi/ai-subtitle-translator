@@ -3,7 +3,10 @@
     "message": "AI 字幕翻訳設定"
   },
   "subtitle": {
-    "message": "Udemy、YouTube、TED、NVIDIA Academy、Vimeo の字幕を文脈全体に基づいて翻訳するプロバイダーを設定します。"
+    "message": "動画の文脈を生かした、自然な字幕翻訳を提供します。"
+  },
+  "supportedPlatformsDescription": {
+    "message": "対応プラットフォーム: Udemy, YouTube, TED, NVIDIA Academy, Vimeo"
   },
   "testProvider": {
     "message": "接続をテスト"
@@ -72,7 +75,7 @@
     "message": "「Create API key」を押して新しいキーを作成し、コピーします。"
   },
   "simpleGoogleKeyGuideStep4": {
-    "message": "作成したプロジェクトの料金プランが「無料（Free）」になっていることを必ず確認してください。"
+    "message": "作成したプロジェクトの料金プランと利用上限を確認してください。無料・有料 API の利用については、下の案内をご覧ください。"
   },
   "simpleGoogleKeyGuideStep5": {
     "message": "コピーしたキーを上の入力欄に貼り付けると、Gemini 3.1 Flash Lite が自動設定されます。「API キーを確認」を押して接続を確認してください。"
@@ -82,6 +85,33 @@
   },
   "simpleGoogleKeySecurityNotice": {
     "message": "API キーはパスワードのように扱ってください。他の人と共有したり、公開文書に載せたりしないでください。"
+  },
+  "simpleTranslationUsageGuideTitle": {
+    "message": "無料・有料 API の利用ガイド"
+  },
+  "simpleTranslationFreeTitle": {
+    "message": "無料で利用する"
+  },
+  "simpleTranslationFreeDescription": {
+    "message": "Gemini の無料枠で AI 字幕翻訳を利用できます。ただし、利用上限やサービスの混雑により、翻訳が遅れたり、一時的に失敗したりする場合があります。"
+  },
+  "simpleTranslationPaidTitle": {
+    "message": "より速くスムーズに利用する"
+  },
+  "simpleTranslationPaidDescription": {
+    "message": "頻繁に利用する場合や速い翻訳が必要な場合は、各プロバイダーの有料 API の利用をおすすめします。"
+  },
+  "simpleTranslationApiKeyGuidePrefix": {
+    "message": "有料 API を利用するには、各プロバイダーに登録して API キーを取得してください。取得したキーは「"
+  },
+  "simpleTranslationApiKeyGuideSuffix": {
+    "message": "」タブで設定できます。"
+  },
+  "simpleTranslationLightweightModels": {
+    "message": "GPT-6 Luna、Claude Haiku 5.5、Gemini 3.1 Flash-Lite などの軽量モデルを使えば、低コストで、より高速かつ正確な翻訳を利用できます。"
+  },
+  "simpleTranslationUsageNotice": {
+    "message": "料金は利用量によって異なります。有料 API でも、サービスの混雑時には一時的なエラーが発生する場合があります。"
   },
   "simpleGoogleApiKeyRequired": {
     "message": "Google AI API キーを入力してください。"
@@ -106,6 +136,12 @@
   },
   "translationStyle": {
     "message": "翻訳スタイル"
+  },
+  "llmParallelRequests": {
+    "message": "LLM 翻訳の同時実行数"
+  },
+  "llmParallelRequestsGuide": {
+    "message": "詳細設定では LLM 翻訳を1～8件同時に処理します（初期値：4件）。簡単設定では常に2件です。変更は次の翻訳から適用されます。同時実行数が多いと API のレート制限に達しやすくなります。"
   },
   "chunkDuration": {
     "message": "チャンクの最大時間（分）"
@@ -294,7 +330,10 @@
   "reasoningSettingDetected": {
     "message": "推論設定: $mode$",
     "placeholders": {
-      "mode": { "content": "$1", "example": "minimal" }
+      "mode": {
+        "content": "$1",
+        "example": "minimal"
+      }
     }
   },
   "reasoningSettingUnsupported": {
@@ -302,6 +341,21 @@
   },
   "resetDone": {
     "message": "すべての設定をリセットしました。"
+  },
+  "resetAllConfirm": {
+    "message": "すべての設定が初期値に戻り、保存済みの API キーが削除されます。続行しますか？"
+  },
+  "resetGeneralConfirm": {
+    "message": "基本の翻訳設定とカスタムプロンプトが初期値に戻ります。続行しますか？"
+  },
+  "resetProvidersConfirm": {
+    "message": "すべての翻訳プロバイダーのモデル・接続設定が初期値に戻り、保存済みの API キーが削除されます。続行しますか？"
+  },
+  "resetFallbackConfirm": {
+    "message": "一時翻訳の設定が初期値に戻ります。続行しますか？"
+  },
+  "resetSubtitleStyleConfirm": {
+    "message": "字幕スタイルの設定が初期値に戻ります。続行しますか？"
   },
   "sectionResetDone": {
     "message": "このセクションの設定をリセットしました。"
@@ -364,7 +418,7 @@
     "message": "バックアップから設定を復元しました。"
   },
   "restoreTestKeysConfirm": {
-    "message": "復元した設定の API キー接続を今すぐ確認しますか？\nプロバイダーごとに最小限の接続リクエストを1回送信します。"
+    "message": "復元した設定の API キー接続を今すぐ確認しますか？\n各プロバイダーに接続確認リクエストを送信します。Anthropic では短い翻訳サンプルで推論設定も比較します。"
   },
   "restoreTestingKey": {
     "message": "API キー接続を確認中 ($current$/$total$): $provider$",
@@ -560,6 +614,12 @@
   "contentStatusCurrent": {
     "message": "現在の字幕は翻訳済み・残りを翻訳中"
   },
+  "contentStatusCompleteWithFallback": {
+    "message": "翻訳完了（Google Translate による代替翻訳を含む）"
+  },
+  "contentPartialFallback": {
+    "message": "一部の区間で翻訳応答を確認できなかったため、その区間のみ Google Translate で翻訳しました。"
+  },
   "contentStatusComplete": {
     "message": "翻訳完了"
   },
@@ -597,10 +657,10 @@
     "message": "この動画には翻訳可能な原文字幕が提供されていません。"
   },
   "contentQuotaFallback": {
-    "message": "API クォータを超過したため、Google Translate に切り替えます。"
+    "message": "APIの1日の利用上限またはクレジット残高を使い切ったため、Google Translateで代替翻訳します。利用上限やお支払い状況を確認してください。自動再試行は停止します。"
   },
   "contentRateLimitFallback": {
-    "message": "API リクエストが多すぎて再試行に失敗したため、Google Translate に切り替えます。"
+    "message": "APIの一時的なリクエスト制限により、Google Translateで代替翻訳します。待機後に選択したモデルで再試行します。"
   },
   "contentFallback": {
     "message": "選択した翻訳プロバイダーで翻訳できなかったため、Google Translate に切り替えます。"
@@ -732,12 +792,24 @@
     "message": "翻訳字幕"
   },
   "contentTranslationFailed": {
-    "message": "翻訳できませんでした。原文または準備済みの字幕を維持します: $error$",
+    "message": "翻訳できませんでした。原文または準備済みの字幕を維持します: \n\n$error$",
     "placeholders": {
       "error": {
         "content": "$1",
         "example": "HTTP 429"
       }
     }
+  },
+  "contentRequestRestrictedFallback": {
+    "message": "APIリクエストが制限されたため、Google Translateで代替翻訳します。待機後に再試行します。応答だけでは利用上限に達したかどうかは確認できません。"
+  },
+  "contentQuotaError": {
+    "message": "APIの1日の利用上限またはクレジット残高を使い切りました。利用上限やお支払い状況を確認してください。自動再試行は停止します。"
+  },
+  "contentRateLimitError": {
+    "message": "APIの一時的なリクエスト制限です。待機後に再試行します。"
+  },
+  "contentRequestRestrictedError": {
+    "message": "APIリクエストが制限されました。利用上限に達したかどうかは確認できていません。待機後に再試行します。"
   }
 }

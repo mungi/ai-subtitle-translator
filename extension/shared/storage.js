@@ -1,4 +1,4 @@
-import { buildDefaultCustom2StyleSystemPrompt, buildDefaultCustomStyleSystemPrompt, DEFAULT_SETTINGS, extractStyleSystemPrompt, PROVIDERS, WEB_FONT_PRESETS } from "./defaults.js";
+import { buildDefaultCustom2StyleSystemPrompt, buildDefaultCustomStyleSystemPrompt, DEFAULT_SETTINGS, extractStyleSystemPrompt, getTargetLanguageLabel, normalizeLlmParallelRequests, PROVIDERS, TARGET_LANGUAGES, WEB_FONT_PRESETS } from "./defaults.js";
 import { clearEncryptedProviderSecrets, readEncryptedProviderSecrets, writeEncryptedProviderSecrets } from "./secret-storage.js";
 
 const SETTINGS_KEY = "llmSettings";
@@ -82,12 +82,13 @@ function normalizeChunkDurationSeconds(value, fallback) {
 }
 
 export function getBrowserTargetLanguage() {
-  const language = globalThis.chrome?.i18n?.getUILanguage?.() || globalThis.navigator?.language || "ko";
+  const language = globalThis.chrome?.i18n?.getUILanguage?.() || globalThis.navigator?.language || "en";
   const normalized = String(language).trim();
-  if (!normalized) return "ko";
+  if (!normalized) return "en";
   if (/^zh-(cn|hans)$/i.test(normalized)) return "zh-CN";
   if (/^zh-(tw|hk|hant)$/i.test(normalized)) return "zh-TW";
-  return normalized.split("-")[0].toLowerCase();
+  const code = normalized.split("-")[0].toLowerCase();
+  return TARGET_LANGUAGES.some((item) => item.code === code) ? code : "en";
 }
 
 export function normalizeSettings(settings = {}) {
@@ -135,6 +136,8 @@ export function normalizeSettings(settings = {}) {
     providers,
     providerTestStatus,
     maxChunkDurationSeconds: normalizeChunkDurationSeconds(settings.maxChunkDurationSeconds, defaults.maxChunkDurationSeconds),
+    settingsMode: settings.settingsMode === "advanced" ? "advanced" : "simple",
+    llmParallelRequests: normalizeLlmParallelRequests(settings.llmParallelRequests),
     targetLanguage,
     subtitleDisplayMode: ["dual", "source", "translated"].includes(settings.subtitleDisplayMode)
       ? settings.subtitleDisplayMode
@@ -166,7 +169,10 @@ export async function getSettings() {
 }
 
 export async function getPublicSettings() {
-  return omitProviderSecrets(await getSettings());
+  return {
+    ...omitProviderSecrets(await getSettings()),
+    targetLanguages: TARGET_LANGUAGES.map((language) => ({ code: language.code, label: getTargetLanguageLabel(language) }))
+  };
 }
 
 export async function restrictLocalStorageAccess(storageArea = chrome.storage.local) {

@@ -8,6 +8,7 @@ const BACKGROUND_MESSAGE_TYPES = new Set([
   "settings.updateSubtitleStyle",
   "settings.setActiveProvider",
   "settings.setTranslationStyle",
+  "settings.setTargetLanguage",
   "settings.setSubtitleDisplayMode",
   "ast.openOptions",
   "ast.providerMenu.setOpen",
@@ -38,6 +39,7 @@ const CONTENT_SCRIPT_MESSAGE_TYPES = new Set([
   "settings.updateSubtitleStyle",
   "settings.setActiveProvider",
   "settings.setTranslationStyle",
+  "settings.setTargetLanguage",
   "settings.setSubtitleDisplayMode",
   "ast.openOptions",
   "ast.providerMenu.setOpen",
@@ -58,7 +60,7 @@ const CONTENT_SCRIPT_MESSAGE_TYPES = new Set([
 const SUBTITLE_STYLE_PATCH_LIMITS = Object.freeze({
   positionX: [0, 100],
   positionY: [0, 100],
-  width: [160, 1400]
+  width: [160, 32768]
 });
 
 function isNonEmptyValue(value) {
@@ -184,6 +186,9 @@ export function validateBackgroundMessage(message) {
       break;
     case "settings.setTranslationStyle":
       if (!isNonEmptyValue(message.translationStyle)) error = "translationStyle is required.";
+      break;
+    case "settings.setTargetLanguage":
+      if (typeof message.targetLanguage !== "string" || !message.targetLanguage.trim()) error = "targetLanguage is required.";
       break;
     case "settings.setSubtitleDisplayMode":
       if (!["dual", "source", "translated"].includes(message.mode)) error = "Unsupported subtitle display mode.";

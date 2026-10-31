@@ -309,6 +309,7 @@
 
 .ast-source-caption-submenu,
 .ast-subtitle-display-submenu,
+.ast-target-language-submenu,
 .ast-translation-style-submenu {
   position: relative;
   margin-top: 4px;
@@ -316,6 +317,7 @@
 
 .ast-source-caption-list,
 .ast-subtitle-display-list,
+.ast-target-language-list,
 .ast-translation-style-list {
   display: none;
   position: absolute;
@@ -338,12 +340,15 @@
 .ast-source-caption-submenu:hover .ast-source-caption-list,
 .ast-subtitle-display-submenu:hover .ast-subtitle-display-list,
 .ast-subtitle-display-submenu:focus-within .ast-subtitle-display-list,
+.ast-target-language-submenu:hover .ast-target-language-list,
+.ast-target-language-submenu:focus-within .ast-target-language-list,
 .ast-translation-style-submenu:hover .ast-translation-style-list {
   display: block;
 }
 
 .ast-source-caption-item,
 .ast-subtitle-display-item,
+.ast-target-language-item,
 .ast-translation-style-item {
   width: 100%;
   text-align: left;
@@ -351,6 +356,7 @@
 
 .ast-source-caption-item.active,
 .ast-subtitle-display-item.active,
+.ast-target-language-item.active,
 .ast-translation-style-item.active {
   background: rgba(255, 255, 255, 0.16);
 }
@@ -401,7 +407,7 @@
 }
 
 .ast-provider-menu-youtube .ast-provider-menu-item {
-  min-height: 48px;
+  min-height: 38px;
   padding: 0 12px;
   border-radius: 8px;
   font-size: 14px;
@@ -486,7 +492,7 @@
   box-sizing: border-box;
   width: min(86%, 720px);
   min-width: 160px;
-  max-width: min(96%, 1400px);
+  max-width: calc(100% - 24px);
   min-height: 42px;
   height: auto;
   overflow-x: hidden;
@@ -593,6 +599,21 @@
 .ast-toast.ast-toast-video {
   position: absolute;
   max-width: min(92%, 520px);
+}
+
+.ast-toast.ast-toast-error {
+  font-size: 16px;
+  text-align: start;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  max-height: min(70vh, 480px);
+  overflow-y: auto;
+  pointer-events: auto;
+  user-select: text;
+}
+
+.ast-toast.ast-toast-video.ast-toast-error {
+  max-height: calc(100% - 24px);
 }
 
 .ast-subtitle-overlay:empty,

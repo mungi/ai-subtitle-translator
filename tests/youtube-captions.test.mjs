@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { fetchYoutubeTranscript, youtubeCaptionInternals } from "../extension/platforms/youtube-captions.js";
+import { assertYoutubeTranscriptPanelLanguage, fetchYoutubeTranscript, youtubeCaptionInternals } from "../extension/platforms/youtube-captions.js";
 import { createSubtitleDocument } from "../extension/shared/subtitles.js";
 
 test("YouTube JSON3 retains word offsets and skips rolling-window and newline events", () => {
@@ -595,7 +595,7 @@ test("selectCaptionTrack keeps a sole caption, then prefers English manual and a
   assert.equal(youtubeCaptionInternals.selectCaptionTrack(koreanOnly), koreanOnly[0]);
   assert.equal(youtubeCaptionInternals.selectCaptionTrack([japaneseManual, englishAutomatic]), englishAutomatic);
   assert.equal(youtubeCaptionInternals.selectCaptionTrack([japaneseManual]), japaneseManual);
-  assert.equal(youtubeCaptionInternals.selectCaptionTrack([japaneseManual, koreanOnly[0]], "en"), japaneseManual);
+  assert.equal(youtubeCaptionInternals.selectCaptionTrack([japaneseManual, koreanOnly[0]], "en"), undefined);
 });
 
 test("fetchYoutubeTranscript uses the selected language when a page caption URL is stale", async () => {
@@ -656,4 +656,13 @@ Second cue
       text: "Second cue"
     }
   ]);
+});
+
+
+test("transcript panel language must match the selected track for multilingual videos", () => {
+  const tracks = [{ languageCode: "en", label: "English (auto-generated)" }, { languageCode: "ko", label: "한국어 (자동 생성됨)" }];
+  const panel = (title) => ({ footer: { languageMenu: { sortFilterSubMenuRenderer: { subMenuItems: [{ title, selected: true }] } } } });
+  assert.throws(() => assertYoutubeTranscriptPanelLanguage(panel(tracks[1].label), "en", tracks), /Could not verify/);
+  assert.throws(() => assertYoutubeTranscriptPanelLanguage({}, "en", tracks), /Could not verify/);
+  assert.doesNotThrow(() => assertYoutubeTranscriptPanelLanguage(panel(tracks[0].label), "en", tracks));
 });

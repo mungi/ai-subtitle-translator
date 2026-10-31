@@ -49,7 +49,7 @@ const translations = {
 Object.assign(translations.ko, {
   metaDescription: "Udemy, YouTube, TED, NVIDIA Academy, Vimeo 자막을 원하는 언어로 번역해 영상 위에 표시하는 Chrome 확장 프로그램",
   heroEyebrow: "FOR UDEMY, YOUTUBE, TED, NVIDIA ACADEMY & VIMEO",
-  featureOneCopy: "Udemy, YouTube, TED, NVIDIA Academy, Vimeo 플레이어 위에 자막을 표시합니다. AST 메뉴에서 자막을 켜고 끄고, 원본 자막 언어와 번역 스타일을 바로 선택할 수 있습니다.",
+  featureOneCopy: "Udemy, YouTube, TED, NVIDIA Academy, Vimeo 플레이어 위에 자막을 표시합니다. AST 메뉴에서 자막을 켜고 끄고, 원문 자막 언어와 번역 스타일을 바로 선택할 수 있습니다.",
   stepThree: "Udemy 강의, YouTube 영상, TED 영상, NVIDIA Academy 강의 또는 Vimeo 영상을 엽니다.",
   supportCopy: "Udemy 강의 플레이어, YouTube 영상 페이지, TED 영상 페이지, NVIDIA Academy 강의, Vimeo 영상을 지원합니다. 영상에서 제공하는 수동 또는 자동 생성 자막이 필요합니다.",
   footerCopy: "Udemy, YouTube, TED, NVIDIA Academy, Vimeo 자막을 원하는 언어로"

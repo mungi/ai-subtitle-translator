@@ -1,4 +1,4 @@
-import { buildDefaultCustom2StyleSystemPrompt, buildDefaultCustomStyleSystemPrompt, buildStyleSystemPrompt, DEFAULT_CUSTOM_WEB_FONT_CSS, DEFAULT_SETTINGS, extractStyleSystemPrompt, getTargetLanguageLabel, getWebFontPresetLabel, TARGET_LANGUAGES, TRANSLATION_STYLES, WEB_FONT_PRESETS } from "../shared/defaults.js";
+import { buildDefaultCustom2StyleSystemPrompt, buildDefaultCustomStyleSystemPrompt, buildStyleSystemPrompt, DEFAULT_CUSTOM_WEB_FONT_CSS, DEFAULT_SETTINGS, extractStyleSystemPrompt, getTargetLanguageLabel, getWebFontPresetLabel, normalizeLlmParallelRequests, TARGET_LANGUAGES, TRANSLATION_STYLES, WEB_FONT_PRESETS } from "../shared/defaults.js";
 import { getProviderGuide } from "../shared/provider-guides.js";
 import { getConfiguredKeyProviders, validateConfiguredProviderKeys } from "../shared/provider-key-validation.js";
 import { selectRecommendedModel } from "../shared/model-recommendations.js";
@@ -136,6 +136,7 @@ const targetLanguageSelect = document.getElementById("targetLanguage");
 const translationStyleSelect = document.getElementById("translationStyle");
 const systemPromptTextarea = document.getElementById("systemPrompt");
 const maxChunkDurationMinutesInput = document.getElementById("maxChunkDurationMinutes");
+const llmParallelRequestsInput = document.getElementById("llmParallelRequests");
 const maxChunkDurationValue = document.getElementById("maxChunkDurationValue");
 const cacheTranslationsInput = document.getElementById("cacheTranslations");
 const fallbackProviderSelect = document.getElementById("fallbackProvider");
@@ -246,6 +247,11 @@ function setSettingsMode(mode) {
   advancedSettingsTab.tabIndex = isSimple ? -1 : 0;
   simpleSettingsTab.classList.toggle("active", isSimple);
   advancedSettingsTab.classList.toggle("active", !isSimple);
+  const settingsMode = isSimple ? "simple" : "advanced";
+  if (settings.settingsMode !== settingsMode) {
+    settings.settingsMode = settingsMode;
+    scheduleAutomaticSave({ immediate: true });
+  }
 }
 
 function handleSettingsModeTabsKeydown(event) {
@@ -565,7 +571,11 @@ function applyReasoningProfileFromTestResponse(providerId, response) {
 function getDetectedReasoningStatus(response) {
   const mode = response?.result?.reasoningProfile?.mode;
   if (!mode) return "";
-  if (mode === "omit") return t("reasoningSettingUnsupported");
+  if (mode === "omit") {
+    const acceptedOption = response.result.reasoningProfile.measurements
+      ?.some((measurement) => measurement.mode !== "omit" && measurement.valid);
+    return acceptedOption ? "" : t("reasoningSettingUnsupported");
+  }
   return formatMessage("reasoningSettingDetected", {
     mode: mode.startsWith("budget:") ? `thinkingBudget=${mode.slice(7)}` : mode
   });
@@ -667,6 +677,7 @@ function readGeneralSettings() {
       || customStyleConfig.buildDefaultPrompt(settings.targetLanguage || getBrowserTargetLanguage());
   }
   settings.maxChunkDurationSeconds = getChunkDurationMinutes() * 60;
+  settings.llmParallelRequests = normalizeLlmParallelRequests(llmParallelRequestsInput.value);
   settings.cacheTranslations = cacheTranslationsInput.checked;
   settings.fallback.providerId = resolveFallbackProviderId(fallbackProviderSelect.value || "googleTranslate");
 }
@@ -751,6 +762,7 @@ function renderGeneralSettings() {
   renderTargetLanguageSelect();
   maxChunkDurationMinutesInput.value = getChunkDurationMinutes(settings.maxChunkDurationSeconds / 60);
   updateChunkDurationValue();
+  llmParallelRequestsInput.value = normalizeLlmParallelRequests(settings.llmParallelRequests);
   cacheTranslationsInput.checked = Boolean(settings.cacheTranslations);
   updateSystemPromptTextarea();
   renderFallbackProviderSelect();
@@ -1366,7 +1378,7 @@ async function testSimpleGoogleApiKey() {
     renderAll();
     setSimpleSettingsStatus(
       response?.ok
-        ? [t("simpleGoogleTestSuccess"), getDetectedReasoningStatus(response)].filter(Boolean).join(" · ")
+        ? t("simpleGoogleTestSuccess")
         : `${t("simpleGoogleTestFailed")}: ${response?.error || "Unknown error"}`,
       response?.ok ? "success" : "error"
     );
@@ -1441,7 +1453,18 @@ async function persistSectionReset() {
   setStatus(t("sectionResetDone"), "success");
 }
 
+async function resetAllSettings() {
+  if (!globalThis.confirm(t("resetAllConfirm"))) return;
+  await flushAutomaticSave();
+  clearPendingSimpleGoogleApiKey();
+  settings = await resetSettings();
+  selectedProviderId = settings.activeProvider;
+  renderAll();
+  setStatus(t("resetDone"), "success");
+}
+
 async function resetGeneralSettingsSection() {
+  if (!globalThis.confirm(t("resetGeneralConfirm"))) return;
   await flushAutomaticSave();
   captureCurrentFormState();
   Object.assign(settings, {
@@ -1451,12 +1474,14 @@ async function resetGeneralSettingsSection() {
     customSystemPrompt: buildDefaultCustomStyleSystemPrompt(getBrowserTargetLanguage()),
     custom2SystemPrompt: DEFAULT_SETTINGS.custom2SystemPrompt,
     maxChunkDurationSeconds: DEFAULT_SETTINGS.maxChunkDurationSeconds,
+    llmParallelRequests: DEFAULT_SETTINGS.llmParallelRequests,
     cacheTranslations: DEFAULT_SETTINGS.cacheTranslations
   });
   await persistSectionReset();
 }
 
 async function resetProviderSettingsSection() {
+  if (!globalThis.confirm(t("resetProvidersConfirm"))) return;
   await flushAutomaticSave();
   clearPendingSimpleGoogleApiKey();
   captureCurrentFormState();
@@ -1466,6 +1491,7 @@ async function resetProviderSettingsSection() {
 }
 
 async function resetFallbackSettingsSection() {
+  if (!globalThis.confirm(t("resetFallbackConfirm"))) return;
   await flushAutomaticSave();
   captureCurrentFormState();
   settings.fallback = clone(DEFAULT_SETTINGS.fallback);
@@ -1473,6 +1499,7 @@ async function resetFallbackSettingsSection() {
 }
 
 async function resetSubtitleStyleSettingsSection() {
+  if (!globalThis.confirm(t("resetSubtitleStyleConfirm"))) return;
   await flushAutomaticSave();
   captureCurrentFormState();
   settings.subtitleStyle = clone(normalizeSettings().subtitleStyle);
@@ -1515,6 +1542,7 @@ function renderAll() {
   renderProviderTabs();
   renderProviderForm();
   renderSimpleGoogleSettings();
+  setSettingsMode(settings.settingsMode);
 }
 
 function renderPlatformSettings() {
@@ -1531,10 +1559,14 @@ async function init() {
   settings = await getSettings();
   selectedProviderId = settings.activeProvider;
   renderAll();
-  setSettingsMode("simple");
 
   simpleSettingsTab.addEventListener("click", () => setSettingsMode("simple"));
   advancedSettingsTab.addEventListener("click", () => setSettingsMode("advanced"));
+  document.getElementById("openAdvancedSettingsGuide").addEventListener("click", (event) => {
+    event.preventDefault();
+    setSettingsMode("advanced");
+    advancedSettingsTab.focus();
+  });
   settingsModeTabs.addEventListener("keydown", handleSettingsModeTabsKeydown);
   simpleGoogleApiKeyInput.addEventListener("change", prepareSimpleGoogleApiKey);
   testSimpleGoogleApiKeyButton.addEventListener("click", () => {
@@ -1558,6 +1590,10 @@ async function init() {
   });
   translationStyleSelect.addEventListener("change", () => {
     updateSystemPromptTextarea();
+    scheduleAutomaticSave({ immediate: true });
+  });
+  llmParallelRequestsInput.addEventListener("change", () => {
+    llmParallelRequestsInput.value = normalizeLlmParallelRequests(llmParallelRequestsInput.value);
     scheduleAutomaticSave({ immediate: true });
   });
   maxChunkDurationMinutesInput.addEventListener("input", () => {
@@ -1659,12 +1695,8 @@ async function init() {
       setStatus(`${t("testFailed")}: ${error.message}`, "error");
     });
   });
-  document.getElementById("resetSettings").addEventListener("click", async () => {
-    clearPendingSimpleGoogleApiKey();
-    settings = await resetSettings();
-    selectedProviderId = settings.activeProvider;
-    renderAll();
-    setStatus(t("resetDone"), "success");
+  document.getElementById("resetSettings").addEventListener("click", () => {
+    resetAllSettings().catch((error) => setStatus(`${t("saveFailed")}: ${error.message}`, "error"));
   });
   document.getElementById("resetGeneralSettings").addEventListener("click", () => {
     resetGeneralSettingsSection().catch((error) => setStatus(`${t("saveFailed")}: ${error.message}`, "error"));

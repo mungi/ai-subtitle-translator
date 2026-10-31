@@ -17,7 +17,7 @@
               <h1 data-i18n="title"></h1>
               <span id="extensionVersion" class="extension-version"></span>
             </div>
-            <p data-i18n="subtitle"></p>
+            <p><strong data-i18n="subtitle"></strong><br><span data-i18n="supportedPlatformsDescription"></span></p>
           </div>
         </div>
         <div class="header-panel">
@@ -62,6 +62,16 @@
           <p class="simple-google-key-security-notice" data-i18n="simpleGoogleKeySecurityNotice"></p>
         </section>
         <div id="simpleGoogleGuideLinks" class="provider-note-links"></div>
+        <section id="simpleTranslationUsageGuide" class="simple-google-key-guide simple-translation-usage-guide" aria-labelledby="simpleTranslationUsageGuideTitle">
+          <h3 id="simpleTranslationUsageGuideTitle" data-i18n="simpleTranslationUsageGuideTitle"></h3>
+          <h4 data-i18n="simpleTranslationFreeTitle"></h4>
+          <p data-i18n="simpleTranslationFreeDescription"></p>
+          <h4 data-i18n="simpleTranslationPaidTitle"></h4>
+          <p data-i18n="simpleTranslationPaidDescription"></p>
+          <p><span data-i18n="simpleTranslationApiKeyGuidePrefix"></span><a id="openAdvancedSettingsGuide" href="#advancedSettingsPanel" aria-controls="advancedSettingsPanel" data-i18n="advancedSettingsTab"></a><span data-i18n="simpleTranslationApiKeyGuideSuffix"></span></p>
+          <p data-i18n="simpleTranslationLightweightModels"></p>
+          <p class="simple-translation-usage-notice" data-i18n="simpleTranslationUsageNotice"></p>
+        </section>
       </section>
 
       <div id="advancedSettingsPanel" role="tabpanel" aria-labelledby="advancedSettingsTab" hidden>
@@ -95,6 +105,21 @@
 
       <section class="settings-section">
         <div class="section-title-row">
+          <h2 data-i18n="providerSettings"></h2>
+          <div class="section-actions">
+            <button id="resetProviderSettings" type="button" class="ghost" data-i18n="reset"></button>
+            <button id="testProvider" type="button" class="primary" data-i18n="testProvider"></button>
+          </div>
+        </div>
+        <div class="provider-status-row">
+          <p id="statusLine" class="status-line" role="status"></p>
+        </div>
+        <div id="providerTabs" class="provider-tabs" role="tablist"></div>
+        <form id="providerForm" class="provider-form"></form>
+      </section>
+
+      <section class="settings-section">
+        <div class="section-title-row">
           <h2 data-i18n="generalSettings"></h2>
           <div class="section-actions">
             <button id="resetGeneralSettings" type="button" class="ghost" data-i18n="reset"></button>
@@ -116,6 +141,11 @@
               <output id="maxChunkDurationValue" for="maxChunkDurationMinutes">7</output>
             </div>
           </label>
+          <label>
+            <span data-i18n="llmParallelRequests"></span>
+            <input id="llmParallelRequests" type="number" min="1" max="8" step="1" value="4" aria-describedby="llmParallelRequestsGuide">
+          </label>
+          <p id="llmParallelRequestsGuide" class="llm-parallel-guide active-provider-guide" data-i18n="llmParallelRequestsGuide"></p>
           <p class="wide active-provider-guide" data-i18n="activeProviderGuide"></p>
           <label class="wide">
             <span data-i18n="translationStyle"></span>
@@ -132,21 +162,6 @@
             <button id="clearCache" type="button" class="ghost" data-i18n="clearCache"></button>
           </div>
         </div>
-      </section>
-
-      <section class="settings-section">
-        <div class="section-title-row">
-          <h2 data-i18n="providerSettings"></h2>
-          <div class="section-actions">
-            <button id="resetProviderSettings" type="button" class="ghost" data-i18n="reset"></button>
-            <button id="testProvider" type="button" class="primary" data-i18n="testProvider"></button>
-          </div>
-        </div>
-        <div class="provider-status-row">
-          <p id="statusLine" class="status-line" role="status"></p>
-        </div>
-        <div id="providerTabs" class="provider-tabs" role="tablist"></div>
-        <form id="providerForm" class="provider-form"></form>
       </section>
 
       <section class="settings-section">

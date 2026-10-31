@@ -233,6 +233,27 @@ button.ghost {
   font-size: 12px;
 }
 
+.simple-translation-usage-guide h4 {
+  margin: 14px 0 4px;
+  font-size: 13px;
+}
+
+.simple-translation-usage-guide p {
+  margin: 0;
+  white-space: pre-line;
+}
+
+.simple-translation-usage-guide a {
+  color: var(--accent-strong);
+  font-weight: 650;
+}
+
+.simple-translation-usage-guide .simple-translation-usage-notice {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .simple-settings-panel .status-line {
   margin: 8px 0 0;
   text-align: left;
@@ -278,6 +299,15 @@ button.ghost {
 
 .form-grid .wide {
   grid-column: 1 / -1;
+}
+
+.form-grid .llm-parallel-guide {
+  grid-column: span 2;
+  align-self: end;
+  display: flex;
+  align-items: center;
+  min-height: 38px;
+  margin: 0;
 }
 
 label {
@@ -782,6 +812,10 @@ textarea:focus {
   .provider-form,
   .backup-restore-grid {
     grid-template-columns: 1fr;
+  }
+
+  .form-grid .llm-parallel-guide {
+    grid-column: auto;
   }
 
   .supported-sites-toggles {

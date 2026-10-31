@@ -162,15 +162,18 @@ test("provider and translation-style mutations are serialized without losing eit
     }
   };
 
-  const { setActiveProvider, setTranslationStyle, setSubtitleDisplayMode } = await import("../extension/background/service-worker.js");
+  const { setActiveProvider, setTranslationStyle, setTargetLanguage, setSubtitleDisplayMode } = await import("../extension/background/service-worker.js");
   await Promise.all([
     setActiveProvider("google"),
     setTranslationStyle("technical"),
+    setTargetLanguage("fa"),
     setSubtitleDisplayMode("dual")
   ]);
 
   assert.equal(llmSettings.activeProvider, "google");
   assert.equal(llmSettings.translationStyle, "technical");
+  assert.equal(llmSettings.targetLanguage, "fa");
+  await assert.rejects(setTargetLanguage("invalid"), /Unsupported target language/);
   assert.equal(llmSettings.subtitleDisplayMode, "dual");
   await assert.rejects(setSubtitleDisplayMode("invalid"), /Unsupported subtitle display mode/);
 });

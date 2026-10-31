@@ -1,10 +1,12 @@
+import { classifyProviderLimit, providerRetryDelay } from "../shared/provider-limits.js";
 import { getPublicSettings, getSettings, restrictLocalStorageAccess, saveSettings, updateSubtitleStyleSettings } from "../shared/storage.js";
-import { TRANSLATION_STYLES } from "../shared/defaults.js";
+import { TARGET_LANGUAGES, TRANSLATION_STYLES } from "../shared/defaults.js";
 import { validateBackgroundMessage, validateMessageSender } from "../shared/message-contracts.js";
 import { ANTHROPIC_DIRECT_BROWSER_ACCESS_HEADER, buildProviderRequest, createReasoningProfile, extractText, getReasoningProbeModes, isReasoningOptionError } from "../shared/provider-request.js";
 import { sanitizeProviderErrorMessage } from "../shared/provider-error-sanitizer.js";
 import { assertProviderEndpoint } from "../shared/provider-security.js";
 import { translateSubtitleDocument } from "../shared/translation.js";
+import { benchmarkReasoningModes } from "../shared/reasoning-benchmark.js";
 import { fetchYoutubeCaptionTracks, fetchYoutubeTranscript } from "../platforms/youtube-captions.js";
 import { fetchUdemyCaptionTracks, fetchUdemyTranscript } from "../platforms/udemy-captions.js";
 import { fetchVimeoTranscript } from "../platforms/vimeo-captions.js";
@@ -322,6 +324,10 @@ export async function testActiveProvider(providerId) {
       };
     }
 
+    if (provider.apiStyle === "anthropic-messages") {
+      return await benchmarkReasoningModes(provider, settings.targetLanguage || "ko");
+    }
+
     const requestOptions = {
       systemPrompt: TEST_SYSTEM_PROMPT,
       input: TEST_INPUT,
@@ -370,6 +376,18 @@ export function setActiveProvider(providerId) {
     settings.activeProvider = providerId;
     await saveSettings(settings);
     return { providerId };
+  });
+}
+
+export function setTargetLanguage(targetLanguage) {
+  if (!TARGET_LANGUAGES.some((language) => language.code === targetLanguage)) {
+    return Promise.reject(new Error(`Unsupported target language: ${targetLanguage}`));
+  }
+  return enqueueSettingsMutation(async () => {
+    const settings = await getSettings();
+    settings.targetLanguage = targetLanguage;
+    await saveSettings(settings);
+    return { targetLanguage };
   });
 }
 
@@ -466,6 +484,13 @@ function dispatchBackgroundMessage(message, sender, sendResponse) {
 
   if (message?.type === "settings.setTranslationStyle") {
     setTranslationStyle(message.translationStyle)
+      .then((result) => sendResponse({ ok: true, result }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.type === "settings.setTargetLanguage") {
+    setTargetLanguage(message.targetLanguage)
       .then((result) => sendResponse({ ok: true, result }))
       .catch((error) => sendResponse({ ok: false, error: error.message }));
     return true;
@@ -597,6 +622,7 @@ function dispatchBackgroundMessage(message, sender, sendResponse) {
     translateSubtitleDocument(message.document, {
       providerId: message.providerId,
       forceNoCache: Boolean(message.forceNoCache),
+      allowFallback: message.allowFallback !== false,
       initialStartTime: message.initialStartTime,
       signal: controller.signal,
       onProgress: (progress) => {
@@ -612,7 +638,7 @@ function dispatchBackgroundMessage(message, sender, sendResponse) {
       }
     })
       .then((document) => sendResponse({ ok: true, document }))
-      .catch((error) => sendResponse({ ok: false, error: error.message }))
+      .catch((error) => sendResponse({ ok: false, error: error.message, errorKind: classifyProviderLimit(error), retryAfterMs: providerRetryDelay(error) }))
       .finally(() => {
         if (activeTranslationRequests.get(requestKey) === controller) activeTranslationRequests.delete(requestKey);
       });

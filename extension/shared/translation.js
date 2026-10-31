@@ -1,24 +1,29 @@
+import { classifyProviderLimit, providerRetryDelay } from "./provider-limits.js";
 import { buildProviderRequest, createReasoningProfile, extractText, shouldRetryOpenRouterWithoutReasoning } from "./provider-request.js";
 import { assertProviderEndpoint } from "./provider-security.js";
-import { getCustomSystemPromptSettingKey, isCustomTranslationStyle, buildSystemPromptFromSettings } from "./defaults.js";
+import { getCustomSystemPromptSettingKey, isCustomTranslationStyle, buildSystemPromptFromSettings, normalizeLlmParallelRequests } from "./defaults.js";
 import { getSettings } from "./storage.js";
 import { decodeXmlEntities, normalizeCue, validateCues } from "./subtitles.js";
 
 const TRANSLATION_CACHE_KEY = "translationCache";
-const TRANSLATION_CACHE_VERSION = "v3";
+const TRANSLATION_CACHE_VERSION = "v5";
 export const TRANSLATION_CACHE_MAX_ENTRIES = 30;
 export const TRANSLATION_CACHE_MAX_BYTES = 4 * 1024 * 1024;
 const DEFAULT_MAX_CUE_CHARS_PER_CHUNK = 24000;
 const DEFAULT_MAX_CUES_PER_CHUNK = 500;
 const DEFAULT_LLM_CHUNK_MAX_DURATION_SECONDS = 420;
 const MIN_LLM_RETRY_CUES_PER_CHUNK = 1;
+const LLM_ALIGNMENT_MAX_SPLIT_DEPTH = 1;
+const ALIGNMENT_FALLBACK_REASON = "alignment_failed";
+const LLM_ALIGNMENT_MAX_CUES = 40;
+const LLM_ALIGNMENT_MAX_CHARS = 3000;
+const LLM_ALIGNMENT_MAX_SECONDS = 90;
 const LLM_PARALLEL_CHUNK_LIMIT = 2;
 const GOOGLE_MAX_CHARS_PER_CHUNK = 1500;
 const GOOGLE_TRANSLATE_PROVIDER_ID = "googleTranslate";
 const DEEPL_MAX_TEXTS_PER_REQUEST = 50;
 const DEEPL_MAX_REQUEST_BODY_BYTES = 128 * 1024;
 const QUOTA_EXCEEDED_FALLBACK_REASON = "quota_exceeded";
-const RATE_LIMIT_EXCEEDED_FALLBACK_REASON = "rate_limit_exceeded";
 const CONTEXT_CUE_COUNT = 8;
 const INITIAL_LLM_CHUNK_MAX_DURATION_SECONDS = 60;
 const INITIAL_LLM_CHUNK_MAX_CHARS = 1500;
@@ -49,12 +54,30 @@ function waitForAbortableDelay(delayMs, signal) {
   });
 }
 
-function buildTranslationInput(document, { contextBefore = [] } = {}) {
+function selectSentenceContext(cues, before = false) {
+  const candidates = before ? cues.slice(-4).reverse() : cues.slice(0, 4);
+  const selected = [];
+  let chars = 0;
+  for (const cue of candidates) {
+    const remaining = 600 - chars;
+    if (remaining <= 0) break;
+    const text = before ? cue.text.slice(-remaining) : cue.text.slice(0, remaining);
+    selected.push({ text });
+    chars += text.length;
+    if (selected.length >= 2 && (before
+      ? /[.!?。！？]["'”’」』)\]]*\s*$/u.test(candidates[selected.length]?.text || "")
+      : /[.!?。！？]["'”’」』)\]]*\s*$/u.test(text))) break;
+  }
+  return before ? selected.reverse() : selected;
+}
+
+function buildTranslationInput(document, { contextBefore = [], contextAfter = document.contextAfter || [] } = {}) {
   return JSON.stringify({
     platform: document.platform,
     videoId: document.videoId,
     sourceLanguage: document.sourceLanguage,
-    contextBefore,
+    contextBefore: selectSentenceContext(contextBefore, true),
+    contextAfter: selectSentenceContext(contextAfter),
     cues: document.cues.map((cue) => ({
       id: cue.id,
       start: cue.start,
@@ -62,12 +85,7 @@ function buildTranslationInput(document, { contextBefore = [] } = {}) {
       text: cue.text
     })),
     responseFormat: {
-      translations: [
-        {
-          id: "same cue id",
-          text: "translated subtitle text"
-        }
-      ]
+      translations: document.cues.map((cue) => ({ id: cue.id, text: "translation of ONLY this cue" }))
     }
   });
 }
@@ -118,6 +136,36 @@ function splitRemainingCuesIntoChunks(document, cues, maxCueChars, cueLimit, max
 
 function findCueIndexAtOrAfterTime(cues, currentTime) {
   return cues.findIndex((cue) => currentTime < cue.end || currentTime <= cue.start);
+}
+
+// Keep wide scheduling windows separate from the smaller units sent to the model.
+function splitLlmChunksAtSentenceBoundaries(chunks) {
+  const result = [];
+  for (const chunk of chunks) {
+    const cues = chunk.cues;
+    let start = 0;
+    while (start < cues.length) {
+      let end = start;
+      let chars = 0;
+      let sentenceEnd = 0;
+      while (end < cues.length) {
+        const cue = cues[end];
+        if (end > start && (end - start >= LLM_ALIGNMENT_MAX_CUES
+          || chars + cueTextLength(cue) > LLM_ALIGNMENT_MAX_CHARS
+          || cue.start - cues[start].start >= LLM_ALIGNMENT_MAX_SECONDS)) break;
+        chars += cueTextLength(cue);
+        end += 1;
+        const next = cues[end];
+        if (/[.!?。！？]["'”’」』)\]]*\s*$/u.test(cue.text)
+          || (next && next.start - cue.end >= 1.2)) sentenceEnd = end;
+      }
+      // Backtrack to a complete sentence; punctuation-free ASR still has hard limits.
+      const boundary = end < cues.length && sentenceEnd > start ? sentenceEnd : end;
+      pushChunk(result, chunk, cues.slice(start, boundary));
+      start = boundary;
+    }
+  }
+  return result.map((chunk, index) => ({ ...chunk, chunkIndex: index, chunkCount: result.length }));
 }
 
 function getChunkContextBefore(document, chunk) {
@@ -313,11 +361,7 @@ function analyzeChunkTranslations(chunk, translations) {
     duplicateIds,
     emptyIds,
     missingIds,
-    translationById,
-    hasOnlyRecoverableMissing: invalidIds.length === 0
-      && unexpectedIds.length === 0
-      && duplicateIds.length === 0
-      && missingIds.length > 0
+    translationById
   };
 }
 
@@ -352,16 +396,6 @@ function validateChunkTranslations(chunk, translations) {
   if (!analysis.ok) {
     throw buildChunkTranslationError(analysis);
   }
-}
-
-function buildContextBeforeForMissingCues(chunk, contextBefore, missingIds) {
-  const firstMissingIndex = chunk.cues.findIndex((cue) => missingIds.has(String(cue.id)));
-  if (firstMissingIndex <= 0) return contextBefore;
-
-  return chunk.cues.slice(Math.max(0, firstMissingIndex - CONTEXT_CUE_COUNT), firstMissingIndex).map((cue) => ({
-    id: cue.id,
-    text: cue.text
-  }));
 }
 
 function sanitizeTranslatedDocument(document = {}) {
@@ -511,6 +545,7 @@ async function fetchProviderJson(provider, payload, signal) {
     error.providerId = provider.id;
     error.providerErrorType = body.error?.type;
     error.providerErrorCode = body.error?.code;
+    error.providerErrorDetails = Array.isArray(body.error?.details) ? body.error.details : [];
     error.retryAfterMs = parseRetryAfterHeader(response.headers?.get?.("retry-after"));
     throw error;
   }
@@ -616,6 +651,10 @@ function createLlmRequestController({
         releaseWaitingRequests();
       }
     },
+    stop(error) {
+      terminalError = error;
+      rejectWaitingRequests(error);
+    },
     async recordRateLimitError(error) {
       concurrentRequestLimit = 1;
       rateLimitErrorCount += 1;
@@ -626,7 +665,7 @@ function createLlmRequestController({
         throw error;
       }
 
-      await waitForRateLimit(LLM_RATE_LIMIT_RETRY_BASE_DELAY_MS * (2 ** (rateLimitErrorCount - 1)), signal);
+      await waitForRateLimit(Math.max(providerRetryDelay(error) || 0, LLM_RATE_LIMIT_RETRY_BASE_DELAY_MS * (2 ** (rateLimitErrorCount - 1))), signal);
     },
     get concurrentRequestLimit() {
       return concurrentRequestLimit;
@@ -642,7 +681,7 @@ function createLlmRequestController({
 
 async function fetchLlmChunkTranslations(provider, settings, chunk, contextBefore = [], requestController) {
   const requestOptions = {
-    systemPrompt: buildSystemPromptFromSettings(settings),
+    systemPrompt: `${buildSystemPromptFromSettings(settings)}\nMandatory alignment check: Fill every entry of responseFormat.translations with its own cue translation, preserving the exact IDs. Return no context entries or other IDs. Never combine cues or leave entries empty; translate fillers and fragments as fragments. Count the entries before returning.`,
     input: buildTranslationInput(chunk, { contextBefore })
   };
   const request = buildProviderRequest(provider, requestOptions);
@@ -663,7 +702,7 @@ async function fetchLlmChunkTranslations(provider, settings, chunk, contextBefor
   }
 }
 
-async function translateLlmChunkWithRetry(provider, settings, chunk, contextBefore = [], requestController) {
+async function translateLlmChunkWithRetry(provider, settings, chunk, contextBefore = [], requestController, splitDepth = 0) {
   try {
     const chunkTranslations = await fetchLlmChunkTranslations(provider, settings, chunk, contextBefore, requestController);
     const analysis = analyzeChunkTranslations(chunk, chunkTranslations);
@@ -671,38 +710,27 @@ async function translateLlmChunkWithRetry(provider, settings, chunk, contextBefo
       return orderChunkTranslations(chunk, analysis.translationById);
     }
 
-    if (analysis.hasOnlyRecoverableMissing && analysis.missingIds.length < chunk.cues.length) {
-      const missingIds = new Set(analysis.missingIds);
-      const missingChunk = {
-        ...chunk,
-        cues: chunk.cues.filter((cue) => missingIds.has(String(cue.id)))
-      };
-      const missingContext = buildContextBeforeForMissingCues(chunk, contextBefore, missingIds);
-      const missingTranslations = await translateLlmChunkWithRetry(provider, settings, missingChunk, missingContext, requestController);
-      const translationById = new Map(analysis.translationById);
-      for (const item of missingTranslations) {
-        translationById.set(String(item.id), item.text);
-      }
-      return orderChunkTranslations(chunk, translationById);
-    }
-
     throw buildChunkTranslationError(analysis);
   } catch (error) {
-    if (isQuotaExceededError(error)) throw error;
+    if (isQuotaExceededError(error)) {
+      requestController?.stop(error);
+      throw error;
+    }
     if (isRateLimitError(error)) {
       if (!requestController) throw error;
       await requestController.recordRateLimitError(error);
-      return translateLlmChunkWithRetry(provider, settings, chunk, contextBefore, requestController);
+      return translateLlmChunkWithRetry(provider, settings, chunk, contextBefore, requestController, splitDepth);
     }
     if (!error?.retryWithSmallerChunk && !isChunkSizeError(error)) throw error;
-    if (chunk.cues.length <= MIN_LLM_RETRY_CUES_PER_CHUNK) {
+    if (chunk.cues.length <= MIN_LLM_RETRY_CUES_PER_CHUNK || splitDepth >= LLM_ALIGNMENT_MAX_SPLIT_DEPTH) {
       throw error;
     }
 
     const midpoint = Math.ceil(chunk.cues.length / 2);
     const leftChunk = {
       ...chunk,
-      cues: chunk.cues.slice(0, midpoint)
+      cues: chunk.cues.slice(0, midpoint),
+      contextAfter: chunk.cues.slice(midpoint, midpoint + CONTEXT_CUE_COUNT).map(({ id, text }) => ({ id, text }))
     };
     const rightChunk = {
       ...chunk,
@@ -713,21 +741,46 @@ async function translateLlmChunkWithRetry(provider, settings, chunk, contextBefo
       text: cue.text
     }));
 
-    const leftTranslations = await translateLlmChunkWithRetry(provider, settings, leftChunk, contextBefore, requestController);
-    const rightTranslations = await translateLlmChunkWithRetry(provider, settings, rightChunk, rightContext, requestController);
+    const leftTranslations = await translateLlmChunkWithRetry(provider, settings, leftChunk, contextBefore, requestController, splitDepth + 1);
+    const rightTranslations = await translateLlmChunkWithRetry(provider, settings, rightChunk, rightContext, requestController, splitDepth + 1);
     return [...leftTranslations, ...rightTranslations];
   }
 }
 
 async function translateLlmChunksWithPriority(provider, settings, document, chunks, onProgress, signal) {
   const translationsByChunk = new Array(chunks.length);
-  const requestController = createLlmRequestController({ signal });
+  const parallelLimit = settings.settingsMode === "advanced"
+    ? normalizeLlmParallelRequests(settings.llmParallelRequests) : LLM_PARALLEL_CHUNK_LIMIT;
+  const requestController = createLlmRequestController({ signal, maxConcurrentRequests: parallelLimit });
   let completedChunkCount = 0;
+  const fallbackCueIds = new Set();
+  let documentFallbackReason;
+  const fallbackRetryPolicy = { fallbackRetryBlocked: false, fallbackRetryAfterMs: 0 };
 
   const translateChunkAt = async (index) => {
     const chunk = chunks[index];
     const contextBefore = getChunkContextBefore(document, chunk);
-    const chunkTranslations = await translateLlmChunkWithRetry(provider, settings, chunk, contextBefore, requestController);
+    const lastIndex = document.cues.findIndex((cue) => cue.id === chunk.cues.at(-1)?.id);
+    chunk.contextAfter = document.cues.slice(lastIndex + 1, lastIndex + 1 + CONTEXT_CUE_COUNT)
+      .map(({ id, text }) => ({ id, text }));
+    let chunkTranslations;
+    let fallbackProvider;
+    let fallbackReason;
+    try {
+      chunkTranslations = await translateLlmChunkWithRetry(provider, settings, chunk, contextBefore, requestController);
+    } catch (error) {
+      throwIfAborted(signal);
+      fallbackProvider = settings.providers?.[GOOGLE_TRANSLATE_PROVIDER_ID];
+      if (!fallbackProvider || settings.allowAlignmentFallback === false) throw error;
+      fallbackReason = error.retryWithSmallerChunk ? ALIGNMENT_FALLBACK_REASON : isQuotaExceededError(error) ? QUOTA_EXCEEDED_FALLBACK_REASON : classifyProviderLimit(error) || "provider_error";
+      fallbackRetryPolicy.fallbackRetryBlocked ||= isQuotaExceededError(error);
+      fallbackRetryPolicy.fallbackRetryAfterMs = Math.max(fallbackRetryPolicy.fallbackRetryAfterMs, providerRetryDelay(error) || 0);
+      // An invalid response is not a transient service error. Finish this range once,
+      // without discarding valid translations from the rest of the video.
+      chunkTranslations = await translateWithMachineProvider(chunk, settings, fallbackProvider, { signal });
+      for (const cue of chunk.cues) fallbackCueIds.add(String(cue.id));
+      documentFallbackReason = fallbackReason;
+    }
     translationsByChunk[index] = chunkTranslations;
     completedChunkCount += 1;
 
@@ -737,7 +790,8 @@ async function translateLlmChunksWithPriority(provider, settings, document, chun
         chunkCount: chunks.length,
         completedChunkCount,
         isComplete: completedChunkCount === chunks.length,
-        cues: createTranslatedCues(chunk, chunkTranslations)
+        cues: createTranslatedCues(chunk, chunkTranslations),
+        ...(fallbackProvider ? { fallbackProviderId: fallbackProvider.id, fallbackReason, ...fallbackRetryPolicy, fallbackCueIds: chunk.cues.map((cue) => String(cue.id)) } : {})
       });
     }
   };
@@ -753,12 +807,19 @@ async function translateLlmChunksWithPriority(provider, settings, document, chun
       await translateChunkAt(index);
     }
   };
-  const workerCount = Math.min(LLM_PARALLEL_CHUNK_LIMIT, chunks.length - 1);
+  const workerCount = Math.min(parallelLimit, chunks.length - 1);
   const results = await Promise.allSettled(Array.from({ length: workerCount }, worker));
   const failed = results.find((result) => result.status === "rejected");
   if (failed) throw failed.reason;
 
-  return translationsByChunk.flat();
+  const translations = translationsByChunk.flat();
+  if (fallbackCueIds.size) {
+    translations.fallbackProviderId = GOOGLE_TRANSLATE_PROVIDER_ID;
+    translations.fallbackReason = documentFallbackReason;
+    Object.assign(translations, fallbackRetryPolicy);
+    translations.fallbackCueIds = [...fallbackCueIds];
+  }
+  return translations;
 }
 
 function normalizeTargetLanguage(targetLanguage) {
@@ -979,15 +1040,7 @@ async function translateWithMachineProvider(document, settings, provider, { onPr
 }
 
 function isQuotaExceededError(error) {
-  const message = String(error?.message || error || "").toLowerCase();
-  const providerErrorType = String(error?.providerErrorType || "").toLowerCase();
-  const providerErrorCode = String(error?.providerErrorCode || "").toLowerCase();
-  return Number(error?.status) === 456
-    || providerErrorType === "insufficient_quota"
-    || providerErrorCode === "insufficient_quota"
-    || message.includes("quota exceeded")
-    || message.includes("쿼터")
-    || message.includes("quota");
+  return classifyProviderLimit(error) === "quota_exceeded";
 }
 
 function isRateLimitError(error) {
@@ -1018,7 +1071,7 @@ async function translateWithFallbackProvider(document, settings, activeProvider,
   const fallbackReason = quotaExceeded
     ? QUOTA_EXCEEDED_FALLBACK_REASON
     : rateLimitExceeded
-      ? RATE_LIMIT_EXCEEDED_FALLBACK_REASON
+      ? classifyProviderLimit(originalError)
       : undefined;
   const fallbackMessage = quotaExceeded
     ? buildQuotaFallbackMessage(activeProvider, fallbackProvider)
@@ -1032,7 +1085,7 @@ async function translateWithFallbackProvider(document, settings, activeProvider,
       ? (progress) => onProgress({
         ...progress,
         fallbackProviderId: fallbackProvider.id,
-        ...(fallbackReason ? { fallbackReason, fallbackMessage } : {})
+        ...(fallbackReason ? { fallbackReason, fallbackMessage, fallbackRetryBlocked: quotaExceeded, fallbackRetryAfterMs: providerRetryDelay(originalError) } : {})
       })
       : undefined
   });
@@ -1041,7 +1094,7 @@ async function translateWithFallbackProvider(document, settings, activeProvider,
     targetLanguage: settings.targetLanguage,
     providerId: activeProvider.id,
     fallbackProviderId: fallbackProvider.id,
-    ...(fallbackReason ? { fallbackReason, fallbackMessage } : {}),
+    ...(fallbackReason ? { fallbackReason, fallbackMessage, fallbackRetryBlocked: quotaExceeded, fallbackRetryAfterMs: providerRetryDelay(originalError) } : {}),
     cacheHit: false
   };
 }
@@ -1102,12 +1155,12 @@ export async function translateSubtitleDocument(document, {
   const effectiveChunkSize = provider.id === "local"
     ? Math.min(configuredChunkSize, DEFAULT_MAX_CUE_CHARS_PER_CHUNK)
     : configuredChunkSize;
-  const chunks = splitDocumentIntoChunks(document, effectiveChunkSize, DEFAULT_MAX_CUES_PER_CHUNK, {
+  const chunks = splitLlmChunksAtSentenceBoundaries(splitDocumentIntoChunks(document, effectiveChunkSize, DEFAULT_MAX_CUES_PER_CHUNK, {
     initialStartTime,
     maxDurationSeconds: settings.maxChunkDurationSeconds
-  });
+  }));
   try {
-    const translations = await translateLlmChunksWithPriority(provider, settings, document, chunks, onProgress, signal);
+    const translations = await translateLlmChunksWithPriority(provider, { ...settings, allowAlignmentFallback: allowFallback }, document, chunks, onProgress, signal);
     throwIfAborted(signal);
     const translatedDocument = mergeTranslations(document, translations);
     const result = {
@@ -1115,18 +1168,18 @@ export async function translateSubtitleDocument(document, {
       targetLanguage: settings.targetLanguage,
       providerId: provider.id,
       chunkCount: chunks.length,
+      ...(translations.fallbackProviderId ? { fallbackProviderId: translations.fallbackProviderId, fallbackReason: translations.fallbackReason, fallbackRetryBlocked: translations.fallbackRetryBlocked, fallbackRetryAfterMs: translations.fallbackRetryAfterMs, fallbackCueIds: translations.fallbackCueIds } : {}),
       cacheHit: false
     };
 
-    if (settings.cacheTranslations && !forceNoCache) {
+    if (settings.cacheTranslations && !forceNoCache && !result.fallbackProviderId) {
       throwIfAborted(signal);
       await writeCachedTranslation(cacheKey, result);
     }
     return result;
   } catch (error) {
     if (signal?.aborted) throw signal.reason || error;
-    if (!allowFallback) throw error;
-    return translateWithFallbackProvider(document, settings, provider, error, { onProgress, signal });
+    throw error;
   }
 
 }
@@ -1134,7 +1187,9 @@ export async function translateSubtitleDocument(document, {
 export const translationInternals = {
   buildSystemPrompt: buildSystemPromptFromSettings,
   buildTranslationInput,
+  selectSentenceContext,
   splitDocumentIntoChunks,
+  splitLlmChunksAtSentenceBoundaries,
   stripReasoningBlocks,
   extractJsonText,
   parseTranslationResponse,
