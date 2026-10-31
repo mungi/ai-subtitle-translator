@@ -324,6 +324,21 @@ test("provider tab turns light green after a successful provider test", () => {
   assert.doesNotMatch(optionsJs, /testProviderButton\.classList\.toggle\("connection-success"/);
 });
 
+test("Google Translate tab is always light green because it needs no test", () => {
+  assert.match(optionsJs, /classList\.toggle\("connection-success", isActiveProviderAvailable\(provider\)\)/);
+  assert.match(optionsJs, /function isActiveProviderAvailable\(provider\) \{\s*return provider\.apiStyle === "google-translate"/);
+});
+
+test("Base URL is read-only except for the local LLM server", () => {
+  assert.match(optionsJs, /if \(key === "baseUrl" && provider\.id !== "local"\) \{[^}]*input\.readOnly = true;/);
+  assert.match(optionsCss, /input\.readonly \{/);
+});
+
+test("DeepL plan select switches the read-only Base URL between Free and Pro endpoints", () => {
+  assert.match(optionsJs, /if \(provider\.apiStyle === "deepl"\) \{\s*provider\.baseUrl = getDeepLEndpoint\(provider\.plan\);/);
+  assert.match(optionsJs, /if \(provider\.apiStyle === "deepl"\) input\.value = getDeepLEndpoint\(provider\.plan\);/);
+});
+
 test("a successful connection test activates the tested provider", () => {
   assert.match(optionsJs, /if \(activate && state === "success"\) \{\s*settings\.activeProvider = providerId;\s*\}/);
   assert.match(optionsJs, /persistProviderTestStatus\(providerId, "success", \{ activate: true \}\)/);

@@ -1025,6 +1025,39 @@ test("DeepL translation splits subtitle cues by text count limit", async () => {
   }
 });
 
+test("DeepL plan chooses the Free or Pro endpoint even when an old Base URL is stored", async () => {
+  const originalFetch = globalThis.fetch;
+  const requestUrls = [];
+
+  globalThis.fetch = async (url, init = {}) => {
+    requestUrls.push(String(url));
+    const texts = new URLSearchParams(init.body).getAll("text");
+    return {
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      json: async () => ({ translations: texts.map((text) => ({ text })) })
+    };
+  };
+
+  try {
+    for (const plan of ["pro", "free"]) {
+      await translationInternals.translateCuesWithDeepL(sourceDocument, { targetLanguage: "ko" }, {
+        apiKey: "deepl-key",
+        apiStyle: "deepl",
+        plan,
+        baseUrl: "https://api-free.deepl.com/v2/translate"
+      });
+    }
+    assert.deepEqual(requestUrls, [
+      "https://api.deepl.com/v2/translate",
+      "https://api-free.deepl.com/v2/translate"
+    ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("DeepL translation keeps each request body under the API size limit", async () => {
   const originalFetch = globalThis.fetch;
   const requestBodyByteLengths = [];

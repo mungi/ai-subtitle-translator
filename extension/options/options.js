@@ -1,4 +1,4 @@
-import { buildDefaultCustom2StyleSystemPrompt, buildDefaultCustomStyleSystemPrompt, buildStyleSystemPrompt, DEFAULT_CUSTOM_WEB_FONT_CSS, DEFAULT_SETTINGS, extractStyleSystemPrompt, getTargetLanguageLabel, getWebFontPresetLabel, normalizeLlmParallelRequests, TARGET_LANGUAGES, TRANSLATION_STYLES, WEB_FONT_PRESETS } from "../shared/defaults.js";
+import { buildDefaultCustom2StyleSystemPrompt, buildDefaultCustomStyleSystemPrompt, buildStyleSystemPrompt, DEFAULT_CUSTOM_WEB_FONT_CSS, getDeepLEndpoint, DEFAULT_SETTINGS, extractStyleSystemPrompt, getTargetLanguageLabel, getWebFontPresetLabel, normalizeLlmParallelRequests, TARGET_LANGUAGES, TRANSLATION_STYLES, WEB_FONT_PRESETS } from "../shared/defaults.js";
 import { getProviderGuide } from "../shared/provider-guides.js";
 import { getConfiguredKeyProviders, validateConfiguredProviderKeys } from "../shared/provider-key-validation.js";
 import { selectRecommendedModel } from "../shared/model-recommendations.js";
@@ -853,6 +853,12 @@ function readProviderForm() {
     provider.nitro = fields.get("nitro") === "on";
     provider.model = withOpenRouterNitro(provider.model, provider.nitro);
   }
+
+  if (provider.apiStyle === "deepl") {
+    provider.baseUrl = getDeepLEndpoint(provider.plan);
+    const baseUrlInput = providerForm.elements.namedItem("baseUrl");
+    if (baseUrlInput) baseUrlInput.value = provider.baseUrl;
+  }
 }
 
 function renderProviderTabs() {
@@ -863,7 +869,8 @@ function renderProviderTabs() {
     button.type = "button";
     button.textContent = provider.label;
     button.classList.toggle("active", provider.id === selectedProviderId);
-    button.classList.toggle("connection-success", getProviderTestStatus(provider.id) === "success");
+    // Google Translate needs no key or test, so it is always shown as connected.
+    button.classList.toggle("connection-success", isActiveProviderAvailable(provider));
     button.addEventListener("click", () => {
       scheduleAutomaticSave({ immediate: true });
       selectedProviderId = provider.id;
@@ -1041,6 +1048,12 @@ function renderField(provider, [key, labelKey, placeholder, type = "text"]) {
   if (type === "number") {
     input.step = key === "temperature" ? "0.1" : "1";
     input.min = "0";
+  }
+  // Hosted providers use a fixed endpoint; only a local server can listen on another port.
+  if (key === "baseUrl" && provider.id !== "local") {
+    if (provider.apiStyle === "deepl") input.value = getDeepLEndpoint(provider.plan);
+    input.readOnly = true;
+    input.classList.add("readonly");
   }
 
   if (isApiKey && canFetchModelsForProvider(provider)) {

@@ -2,7 +2,7 @@ import { buildSentenceGroups, distributeGroupTranslation } from "./sentence-grou
 import { classifyProviderLimit, providerRetryDelay } from "./provider-limits.js";
 import { buildProviderRequest, createReasoningProfile, extractText, shouldRetryOpenRouterWithoutReasoning } from "./provider-request.js";
 import { assertProviderEndpoint } from "./provider-security.js";
-import { getCustomSystemPromptSettingKey, isCustomTranslationStyle, buildSystemPromptFromSettings, buildStyleSystemPrompt, extractStyleSystemPrompt, normalizeLlmParallelRequests } from "./defaults.js";
+import { getCustomSystemPromptSettingKey, getDeepLEndpoint, isCustomTranslationStyle, buildSystemPromptFromSettings, buildStyleSystemPrompt, extractStyleSystemPrompt, normalizeLlmParallelRequests } from "./defaults.js";
 import { getSettings } from "./storage.js";
 import { decodeXmlEntities, normalizeCue, validateCues } from "./subtitles.js";
 
@@ -1057,13 +1057,6 @@ async function translateCuesWithGoogle(document, settings, provider, { onProgres
   return translations;
 }
 
-function getDeepLEndpoint(provider) {
-  if (provider.baseUrl) return provider.baseUrl;
-  return provider.plan === "pro"
-    ? "https://api.deepl.com/v2/translate"
-    : "https://api-free.deepl.com/v2/translate";
-}
-
 function buildDeepLRequestBody(cues, document, settings) {
   const body = new URLSearchParams();
   for (const cue of cues) {
@@ -1126,7 +1119,7 @@ async function translateCuesWithDeepL(document, settings, provider, { onProgress
   for (const chunk of chunks) {
     throwIfAborted(signal);
     const body = buildDeepLRequestBody(chunk.cues, document, settings);
-    const response = await fetch(getDeepLEndpoint(provider), {
+    const response = await fetch(getDeepLEndpoint(provider.plan), {
       method: "POST",
       redirect: "error",
       headers: {

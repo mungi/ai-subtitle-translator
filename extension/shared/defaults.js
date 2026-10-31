@@ -1,3 +1,13 @@
+export const DEEPL_ENDPOINTS = {
+  free: "https://api-free.deepl.com/v2/translate",
+  pro: "https://api.deepl.com/v2/translate"
+};
+
+// The DeepL plan picks the endpoint, so a stored Base URL cannot disagree with it.
+export function getDeepLEndpoint(plan) {
+  return plan === "pro" ? DEEPL_ENDPOINTS.pro : DEEPL_ENDPOINTS.free;
+}
+
 export const PROVIDERS = {
   googleTranslate: {
     id: "googleTranslate",

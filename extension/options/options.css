@@ -438,7 +438,8 @@ textarea {
   line-height: 1.45;
 }
 
-.system-prompt-textarea.readonly {
+.system-prompt-textarea.readonly,
+input.readonly {
   background: #f8fafc;
   color: #334155;
 }
