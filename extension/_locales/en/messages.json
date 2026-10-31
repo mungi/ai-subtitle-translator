@@ -813,13 +813,22 @@
     "message": "Prefer YouTube-provided subtitles"
   },
   "preferYoutubeProvidedTranslationGuide": {
-    "message": "When YouTube has human-made subtitles in the target language, they are shown instead of translating. Turn this off to translate with your selected translation style."
+    "message": "Instead of translating, shows YouTube's human-made subtitles in the target language, or YouTube's auto-translation when there are none. Human subtitles always come first. Turn this off to translate with your selected translation style."
   },
   "contentYoutubeCaptionsInUse": {
     "message": "in use"
   },
   "contentYoutubeHumanCaptionsApplied": {
     "message": "Showing YouTube human subtitles ($language$).",
+    "placeholders": {
+      "language": {
+        "content": "$1",
+        "example": "ko"
+      }
+    }
+  },
+  "contentYoutubeAutoTranslationApplied": {
+    "message": "Showing YouTube auto-translation ($language$).",
     "placeholders": {
       "language": {
         "content": "$1",

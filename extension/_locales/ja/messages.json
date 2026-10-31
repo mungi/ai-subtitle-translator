@@ -813,13 +813,22 @@
     "message": "YouTube 提供の字幕を優先"
   },
   "preferYoutubeProvidedTranslationGuide": {
-    "message": "YouTube に翻訳先言語の人による字幕がある場合は、翻訳せずにその字幕を表示します。選択した翻訳スタイルで翻訳するにはオフにしてください。"
+    "message": "翻訳する代わりに、YouTube にある翻訳先言語の人による字幕を、なければ YouTube の自動翻訳を表示します。人による字幕が常に優先されます。選択した翻訳スタイルで翻訳するにはオフにしてください。"
   },
   "contentYoutubeCaptionsInUse": {
     "message": "使用中"
   },
   "contentYoutubeHumanCaptionsApplied": {
     "message": "YouTube の人による字幕（$language$）を表示しています。",
+    "placeholders": {
+      "language": {
+        "content": "$1",
+        "example": "ko"
+      }
+    }
+  },
+  "contentYoutubeAutoTranslationApplied": {
+    "message": "YouTube の自動翻訳（$language$）を表示しています。",
     "placeholders": {
       "language": {
         "content": "$1",

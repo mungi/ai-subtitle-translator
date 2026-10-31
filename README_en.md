@@ -16,7 +16,7 @@ Chrome 102 or later is required.
 - Supports Google Translate, DeepL, OpenAI, Anthropic, Google AI, OpenRouter, NVIDIA NIM, and Custom LLM.
 - Uses the full subtitle context and current playback position for LLM translation, splitting long videos into manageable parts.
 - Provides Natural, Lecture, Technical, and custom translation styles.
-- When YouTube has human-made subtitles in the target language, shows them instead of translating. Turn off "Prefer YouTube-provided subtitles" under Translation style in the player menu or in settings to translate with your selected style.
+- Instead of translating, shows YouTube's human-made subtitles in the target language, or YouTube's auto-translation when there are none. Turn off "Prefer YouTube-provided subtitles" under Translation style in the player menu or in settings to translate with your selected style.
 - Lets you adjust subtitle position, size, font, color, shadow, outline, and background.
 - Caches translations and falls back to Google Translate when an LLM quota is exceeded.
 - Provides provider connection tests, model discovery, and settings backup and restore.
