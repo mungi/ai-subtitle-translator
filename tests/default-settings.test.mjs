@@ -194,3 +194,10 @@ test("hosted LLM providers default to the configured recommended models", () => 
   assert.equal(PROVIDERS.openrouter.disableReasoning, true);
   assert.equal(PROVIDERS.nvidiaNim.model, "openai/gpt-oss-120b");
 });
+
+test("YouTube-provided subtitles are preferred by default and can be turned off", () => {
+  assert.equal(DEFAULT_SETTINGS.preferYoutubeProvidedTranslation, true);
+  assert.equal(normalizeSettings().preferYoutubeProvidedTranslation, true);
+  assert.equal(normalizeSettings({ preferYoutubeProvidedTranslation: false }).preferYoutubeProvidedTranslation, false);
+  assert.equal(normalizeSettings({ preferYoutubeProvidedTranslation: "off" }).preferYoutubeProvidedTranslation, true);
+});

@@ -143,6 +143,7 @@ export function normalizeSettings(settings = {}) {
       ? settings.subtitleDisplayMode
       : defaults.subtitleDisplayMode,
     activeProvider,
+    preferYoutubeProvidedTranslation: settings.preferYoutubeProvidedTranslation !== false,
     customSystemPrompt: extractStyleSystemPrompt(settings.customSystemPrompt || defaults.customSystemPrompt || buildDefaultCustomStyleSystemPrompt(targetLanguage)),
     custom2SystemPrompt: extractStyleSystemPrompt(settings.custom2SystemPrompt || defaults.custom2SystemPrompt || buildDefaultCustom2StyleSystemPrompt())
   };

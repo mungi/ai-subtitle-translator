@@ -808,5 +808,23 @@
   },
   "contentRequestRestrictedError": {
     "message": "The API request was restricted. Allowance exhaustion has not been confirmed. Retrying after a wait."
+  },
+  "preferYoutubeProvidedTranslation": {
+    "message": "Prefer YouTube-provided subtitles"
+  },
+  "preferYoutubeProvidedTranslationGuide": {
+    "message": "When YouTube has human-made subtitles in the target language, they are shown instead of translating. Turn this off to translate with your selected translation style."
+  },
+  "contentYoutubeCaptionsInUse": {
+    "message": "in use"
+  },
+  "contentYoutubeHumanCaptionsApplied": {
+    "message": "Showing YouTube human subtitles ($language$).",
+    "placeholders": {
+      "language": {
+        "content": "$1",
+        "example": "ko"
+      }
+    }
   }
 }

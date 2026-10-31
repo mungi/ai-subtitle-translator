@@ -138,6 +138,7 @@ const maxChunkDurationMinutesInput = document.getElementById("maxChunkDurationMi
 const llmParallelRequestsInput = document.getElementById("llmParallelRequests");
 const maxChunkDurationValue = document.getElementById("maxChunkDurationValue");
 const cacheTranslationsInput = document.getElementById("cacheTranslations");
+const preferYoutubeProvidedTranslationInput = document.getElementById("preferYoutubeProvidedTranslation");
 const fallbackProviderSelect = document.getElementById("fallbackProvider");
 const providerTabs = document.getElementById("providerTabs");
 const providerForm = document.getElementById("providerForm");
@@ -678,6 +679,7 @@ function readGeneralSettings() {
   settings.maxChunkDurationSeconds = getChunkDurationMinutes() * 60;
   settings.llmParallelRequests = normalizeLlmParallelRequests(llmParallelRequestsInput.value);
   settings.cacheTranslations = cacheTranslationsInput.checked;
+  settings.preferYoutubeProvidedTranslation = preferYoutubeProvidedTranslationInput.checked;
   settings.fallback.providerId = resolveFallbackProviderId(fallbackProviderSelect.value || "googleTranslate");
 }
 
@@ -763,6 +765,7 @@ function renderGeneralSettings() {
   updateChunkDurationValue();
   llmParallelRequestsInput.value = normalizeLlmParallelRequests(settings.llmParallelRequests);
   cacheTranslationsInput.checked = Boolean(settings.cacheTranslations);
+  preferYoutubeProvidedTranslationInput.checked = settings.preferYoutubeProvidedTranslation !== false;
   updateSystemPromptTextarea();
   renderFallbackProviderSelect();
 }
@@ -1467,7 +1470,8 @@ async function resetGeneralSettingsSection() {
     custom2SystemPrompt: DEFAULT_SETTINGS.custom2SystemPrompt,
     maxChunkDurationSeconds: DEFAULT_SETTINGS.maxChunkDurationSeconds,
     llmParallelRequests: DEFAULT_SETTINGS.llmParallelRequests,
-    cacheTranslations: DEFAULT_SETTINGS.cacheTranslations
+    cacheTranslations: DEFAULT_SETTINGS.cacheTranslations,
+    preferYoutubeProvidedTranslation: DEFAULT_SETTINGS.preferYoutubeProvidedTranslation
   });
   await persistSectionReset();
 }
@@ -1592,6 +1596,9 @@ async function init() {
     scheduleAutomaticSave({ immediate: true });
   });
   cacheTranslationsInput.addEventListener("change", () => {
+    scheduleAutomaticSave({ immediate: true });
+  });
+  preferYoutubeProvidedTranslationInput.addEventListener("change", () => {
     scheduleAutomaticSave({ immediate: true });
   });
   fallbackProviderSelect.addEventListener("change", () => {

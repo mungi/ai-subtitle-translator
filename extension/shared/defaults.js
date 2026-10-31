@@ -403,6 +403,7 @@ export const DEFAULT_SETTINGS = {
   activeProvider: "googleTranslate",
   targetLanguage: "",
   translationStyle: "custom",
+  preferYoutubeProvidedTranslation: true,
   customSystemPrompt: DEFAULT_CUSTOM_STYLE_SYSTEM_PROMPT,
   custom2SystemPrompt: DEFAULT_CUSTOM_2_STYLE_SYSTEM_PROMPT,
   maxChunkDurationSeconds: 420,

@@ -18,6 +18,15 @@ test("subtitle display messages accept only the three supported modes", () => {
   }
 });
 
+test("YouTube-provided subtitle preference messages accept only booleans", () => {
+  for (const enabled of [true, false]) {
+    assert.deepEqual(validateBackgroundMessage({ type: "settings.setPreferYoutubeProvidedTranslation", enabled }), { handled: true, ok: true });
+  }
+  for (const enabled of [undefined, "true", 1, null]) {
+    assert.equal(validateBackgroundMessage({ type: "settings.setPreferYoutubeProvidedTranslation", enabled }).ok, false);
+  }
+});
+
 test("background message validation accepts a valid translation request", () => {
   assert.deepEqual(validateBackgroundMessage({
     type: "translation.translateDocument",

@@ -79,6 +79,9 @@ const subtitleState = {
   currentDocument: null,
   activeProviderId: "",
   translationStyle: "",
+  preferYoutubeProvidedTranslation: true,
+  youtubeProvidedTranslationLanguage: "",
+  youtubeProvidedTranslationPending: false,
   defaultProviderId: "",
   sourceCaptionTracks: [],
   sourceCaptionSessionKey: "",
@@ -470,6 +473,28 @@ function renderTranslationStyleMenu(menu, platform) {
     });
     list.append(item);
   }
+  if (platform === "youtube") {
+    const separator = document.createElement("div");
+    separator.className = "ast-provider-menu-separator";
+    separator.setAttribute("role", "separator");
+    const enabled = subtitleState.preferYoutubeProvidedTranslation;
+    const inUse = subtitleState.youtubeProvidedTranslationLanguage
+      ? ` · ${contentText("contentYoutubeCaptionsInUse")}` : "";
+    const item = createProviderMenuButton(
+      "ast-provider-menu-item ast-translation-style-item ast-youtube-provided-toggle",
+      `${contentText("preferYoutubeProvidedTranslation")}${inUse}`
+    );
+    item.setAttribute("role", "menuitemcheckbox");
+    item.setAttribute("aria-checked", String(enabled));
+    if (enabled) item.classList.add("active");
+    item.addEventListener("click", (event) => {
+      event.stopPropagation();
+      selectPreferYoutubeProvidedTranslation(platform, !enabled).catch((error) => {
+        showToast(contentText("contentProviderFailed", [error.message]));
+      });
+    });
+    list.append(separator, item);
+  }
   submenu.append(list);
   menu.append(submenu);
 }
@@ -701,6 +726,7 @@ async function refreshAvailableProviders() {
     .some((provider) => provider.id === settings.activeProvider);
   subtitleState.activeProviderId = activeProviderAvailable ? settings.activeProvider : "googleTranslate";
   subtitleState.translationStyle = settings.translationStyle || "custom";
+  subtitleState.preferYoutubeProvidedTranslation = settings.preferYoutubeProvidedTranslation !== false;
   subtitleState.targetLanguages = settings.targetLanguages || subtitleState.targetLanguages;
   subtitleState.targetLanguage = settings.targetLanguage || "";
   subtitleState.subtitleDisplayMode = Object.hasOwn(SUBTITLE_DISPLAY_MESSAGE_KEYS, settings.subtitleDisplayMode)
@@ -2619,6 +2645,7 @@ function applyFinalTranslationResult(video, cues = [], detail = {}) {
 function requestTemporaryTranslationAtCurrentCue(video = subtitleState.currentVideo) {
   if (isYoutubeAdPlaying()) return false;
   if (!subtitleState.enabled || ["complete", "fallback"].includes(subtitleState.translationPhase)) return false;
+  if (subtitleState.youtubeProvidedTranslationPending) return false;
   if (!subtitleState.currentDocument || !subtitleState.defaultProviderId) return false;
   if (subtitleState.activeProviderId === subtitleState.defaultProviderId) return false;
 
@@ -3108,17 +3135,95 @@ function startProviderTranslation(document, platform, sessionKey, video, provide
     resetUdemyTranscriptTranslations();
     ensureUdemyTranscriptObserver();
   }
+  subtitleState.youtubeProvidedTranslationLanguage = "";
+  subtitleState.youtubeProvidedTranslationPending = false;
   const targetVideo = resolveRenderVideo(video);
   setTranslationPhase("source");
   renderOverlay(targetVideo, document.cues);
 
-  if (!options.skipTemporaryTranslation
-    && !isMachineTranslationProvider(providerId)
-    && providerId !== subtitleState.defaultProviderId) {
-    startDefaultCueTranslation(document, platform, sessionKey, targetVideo, subtitleState.defaultProviderId);
+  const startRequests = () => {
+    if (!options.skipTemporaryTranslation
+      && !isMachineTranslationProvider(providerId)
+      && providerId !== subtitleState.defaultProviderId) {
+      startDefaultCueTranslation(document, platform, sessionKey, targetVideo, subtitleState.defaultProviderId);
+    }
+    startFinalTranslation(document, platform, sessionKey, targetVideo, providerId);
+    refreshOpenProviderMenu();
+  };
+  const requestTarget = globalThis.astYoutubeCaptionCapture?.requestTarget;
+  if (platform !== "youtube" || !subtitleState.preferYoutubeProvidedTranslation || !requestTarget
+    || !subtitleState.targetLanguage || isSameBaseLanguage(document.sourceLanguage, subtitleState.targetLanguage)) {
+    startRequests();
+    return;
   }
-  startFinalTranslation(document, platform, sessionKey, targetVideo, providerId);
-  refreshOpenProviderMenu();
+
+  // Human captions in the target language replace our own translation, so nothing is sent until they are ruled out.
+  const generation = subtitleState.translationGeneration;
+  const isCurrent = () => generation === subtitleState.translationGeneration
+    && subtitleState.enabled && isCurrentSession(platform, sessionKey);
+  subtitleState.youtubeProvidedTranslationPending = true;
+  Promise.resolve(requestTarget({ videoId: document.videoId, targetLanguage: subtitleState.targetLanguage }))
+    .then((caption) => (caption ? buildYoutubeProvidedTranslation(document, caption) : null))
+    .catch(() => null)
+    .then((provided) => {
+      if (!isCurrent()) return;
+      subtitleState.youtubeProvidedTranslationPending = false;
+      if (!provided) {
+        startRequests();
+        return;
+      }
+      subtitleState.youtubeProvidedTranslationLanguage = provided.languageCode;
+      applyFinalTranslationResult(targetVideo, provided.cues);
+      setTranslationPhase("complete");
+      const languageLabel = subtitleState.targetLanguages.find((language) => language.code === subtitleState.targetLanguage)?.label;
+      showToast(contentText("contentYoutubeHumanCaptionsApplied", [languageLabel || provided.languageCode]));
+      refreshOpenProviderMenu();
+    });
+}
+
+function isSameBaseLanguage(left, right) {
+  const base = (value) => String(value || "").toLowerCase().split(/[-_]/)[0];
+  return Boolean(base(left)) && base(left) === base(right);
+}
+
+function buildYoutubeProvidedTranslation(document, caption) {
+  if (caption.videoId !== document.videoId) return null;
+  const cues = alignTargetCuesToSource(document.cues, parseYoutubeTranscriptPayloadOnPage(caption.text));
+  return cues ? { languageCode: caption.languageCode, cues } : null;
+}
+
+// Human captions have their own timing. Each target line goes to the source cue it overlaps most,
+// so the source cue count and times stay intact; uncovered source cues borrow an overlapping line.
+function alignTargetCuesToSource(sourceCues, targetCues) {
+  if (!sourceCues?.length || !targetCues?.length) return null;
+  const overlap = (a, b) => Math.min(a.end, b.end) - Math.max(a.start, b.start);
+  const assigned = sourceCues.map(() => []);
+  let first = 0;
+  for (const target of targetCues) {
+    while (first < sourceCues.length && sourceCues[first].end <= target.start) first += 1;
+    let best = -1;
+    let bestOverlap = 0;
+    for (let index = first; index < sourceCues.length && sourceCues[index].start < target.end; index += 1) {
+      const amount = overlap(sourceCues[index], target);
+      if (amount > bestOverlap) {
+        best = index;
+        bestOverlap = amount;
+      }
+    }
+    if (best >= 0) assigned[best].push(target.text);
+  }
+  let covered = 0;
+  const cues = sourceCues.map((cue, index) => {
+    let text = assigned[index].join(" ");
+    if (!text) {
+      const nearby = targetCues.filter((target) => overlap(cue, target) > 0);
+      text = nearby.map((target) => target.text).join(" ");
+    }
+    if (text) covered += 1;
+    return { id: cue.id, text };
+  });
+  // A track that leaves most source lines empty is likely a different cut of the video.
+  return covered / sourceCues.length >= 0.6 ? cues : null;
 }
 
 async function selectMenuProvider(platform, providerId) {
@@ -3194,6 +3299,33 @@ async function selectTargetLanguage(platform, languageCode) {
       subtitleState.defaultProviderId
     );
   }
+}
+
+async function selectPreferYoutubeProvidedTranslation(platform, enabled) {
+  if (subtitleState.loading) return;
+  const response = await sendRuntimeMessage({ type: "settings.setPreferYoutubeProvidedTranslation", enabled });
+  if (!response?.ok) {
+    showToast(contentText("contentProviderFailed", [response?.error || "Unknown error"]));
+    return;
+  }
+  subtitleState.preferYoutubeProvidedTranslation = enabled;
+  const handler = platformHandlers[platform];
+  const reusableDocument = subtitleState.currentDocument
+    && subtitleState.currentPlatform === platform
+    && subtitleState.currentSessionKey === handler?.getSessionKey();
+  // Turning it off must replace the human captions; turning it on may find them for this video.
+  const shouldRestart = enabled ? !subtitleState.youtubeProvidedTranslationLanguage : Boolean(subtitleState.youtubeProvidedTranslationLanguage);
+  if (subtitleState.enabled && reusableDocument && shouldRestart) {
+    startProviderTranslation(
+      subtitleState.currentDocument,
+      platform,
+      subtitleState.currentSessionKey,
+      subtitleState.currentVideo,
+      subtitleState.activeProviderId || "googleTranslate",
+      subtitleState.defaultProviderId
+    );
+  }
+  renderProviderMenu(platform);
 }
 
 async function selectTranslationStyle(platform, styleId) {
@@ -3651,6 +3783,9 @@ chrome.runtime.onMessage.addListener((message) => {
       subtitleState.subtitleDisplayMode = settings.subtitleDisplayMode;
     }
     subtitleState.translationStyle = settings.translationStyle || subtitleState.translationStyle;
+    if (typeof settings.preferYoutubeProvidedTranslation === "boolean") {
+      subtitleState.preferYoutubeProvidedTranslation = settings.preferYoutubeProvidedTranslation;
+    }
     subtitleState.targetLanguages = settings.targetLanguages || subtitleState.targetLanguages;
     subtitleState.targetLanguage = settings.targetLanguage || subtitleState.targetLanguage;
     subtitleState.availableProviders = getAvailableProviders(settings);

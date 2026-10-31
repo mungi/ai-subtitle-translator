@@ -162,12 +162,15 @@ test("provider and translation-style mutations are serialized without losing eit
     }
   };
 
-  const { setActiveProvider, setTranslationStyle, setTargetLanguage, setSubtitleDisplayMode } = await import("../extension/background/service-worker.js");
+  const {
+    setActiveProvider, setTranslationStyle, setTargetLanguage, setSubtitleDisplayMode, setPreferYoutubeProvidedTranslation
+  } = await import("../extension/background/service-worker.js");
   await Promise.all([
     setActiveProvider("google"),
     setTranslationStyle("technical"),
     setTargetLanguage("fa"),
-    setSubtitleDisplayMode("dual")
+    setSubtitleDisplayMode("dual"),
+    setPreferYoutubeProvidedTranslation(false)
   ]);
 
   assert.equal(llmSettings.activeProvider, "google");
@@ -176,6 +179,8 @@ test("provider and translation-style mutations are serialized without losing eit
   await assert.rejects(setTargetLanguage("invalid"), /Unsupported target language/);
   assert.equal(llmSettings.subtitleDisplayMode, "dual");
   await assert.rejects(setSubtitleDisplayMode("invalid"), /Unsupported subtitle display mode/);
+  assert.equal(llmSettings.preferYoutubeProvidedTranslation, false);
+  await assert.rejects(setPreferYoutubeProvidedTranslation("no"), /enabled must be a boolean/);
 });
 
 test("NVIDIA NIM model listing uses the OpenAI-compatible models endpoint", async () => {

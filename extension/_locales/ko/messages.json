@@ -808,5 +808,23 @@
   },
   "contentRequestRestrictedError": {
     "message": "API 요청이 제한되었습니다. 사용 한도 소진 여부는 확인되지 않았습니다. 대기 후 다시 시도합니다."
+  },
+  "preferYoutubeProvidedTranslation": {
+    "message": "YouTube 제공 자막 우선"
+  },
+  "preferYoutubeProvidedTranslationGuide": {
+    "message": "YouTube에 목표 언어로 된 사람 자막이 있으면 번역하지 않고 그 자막을 보여 줍니다. 선택한 번역 스타일로 직접 번역하려면 끄세요."
+  },
+  "contentYoutubeCaptionsInUse": {
+    "message": "사용 중"
+  },
+  "contentYoutubeHumanCaptionsApplied": {
+    "message": "YouTube 사람 자막($language$)을 표시합니다.",
+    "placeholders": {
+      "language": {
+        "content": "$1",
+        "example": "ko"
+      }
+    }
   }
 }

@@ -621,3 +621,9 @@ test("settings restore can validate every configured API key and update provider
   assert.match(optionsCss, /\.backup-status-line\s*\{[\s\S]*white-space: pre-wrap;/);
   assert.match(optionsJs, /if \(globalThis\.confirm\(t\("restoreTestKeysConfirm"\)\)\) \{\s*await testRestoredProviderKeys\(\);/);
 });
+
+test("options page exposes the YouTube-provided subtitle preference", () => {
+  assert.match(optionsHtml, /<input id="preferYoutubeProvidedTranslation" type="checkbox"/);
+  assert.match(optionsJs, /settings.preferYoutubeProvidedTranslation = preferYoutubeProvidedTranslationInput.checked;/);
+  assert.match(optionsJs, /preferYoutubeProvidedTranslationInput.checked = settings.preferYoutubeProvidedTranslation !== false;/);
+});
