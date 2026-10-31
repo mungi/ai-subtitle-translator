@@ -411,13 +411,11 @@ test("system prompt editor is a full-width general setting and custom-only edita
   assert.doesNotMatch(optionsJs, /buildSystemPromptFromSettings/);
 });
 
-test("Custom LLM check and endpoint permission request are rendered only in its provider settings", () => {
+test("Custom LLM check is rendered only in its provider settings", () => {
   assert.doesNotMatch(optionsHtml, /<h2 data-i18n="localExample">/);
   assert.doesNotMatch(optionsHtml, /Local LLM 예시/);
   assert.equal(message("ko", "localCheckTitle"), "Custom LLM 확인 방법");
   assert.match(optionsJs, /if \(provider\.id === "local"\) \{[\s\S]*renderLocalLlmCheck\(provider\)/);
-  assert.match(optionsJs, /function requestCustomLlmEndpointPermission\(provider\)/);
-  assert.match(optionsJs, /chrome\.permissions\.request\(\{ origins: \[permissionOrigin\] \}\)/);
   assert.match(optionsJs, /buildLocalChatCompletionsUrl\(draft\.baseUrl\)/);
   assert.match(optionsJs, /draft\.model/);
   assert.match(optionsJs, /draft\.apiKey/);

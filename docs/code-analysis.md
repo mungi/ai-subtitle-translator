@@ -197,7 +197,7 @@ CST에서 AST로 명칭을 바꾼 현재 초기 개발 단계에서는 storage n
 
 ### Options
 
-`options/options.js`는 기본 `간단 설정`과 전체 `고급 설정`을 렌더링합니다. 간단 설정은 Google AI API key 한 개와 연결 확인만 제공하며, 성공 시 Gemini 3.1 Flash Lite를 자동 설정합니다. 고급 설정은 provider tab, provider별 field, 모델 조회, 연결 테스트, target language, translation style, subtitle style preview, cache clear와 설정 백업/복구를 렌더링합니다. 모델 조회가 끝나면 `model-recommendations.js`로 권장 모델을 선택합니다. 온라인 provider는 즉시 연결 테스트해 상태를 갱신하고, Custom LLM은 `google/gemma-4-e4b` 우선 모델 선택까지만 수행합니다. 사용자 지정 HTTPS Custom LLM은 모델 가져오기 또는 연결 테스트를 시작할 때 해당 origin 접근 권한을 요청합니다. provider field는 `providerFieldDefs`에 모여 있어 provider 추가 시 defaults, request adapter, host permission, field 정의, recommendation과 tests를 함께 갱신해야 합니다.
+`options/options.js`는 기본 `간단 설정`과 전체 `고급 설정`을 렌더링합니다. 간단 설정은 Google AI API key 한 개와 연결 확인만 제공하며, 성공 시 Gemini 3.1 Flash Lite를 자동 설정합니다. 고급 설정은 provider tab, provider별 field, 모델 조회, 연결 테스트, target language, translation style, subtitle style preview, cache clear와 설정 백업/복구를 렌더링합니다. 모델 조회가 끝나면 `model-recommendations.js`로 권장 모델을 선택합니다. 온라인 provider는 즉시 연결 테스트해 상태를 갱신하고, Custom LLM은 `google/gemma-4-e4b` 우선 모델 선택까지만 수행합니다. provider field는 `providerFieldDefs`에 모여 있어 provider 추가 시 defaults, request adapter, `provider-security.js` 허용 origin, field 정의, recommendation과 tests를 함께 갱신해야 합니다.
 
 설정 백업은 API key가 복원된 현재 설정을 사용자 백업 비밀번호에서 파생한 AES-GCM key로 암호화해 `.astbackup` 파일로 저장합니다. 복구 선택창과 파일명 검증은 이 확장자만 허용합니다. 백업/복구 비밀번호는 버튼 동작 시 `<dialog>` 기반 마스킹 팝업에서 입력받고 저장하지 않습니다. PBKDF2-SHA-256 250,000회와 파일별 salt/nonce를 사용합니다. 복구는 파일 형식과 payload를 검증한 뒤 기존 `saveSettings` 흐름을 사용하므로 API key는 다시 내부 secret vault에 암호화 저장됩니다. 사용자가 동의하면 `provider-key-validation.js`가 API key가 있는 provider를 순차 테스트하고 성공 상태를 실제 결과로 갱신합니다.
 
@@ -248,7 +248,7 @@ npm run check
 - YouTube 내부 구조와 Innertube endpoint는 변경 가능성이 높아 fallback 테스트와 수동 QA가 계속 필요합니다.
 - Udemy는 인증/권한/강의 UI 구조에 의존하므로 자동 테스트만으로는 충분하지 않습니다.
 - API key 암호화 key도 난독화된 형태로 로컬에 존재하므로 표적 분석에 대한 보안 저장소는 아닙니다. 배포 문서와 개인정보 문구에서 이 범위를 과장하지 않아야 합니다.
-- 사용자 지정 HTTPS Custom LLM origin은 사용자가 승인하면 현재 별도 회수 UI 없이 유지됩니다. 권한 목록 표시와 개별 회수 기능을 추가하는 것이 좋습니다.
+- 호스트 권한이 `<all_urls>`이므로 manifest가 네트워크 대상을 제한하지 않습니다. 번역 제공업체는 `provider-security.js` 허용 목록, Udemy·YouTube·TED·Vimeo 자막은 플랫폼별 주소 검사가 유일한 경계이므로 새 fetch 경로를 추가할 때 같은 검사를 거쳐야 합니다.
 - `provider-error-sanitizer.js`는 provider 오류를 상태 영역에 보내기 전에 현재 API key의 원문·URL 인코딩 값, 인증 header 값, URL query의 인증 파라미터를 `[redacted]`로 바꿉니다. 모델 목록 조회, 연결 테스트, 백업 복원 뒤 일괄 키 확인에 공통 적용됩니다.
 - 번역 cache는 항목 수와 직렬화 용량 기준으로 제한하지만, 설정 화면에서 현재 사용량이나 항목별 제거 기능은 제공하지 않습니다.
 

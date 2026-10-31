@@ -52,7 +52,7 @@ LLM 제공업체를 선택하면 현재 재생 위치 부근의 자막을 우선
 
 ## Custom LLM 설정
 
-Custom LLM은 로컬 LLM과 사용자가 운영하는 OpenAI 호환 `chat/completions` 서버를 함께 지원합니다. 최종 요청 주소에서 `/chat/completions` 앞부분까지만 Base URL에 입력합니다. `localhost`와 `127.0.0.1`은 HTTP 또는 HTTPS를 사용할 수 있고, 외부 사용자 지정 서버는 HTTPS만 허용합니다. 외부 서버는 모델 가져오기 또는 연결 테스트를 할 때 해당 도메인 접근 권한을 승인한 뒤 사용할 수 있습니다. 자막 텍스트와 API 키(입력한 경우)는 이 서버로 직접 전송됩니다.
+Custom LLM은 로컬 LLM과 사용자가 운영하는 OpenAI 호환 `chat/completions` 서버를 함께 지원합니다. 최종 요청 주소에서 `/chat/completions` 앞부분까지만 Base URL에 입력합니다. `localhost`와 `127.0.0.1`은 HTTP 또는 HTTPS를 사용할 수 있고, 외부 사용자 지정 서버는 HTTPS만 허용합니다. 자막 텍스트와 API 키(입력한 경우)는 이 서버로 직접 전송됩니다.
 
 ```text
 Base URL: http://localhost:1234/v1

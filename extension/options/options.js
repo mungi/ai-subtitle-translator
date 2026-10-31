@@ -7,7 +7,6 @@ import { maskSecretValue, resolveSecretFieldValue } from "../shared/secret-field
 import { SIMPLE_GOOGLE_GUIDE_LINKS, stageSimpleGoogleApiKey, captureActiveGoogleBackup, applySimpleGoogleTestResult } from "../shared/simple-google-settings.js";
 import { createEncryptedSettingsBackup, decryptSettingsBackup, settingsBackupInternals, validateBackupSeed } from "../shared/settings-backup.js";
 import { getExtensionUiLanguage, getMessage } from "../shared/i18n.js";
-import { getCustomLlmPermissionOrigin } from "../shared/provider-security.js";
 import { getBrowserTargetLanguage, getSettings, normalizeSettings, resetSettings, saveSettings } from "../shared/storage.js";
 
 const uiLanguage = getExtensionUiLanguage();
@@ -1077,16 +1076,12 @@ function renderField(provider, [key, labelKey, placeholder, type = "text"]) {
 }
 
 async function fetchModelsForSelectedProvider(button) {
-  const permissionRequest = requestCustomLlmEndpointPermission(
-    readProviderDraft(settings.providers[selectedProviderId])
-  );
   const originalText = button.textContent;
   button.disabled = true;
   button.textContent = t("loadingModels");
   setStatus(t("loadingModels"));
 
   try {
-    await permissionRequest;
     await flushAutomaticSave();
     readProviderForm();
     const provider = settings.providers[selectedProviderId];
@@ -1245,22 +1240,6 @@ function renderLocalLlmCheck(provider) {
 
   wrapper.append(title, preview);
   return wrapper;
-}
-
-function requestCustomLlmEndpointPermission(provider) {
-  try {
-    const permissionOrigin = getCustomLlmPermissionOrigin(provider);
-    if (!permissionOrigin || !chrome.permissions?.request) {
-      return Promise.resolve();
-    }
-    return chrome.permissions.request({ origins: [permissionOrigin] }).then((granted) => {
-      if (!granted) {
-        throw new Error(t("customLlmPermissionDenied"));
-      }
-    });
-  } catch (error) {
-    return Promise.reject(error);
-  }
 }
 
 function renderProviderGuide(providerId) {
@@ -1522,10 +1501,6 @@ async function resetSubtitleStyleSettingsSection() {
 
 async function testProvider() {
   const providerId = selectedProviderId;
-  const permissionRequest = requestCustomLlmEndpointPermission(
-    readProviderDraft(settings.providers[providerId])
-  );
-  await permissionRequest;
   await flushAutomaticSave();
   setStatus(t("testing"));
 

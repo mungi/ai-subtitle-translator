@@ -59,8 +59,9 @@ export function readUdemyCourseDataFromDocument(documentRef = document, url = lo
   return parseUdemyCourseData(moduleArgs, url);
 }
 
+// Host permissions cover every site, so the hostname itself must keep requests on Udemy.
 function getUdemyOrigin(hostname) {
-  if (hostname && hostname.includes(".udemy.com")) {
+  if (/^(?:[a-z0-9-]+\.)+udemy\.com$/i.test(String(hostname || ""))) {
     return `https://${hostname}`;
   }
   return "https://www.udemy.com";
@@ -231,6 +232,7 @@ export async function fetchUdemyTranscript({ courseId, lectureId, hostname, lang
 }
 
 export const udemyCaptionInternals = {
+  getUdemyOrigin,
   isEnglishTrack,
   selectCaptionTrack,
   normalizeUdemyCaption,

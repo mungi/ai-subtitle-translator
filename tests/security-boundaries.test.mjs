@@ -22,8 +22,7 @@ test("content scripts cannot access chrome.storage.local directly", async () => 
   assert.doesNotMatch(contentScript, /chrome\.storage\.(?:local|onChanged)/);
   assert.match(storageModule, /setAccessLevel\(\{\s*accessLevel:\s*"TRUSTED_CONTEXTS"\s*\}\)/);
   assert.equal(manifest.minimum_chrome_version, "102");
-  assert.ok(manifest.host_permissions.includes("https://localhost/*"));
-  assert.ok(manifest.host_permissions.includes("https://127.0.0.1/*"));
+  assert.deepEqual(manifest.host_permissions, ["<all_urls>"]);
   assert.doesNotMatch(serviceWorker, /restrictLocalStorageAccess\(\)\.catch\(\(\) => \{\}\)/);
 });
 
@@ -325,4 +324,27 @@ test("privacy policies exist in Korean, English, and Japanese and are linked", a
     assert.match(readme, /PRIVACY_en\.md/);
     assert.match(readme, /PRIVACY_ja\.md/);
   }
+});
+
+test("Udemy caption requests stay on Udemy hosts even with all-site access", async () => {
+  const { udemyCaptionInternals } = await import("../extension/platforms/udemy-captions.js");
+  assert.equal(udemyCaptionInternals.getUdemyOrigin("www.udemy.com"), "https://www.udemy.com");
+  assert.equal(udemyCaptionInternals.getUdemyOrigin("company.udemy.com"), "https://company.udemy.com");
+  assert.equal(udemyCaptionInternals.getUdemyOrigin("www.udemy.com.attacker.example"), "https://www.udemy.com");
+  assert.equal(udemyCaptionInternals.getUdemyOrigin("evil-udemy.com"), "https://www.udemy.com");
+});
+
+test("page-provided YouTube caption tracks must point at YouTube timedtext", async () => {
+  const { youtubeCaptionInternals } = await import("../extension/platforms/youtube-captions.js");
+  const tracks = youtubeCaptionInternals.normalizeProvidedCaptionTracks([
+    { languageCode: "en", baseUrl: "https://www.youtube.com/api/timedtext?v=abcdefghijk&lang=en" },
+    { languageCode: "ko", baseUrl: "https://attacker.example/api/timedtext?v=abcdefghijk" },
+    { languageCode: "ja", baseUrl: "https://www.youtube.com/redirect?q=https://attacker.example" }
+  ], "abcdefghijk");
+  assert.deepEqual(tracks.map((track) => track.languageCode), ["en"]);
+});
+
+test("options page no longer requests host permissions at runtime", async () => {
+  const optionsJs = await readFile(new URL("../extension/options/options.js", import.meta.url), "utf8");
+  assert.doesNotMatch(optionsJs, /chrome\.permissions/);
 });

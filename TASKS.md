@@ -40,7 +40,8 @@
 - [ ] NVIDIA Academy와 Vimeo에서 Vimeo 자막 track 수집과 번역을 확인한다.
 - [ ] TED 영상에서 HLS 자막 track 수집, 원문 표시, 번역 표시를 확인한다.
 - [ ] 실제 API 키로 사용할 provider의 모델 목록 조회와 연결 테스트를 확인한다.
-- [ ] Custom LLM의 로컬 URL과 사용자 지정 HTTPS URL 권한 요청을 확인한다.
+- [ ] Custom LLM의 로컬 URL과 사용자 지정 HTTPS URL 연결을 확인한다.
+- [ ] 업데이트 설치 시 권한 재승인 안내와 `chrome://extensions` 사이트 액세스의 "모든 사이트에서" 표시를 확인한다.
 
 ## Chrome Web Store 등록
 

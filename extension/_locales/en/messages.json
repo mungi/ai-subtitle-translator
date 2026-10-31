@@ -713,9 +713,6 @@
       }
     }
   },
-  "customLlmPermissionDenied": {
-    "message": "Custom LLM server access permission is required. Allow the permission request and try again."
-  },
   "fieldBaseUrl": {
     "message": "Base URL"
   },

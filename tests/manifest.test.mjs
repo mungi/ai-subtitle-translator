@@ -12,28 +12,28 @@ test("YouTube caption bridge starts early with domain-scoped scripting access", 
   assert.equal(manifest.minimum_chrome_version, "102");
 });
 
-test("manifest grants NVIDIA NIM host permission", () => {
-  assert.ok(manifest.host_permissions.includes("https://integrate.api.nvidia.com/*"));
+test("manifest asks for all-site access once instead of listing every host", () => {
+  assert.deepEqual(manifest.host_permissions, ["<all_urls>"]);
+  assert.equal(manifest.optional_host_permissions, undefined);
 });
 
-test("manifest requests custom HTTPS LLM host access only at runtime", () => {
-  assert.deepEqual(manifest.optional_host_permissions, ["https://*/*"]);
+test("content scripts and page resources stay limited to supported video sites", () => {
+  const supportedSite = /^https:\/\/(?:[\w*-]+\.)?(?:udemy\.com|youtube\.com|ted\.com|nvidia\.com|vimeo\.com)\//;
+  const pagePatterns = [
+    ...manifest.content_scripts.flatMap((item) => item.matches),
+    ...manifest.web_accessible_resources.flatMap((item) => item.matches)
+  ];
+  assert.ok(pagePatterns.length > 0);
+  for (const pattern of pagePatterns) assert.match(pattern, supportedSite);
 });
 
-test("manifest grants Vimeo page and player access", () => {
-  assert.ok(manifest.host_permissions.includes("https://vimeo.com/*"));
-  assert.ok(manifest.host_permissions.includes("https://www.vimeo.com/*"));
-  assert.ok(manifest.host_permissions.includes("https://player.vimeo.com/*"));
-  assert.ok(manifest.host_permissions.includes("https://captions.cloud.vimeo.com/*"));
+test("manifest injects into Vimeo pages and players", () => {
   assert.ok(manifest.content_scripts[0].matches.includes("https://vimeo.com/*"));
   assert.ok(manifest.content_scripts[0].matches.includes("https://www.vimeo.com/*"));
   assert.ok(manifest.content_scripts[0].matches.includes("https://player.vimeo.com/video/*"));
 });
 
-test("manifest grants TED talk and HLS caption access", () => {
-  assert.ok(manifest.host_permissions.includes("https://ted.com/*"));
-  assert.ok(manifest.host_permissions.includes("https://www.ted.com/*"));
-  assert.ok(manifest.host_permissions.includes("https://hls.ted.com/*"));
+test("manifest injects into TED talk pages", () => {
   assert.ok(manifest.content_scripts[0].matches.includes("https://ted.com/talks/*"));
   assert.ok(manifest.content_scripts[0].matches.includes("https://www.ted.com/talks/*"));
 });

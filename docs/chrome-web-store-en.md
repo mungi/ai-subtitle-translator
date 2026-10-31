@@ -76,4 +76,5 @@ Naturally translate subtitles from videos on the following websites into your pr
 - Storage access is restricted to trusted extension contexts, and API keys are not exposed to content scripts.
 - The extension does not store API keys on its own server or in an external database.
 - API keys are sent directly to the selected provider when needed for authentication.
-- Hosted providers are limited to their official HTTPS origins. Custom LLM can use HTTP or HTTPS on `localhost` or `127.0.0.1`, plus a user-selected custom HTTPS origin after the user approves access while fetching models or testing the connection; redirect responses are not followed automatically.
+- Hosted providers are limited to their official HTTPS origins. Custom LLM can use HTTP or HTTPS on `localhost` or `127.0.0.1`, plus a custom HTTPS origin the user enters; redirect responses are not followed automatically.
+- Host access is requested once for all sites, but the subtitle script is injected only into supported video sites, and network requests go only to those sites for subtitles and to the translation provider the user selects.

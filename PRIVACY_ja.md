@@ -37,7 +37,7 @@ AST - AI Subtitle Translator は、Udemy、YouTube、TED、NVIDIA Academy、Vime
 
 - `storage`: 設定、暗号化された API キー、翻訳キャッシュをローカルに保存します。
 - `scripting`: YouTube ページの開始時にプレーヤーの字幕レスポンスを取得するスクリプトを実行します。Cookie、認証ヘッダー、署名付き URL を除き、字幕テキスト、言語、時刻情報のみを拡張機能に渡します。
-- ホスト権限: Udemy・YouTube・TED・NVIDIA Academy・Vimeo の字幕取得、選択した翻訳プロバイダーの呼び出し、`localhost`/`127.0.0.1` の Custom LLM への接続に使用します。Custom LLM のカスタム HTTPS ドメインには、モデル取得または接続テスト時にユーザーが許可した場合のみアクセスします。
+- ホスト権限: サイトごとに列挙せず、すべてのサイト（`<all_urls>`）へのアクセス権限を一度に要求し、実際の動作範囲はコードで制限しています。字幕スクリプトは Udemy・YouTube・TED・NVIDIA Academy・Vimeo のページにのみ挿入し、ネットワーク要求はこれらのサイトでの字幕取得と、ユーザーが選択した翻訳プロバイダー（公式 HTTPS アドレス、またはユーザーが入力した Custom LLM アドレス）にのみ送信します。その他のサイトのページ内容を読み取ったり送信したりしません。
 
 ## Google API Limited Use
 

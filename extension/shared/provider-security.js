@@ -69,14 +69,6 @@ export function assertProviderEndpoint(provider) {
   return url;
 }
 
-export function getCustomLlmPermissionOrigin(provider) {
-  const url = assertProviderEndpoint(provider);
-  if (provider?.id !== "local" || LOOPBACK_LLM_HOSTNAMES.has(url.hostname)) {
-    return null;
-  }
-  return `${url.protocol}//${url.hostname}/*`;
-}
-
 export const providerSecurityInternals = {
   HOSTED_PROVIDER_ORIGINS,
   LOOPBACK_LLM_HOSTNAMES,

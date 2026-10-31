@@ -713,9 +713,6 @@
       }
     }
   },
-  "customLlmPermissionDenied": {
-    "message": "Custom LLM 서버 접근 권한이 필요합니다. 권한 요청을 허용한 뒤 다시 시도하세요."
-  },
   "fieldBaseUrl": {
     "message": "Base URL"
   },
