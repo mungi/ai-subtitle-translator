@@ -96,21 +96,22 @@ export function enqueueSettingsMutation(operation) {
   return result;
 }
 
+const SUPPORTED_VIDEO_TAB_URLS = [
+  "https://www.youtube.com/*",
+  "https://ted.com/talks/*",
+  "https://www.ted.com/talks/*",
+  "https://*.udemy.com/course/*/learn/*",
+  "https://vimeo.com/*",
+  "https://www.vimeo.com/*",
+  "https://player.vimeo.com/*",
+  // NVIDIA course URLs may omit the slash before the query; tabs without the player ignore the message.
+  "https://www.nvidia.com/*"
+];
+
 async function broadcastPublicSettings() {
   if (!chrome.tabs?.query) return;
   const settings = await getPublicSettings();
-  const tabs = await chrome.tabs.query({
-    url: [
-      "https://www.youtube.com/*",
-      "https://ted.com/talks/*",
-      "https://www.ted.com/talks/*",
-      "https://*.udemy.com/course/*/learn/*",
-      "https://vimeo.com/*",
-      "https://www.vimeo.com/*",
-      "https://player.vimeo.com/*",
-      "https://www.nvidia.com/*/training/academy/course-player/*"
-    ]
-  });
+  const tabs = await chrome.tabs.query({ url: SUPPORTED_VIDEO_TAB_URLS });
   await Promise.all(tabs
     .filter((tab) => Number.isInteger(tab.id))
     .map((tab) => chrome.tabs.sendMessage(tab.id, {
@@ -264,24 +265,9 @@ export async function listProviderModels(provider) {
         });
         return normalizeModelList(body.data || []);
       }
-      case "openrouter": {
-        const baseUrl = requireProviderValue(provider, "baseUrl", "Base URL");
-        const headers = {};
-        if (provider.apiKey?.trim()) {
-          headers.Authorization = `Bearer ${provider.apiKey.trim()}`;
-        }
-        const body = await fetchJson(joinUrl(baseUrl, "models"), { headers });
-        return normalizeOpenRouterModelList(body.data || []);
-      }
-      case "nvidiaNim": {
-        const baseUrl = requireProviderValue(provider, "baseUrl", "Base URL");
-        const headers = {};
-        if (provider.apiKey?.trim()) {
-          headers.Authorization = `Bearer ${provider.apiKey.trim()}`;
-        }
-        const body = await fetchJson(joinUrl(baseUrl, "models"), { headers });
-        return normalizeModelList(body.data || []);
-      }
+      // OpenAI-compatible endpoints where the API key is optional.
+      case "openrouter":
+      case "nvidiaNim":
       case "local": {
         const baseUrl = requireProviderValue(provider, "baseUrl", "Base URL");
         const headers = {};
@@ -289,7 +275,9 @@ export async function listProviderModels(provider) {
           headers.Authorization = `Bearer ${provider.apiKey.trim()}`;
         }
         const body = await fetchJson(joinUrl(baseUrl, "models"), { headers });
-        return normalizeModelList(body.data || []);
+        return provider.id === "openrouter"
+          ? normalizeOpenRouterModelList(body.data || [])
+          : normalizeModelList(body.data || []);
       }
       case "anthropic": {
         const baseUrl = requireProviderValue(provider, "baseUrl", "Base URL");
@@ -501,7 +489,7 @@ export function dispatchBackgroundMessage(message, sender, sendResponse) {
       if (!message.enabled) {
         for (const controller of activeTranslationRequests.values()) controller.abort();
       }
-      const tabs = await chrome.tabs.query({}).catch(() => []);
+      const tabs = await chrome.tabs.query({ url: SUPPORTED_VIDEO_TAB_URLS }).catch(() => []);
       await Promise.all(tabs.filter((tab) => Number.isInteger(tab.id)).map((tab) => chrome.tabs.sendMessage(tab.id, {
         type: "subtitles.setEnabled", enabled: message.enabled
       }).catch(() => {})));

@@ -600,3 +600,27 @@ test("translation lifecycle ports from other names or senders are rejected", asy
   for (const port of [wrongName, otherExtension, noTab]) handleTranslationLifecyclePort(port);
   assert.deepEqual([wrongName, otherExtension, noTab].map((port) => port.disconnected), [true, true, true]);
 });
+
+test("the subtitle ON/OFF toggle is sent only to supported video site tabs", async () => {
+  const queries = [];
+  const delivered = [];
+  globalThis.chrome = {
+    runtime: { id: "test-extension", onMessage: { addListener() {} } },
+    storage: { local: { setAccessLevel: async () => {}, set: async () => {}, get: async () => ({}) } },
+    tabs: {
+      query: async (filter) => { queries.push(filter); return [{ id: 3 }]; },
+      sendMessage: async (tabId, message) => { delivered.push({ tabId, message }); }
+    }
+  };
+  const { dispatchBackgroundMessage } = await import("../extension/background/service-worker.js");
+  const response = await new Promise((resolve) => dispatchBackgroundMessage(
+    { type: "settings.setSubtitleEnabled", enabled: false },
+    { id: "test-extension", url: "chrome-extension://test-extension/popup/popup.html" },
+    resolve
+  ));
+  assert.equal(response.ok, true);
+  assert.equal(queries.length, 1);
+  assert.ok(queries[0].url.includes("https://www.youtube.com/*"));
+  assert.ok(queries[0].url.includes("https://*.udemy.com/course/*/learn/*"));
+  assert.deepEqual(delivered, [{ tabId: 3, message: { type: "subtitles.setEnabled", enabled: false } }]);
+});

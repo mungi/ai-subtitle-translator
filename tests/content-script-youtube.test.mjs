@@ -4275,3 +4275,30 @@ test("translation requests are not sent while subtitles are OFF", async () => {
   assert.equal(result, null);
   assert.equal(h.sentMessages.some((message) => message.type === "translation.translateDocument"), false);
 });
+
+test("the popup toggle uses the NVIDIA platform resolved for an embedded Vimeo player", async () => {
+  const h = createYoutubeHarness({
+    subtitlePreference: { enabled: false },
+    settings: { platforms: { nvidia: true, vimeo: false } },
+    sendMessage: (message) => message.type === "platform.vimeo.getContext"
+      ? { ok: true, platform: "nvidia" }
+      : { ok: false, error: "not needed" }
+  });
+  h.context.location = {
+    hostname: "player.vimeo.com",
+    href: "https://player.vimeo.com/video/123456789",
+    pathname: "/video/123456789",
+    search: ""
+  };
+  const querySelector = h.context.document.querySelector;
+  h.context.document.querySelector = (selector) => selector === "video" ? h.video : querySelector(selector);
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), h.context);
+  await flushPromises();
+  await flushPromises();
+  assert.equal(vm.runInNewContext("subtitleState.subtitleLoadGeneration", h.context), 0);
+
+  h.runtimeMessageListeners.forEach((listener) => listener({ type: "subtitles.setEnabled", enabled: true }));
+  await flushPromises();
+  await flushPromises();
+  assert.ok(vm.runInNewContext("subtitleState.subtitleLoadGeneration", h.context) > 0, "NVIDIA player did not start");
+});

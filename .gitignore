@@ -26,3 +26,7 @@ extension/*.crx
 .env
 .env.*
 !.env.example
+
+# Local test output and agent tool state
+.test-results.txt
+.omc/

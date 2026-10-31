@@ -3614,11 +3614,13 @@ async function loadPlatformSubtitleOverlay(handler, options = {}) {
 }
 
 let subtitlePreferenceUpdateGeneration = 0;
+// Set once initialization resolves the frame; an embedded Vimeo player may belong to NVIDIA.
+let contentPlatform = null;
 
 chrome.runtime.onMessage.addListener((message) => {
   if (message?.type === "subtitles.setEnabled" && typeof message.enabled === "boolean") {
     const generation = ++subtitlePreferenceUpdateGeneration;
-    const platform = detectPlatform();
+    const platform = contentPlatform;
     const handler = platformHandlers[platform];
     if (!handler || subtitleState.disposed) return false;
     if (!message.enabled) subtitleState.autoEnablePending = false;
@@ -3868,6 +3870,7 @@ async function initializeContentScript() {
     platform = await getVimeoPlayerPlatform();
     if (!platform) return;
   }
+  contentPlatform = platform;
 
   const preferenceGeneration = subtitlePreferenceUpdateGeneration;
   Promise.all([isPlatformEnabled(platform), loadSubtitleStyle(), sendRuntimeMessage({ type: "settings.getSubtitleEnabled" })]).then(([enabled, , preference]) => {
