@@ -665,6 +665,8 @@ test("LLM completes the priority chunk first and keeps two later chunks in paral
             targetLanguage: "ko",
             cacheTranslations: false,
             maxChunkDurationSeconds: 120,
+            settingsMode: "advanced",
+            llmParallelRequests: 2,
             providerTestStatus: { openrouter: "success" },
             providers: {
               openrouter: { apiKey: "test-key", model: "deepseek/deepseek-v4-flash" }

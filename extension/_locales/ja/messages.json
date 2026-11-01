@@ -144,7 +144,7 @@
     "message": "LLM 翻訳の同時実行数"
   },
   "llmParallelRequestsGuide": {
-    "message": "詳細設定では LLM 翻訳を1～8件同時に処理します（初期値：4件）。簡単設定では常に2件です。変更は次の翻訳から適用されます。同時実行数が多いと API のレート制限に達しやすくなります。"
+    "message": "詳細設定では LLM 翻訳を1～8件同時に処理します（初期値：3件）。簡単設定では常に1件です。変更は次の翻訳から適用されます。同時実行数が多いと API のレート制限に達しやすくなります。"
   },
   "chunkDuration": {
     "message": "チャンクの最大時間（分）"
@@ -609,13 +609,10 @@
     "message": "原文字幕を表示中"
   },
   "contentStatusTemporary": {
-    "message": "一時翻訳を表示中"
-  },
-  "contentStatusCurrent": {
-    "message": "現在の字幕は翻訳済み・残りを翻訳中"
+    "message": "簡易翻訳を表示中"
   },
   "contentStatusCompleteWithFallback": {
-    "message": "翻訳完了（Google Translate による代替翻訳を含む）"
+    "message": "翻訳完了 · 一部 Google 翻訳"
   },
   "contentPartialFallback": {
     "message": "一部の区間で翻訳応答を確認できなかったため、その区間のみ Google Translate で翻訳しました。"
@@ -624,7 +621,7 @@
     "message": "翻訳完了"
   },
   "contentStatusFallback": {
-    "message": "代替翻訳を表示中"
+    "message": "Google 翻訳で代替中"
   },
   "contentToggleSubtitles": {
     "message": "AI 字幕翻訳"
@@ -824,9 +821,6 @@
   "preferYoutubeProvidedTranslationGuide": {
     "message": "翻訳する代わりに、YouTube にある翻訳先言語の人による字幕を、なければ YouTube の自動翻訳を表示します。人による字幕が常に優先されます。選択した翻訳スタイルで翻訳するにはオフにしてください。"
   },
-  "contentYoutubeCaptionsInUse": {
-    "message": "使用中"
-  },
   "phraseSegmentation": {
     "message": "字幕をフレーズ単位で再構成"
   },
@@ -859,5 +853,80 @@
   },
   "contentTranslationPositionBottom": {
     "message": "下"
+  },
+  "contentStatusLoading": {
+    "message": "字幕を読み込み中…"
+  },
+  "contentStatusTemporaryProgress": {
+    "message": "簡易翻訳を表示中 · AI翻訳 $percent$%",
+    "placeholders": {
+      "percent": {
+        "content": "$1",
+        "example": "42"
+      }
+    }
+  },
+  "contentStatusAiTranslating": {
+    "message": "AI翻訳中"
+  },
+  "contentStatusAiProgress": {
+    "message": "AI翻訳中 $percent$%",
+    "placeholders": {
+      "percent": {
+        "content": "$1",
+        "example": "42"
+      }
+    }
+  },
+  "contentStatusMachineTranslating": {
+    "message": "翻訳中"
+  },
+  "contentStatusMachineProgress": {
+    "message": "翻訳中 $percent$%",
+    "placeholders": {
+      "percent": {
+        "content": "$1",
+        "example": "42"
+      }
+    }
+  },
+  "contentStatusCompleteWith": {
+    "message": "翻訳完了 · $name$",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "gpt-6-luna"
+      }
+    }
+  },
+  "contentStatusCompleteWithFallbackLines": {
+    "message": "翻訳完了 · $count$ 行 Google 翻訳",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "12"
+      }
+    }
+  },
+  "contentStatusServerBusy": {
+    "message": "AIサーバー混雑 · 再試行中"
+  },
+  "contentStatusYoutubeHuman": {
+    "message": "YouTube の$language$字幕を使用中",
+    "placeholders": {
+      "language": {
+        "content": "$1",
+        "example": "gpt-6-luna"
+      }
+    }
+  },
+  "contentStatusYoutubeAuto": {
+    "message": "YouTube の自動翻訳を使用中"
+  },
+  "contentStatusYoutubeHint": {
+    "message": "AIで翻訳するには「この動画を再翻訳」を押してください。"
+  },
+  "contentStatusFailed": {
+    "message": "翻訳失敗 · 原文を表示中"
   }
 }

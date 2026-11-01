@@ -49,7 +49,7 @@ test("the parallel control is only in advanced settings and has localized help",
   const html = readFileSync("extension/options/options.html", "utf8");
   const advanced = html.indexOf('id="advancedSettingsPanel"');
   assert.ok(html.indexOf('id="llmParallelRequests"') > advanced);
-  assert.match(html, /id="llmParallelRequests" type="number" min="1" max="8" step="1" value="4"/);
+  assert.match(html, /id="llmParallelRequests" type="number" min="1" max="8" step="1" value="3"/);
   for (const locale of ["ko", "en", "ja"]) {
     const messages = JSON.parse(readFileSync(`extension/_locales/${locale}/messages.json`, "utf8"));
     assert.ok(messages.llmParallelRequests.message);

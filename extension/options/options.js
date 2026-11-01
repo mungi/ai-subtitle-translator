@@ -71,7 +71,7 @@ const providerFieldDefs = {
     ["model", "fieldModel", "gpt-5-mini", "model-select"],
     ["baseUrl", "fieldBaseUrl", "https://api.openai.com/v1"],
     ["temperature", "fieldTemperature", "0.2", "number"],
-    ["maxTokens", "fieldMaxOutputTokens", "8192", "number"]
+    ["maxTokens", "fieldMaxOutputTokens", "16384", "number"]
   ],
   anthropic: [
     ["apiKey", "fieldApiKey", "sk-ant-..."],
@@ -79,14 +79,14 @@ const providerFieldDefs = {
     ["baseUrl", "fieldBaseUrl", "https://api.anthropic.com"],
     ["anthropicVersion", "fieldAnthropicVersion", "2023-06-01"],
     ["temperature", "fieldTemperature", "0.2", "number"],
-    ["maxTokens", "fieldMaxOutputTokens", "8192", "number"]
+    ["maxTokens", "fieldMaxOutputTokens", "16384", "number"]
   ],
   google: [
     ["apiKey", "fieldApiKey", "AIza..."],
     ["model", "fieldModel", "gemini-2.5-flash", "model-select"],
     ["baseUrl", "fieldBaseUrl", "https://generativelanguage.googleapis.com/v1beta"],
     ["temperature", "fieldTemperature", "0.2", "number"],
-    ["maxTokens", "fieldMaxOutputTokens", "8192", "number"]
+    ["maxTokens", "fieldMaxOutputTokens", "16384", "number"]
   ],
   openrouter: [
     ["apiKey", "fieldApiKey", "sk-or-..."],
@@ -95,21 +95,21 @@ const providerFieldDefs = {
     ["siteUrl", "fieldHttpReferer", "https://example.com"],
     ["appTitle", "fieldXTitle", "AST - AI Subtitle Translator"],
     ["temperature", "fieldTemperature", "0.2", "number"],
-    ["maxTokens", "fieldMaxOutputTokens", "8192", "number"]
+    ["maxTokens", "fieldMaxOutputTokens", "16384", "number"]
   ],
   nvidiaNim: [
     ["apiKey", "fieldApiKey", "nvapi-..."],
     ["model", "fieldModel", "openai/gpt-oss-120b", "model-select"],
     ["baseUrl", "fieldBaseUrl", "https://integrate.api.nvidia.com/v1"],
     ["temperature", "fieldTemperature", "0.2", "number"],
-    ["maxTokens", "fieldMaxOutputTokens", "8192", "number"]
+    ["maxTokens", "fieldMaxOutputTokens", "16384", "number"]
   ],
   local: [
     ["model", "fieldModel", "google/gemma-4-e4b", "model-select"],
     ["baseUrl", "fieldBaseUrl", "http://localhost:1234/v1"],
     ["apiKey", "fieldApiKeyOptional", ""],
     ["temperature", "fieldTemperature", "0.2", "number"],
-    ["maxTokens", "fieldMaxOutputTokens", "8192", "number"]
+    ["maxTokens", "fieldMaxOutputTokens", "16384", "number"]
   ]
 };
 

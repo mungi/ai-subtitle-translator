@@ -87,3 +87,44 @@ test("a persistently invalid sentence falls back without retranslating a valid s
     assert.deepEqual(result.fallbackCueIds, ["yt-1"]);
   } finally { globalThis.fetch = original; }
 });
+
+test("a broken batch reply is retried in halves, not one request per sentence", async () => {
+  const original = globalThis.fetch;
+  const inputs = [];
+  globalThis.fetch = async (_url, init) => {
+    const input = JSON.parse(JSON.parse(init.body).contents[0].parts[0].text);
+    inputs.push(input.cues.map((cue) => cue.id));
+    // The first reply is cut off mid-JSON, the way a reasoning model hits its output limit.
+    if (inputs.length === 1) {
+      return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: "{\"translations\": [{\"id\": \"0\", \"text\": \"첫 문장.\"}, {\"id\": \"1\"" }] } }] }));
+    }
+    return reply(input.cues.map(({ id }) => ({ id, text: `번역 ${id}` })));
+  };
+  try {
+    const doc = document(Array.from({ length: 8 }, (_, i) => `Sentence ${i}.`));
+    const result = await internals.translateSentenceGroups({ ...PROVIDERS.google, apiKey: "test" }, { targetLanguage: "ko" }, doc, []);
+    assert.deepEqual(inputs, [
+      ["0", "1", "2", "3", "4", "5", "6", "7"],
+      ["1", "2", "3", "4"],
+      ["5", "6", "7"]
+    ]);
+    assert.deepEqual(result.map((item) => item.text), ["첫 문장.", ...[1, 2, 3, 4, 5, 6, 7].map((id) => `번역 ${id}`)]);
+  } finally { globalThis.fetch = original; }
+});
+
+test("speaker-change markers are not sent to the model", async () => {
+  const original = globalThis.fetch;
+  let sent;
+  globalThis.fetch = async (_url, init) => {
+    sent = JSON.parse(JSON.parse(init.body).contents[0].parts[0].text);
+    return reply(sent.cues.map(({ id }) => ({ id, text: "번역" })));
+  };
+  try {
+    const doc = document([">> Yes, I'm ready.", "Okay. >> Next one.", ">>"]);
+    await internals.translateSentenceGroups({ ...PROVIDERS.google, apiKey: "test" }, { targetLanguage: "ko" }, doc, []);
+    const texts = sent.cues.map((cue) => cue.text).join(" | ");
+    assert.equal(texts.includes(">>"), false);
+    assert.match(texts, /Yes, I'm ready\./);
+    assert.match(texts, /Okay\. — Next one\./);
+  } finally { globalThis.fetch = original; }
+});

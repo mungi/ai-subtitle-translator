@@ -1173,7 +1173,12 @@ test("toolbar button opens a platform-styled provider menu before toggling AST",
   assert.equal(menu.hidden, false);
   assert.equal(menu.className, "ast-provider-menu ast-provider-menu-youtube");
   assert.equal(button.getAttribute("aria-expanded"), "true");
-  assert.equal(menu.children.at(-2).children[0].textContent, "AI 자막 번역");
+  assert.equal(menu.children.at(-3).children[0].textContent, "AI 자막 번역");
+  const statusLine = menu.children.at(-1);
+  assert.equal(statusLine.className, "ast-provider-status");
+  assert.equal(statusLine.getAttribute("role"), "status");
+  // The status line and the toolbar tooltip read from the same wording.
+  assert.equal(statusLine.children[1].textContent, button.title);
   assert.deepEqual(
     menu.children.filter((item) => item.dataset.providerId).map((item) => item.dataset.providerId),
     ["googleTranslate", "deepl", "openai"]
@@ -1221,9 +1226,9 @@ test("toolbar button opens a platform-styled provider menu before toggling AST",
     "expected translation style menu clicks not to lock the submenu open"
   );
   assert.equal(styleSubmenu.classList.values.has("open"), false);
-  assert.equal(menu.children.at(-1).children[0].textContent, "설정 열기");
+  assert.equal(menu.children.at(-2).children[0].textContent, "설정 열기");
   assert.equal(sentMessages.some((message) => message.type.includes("fetchTranscript")), true);
-  menu.children.at(-1).dispatchEvent({ type: "click", stopPropagation: () => {} });
+  menu.children.at(-2).dispatchEvent({ type: "click", stopPropagation: () => {} });
   await flushPromises();
   assert.ok(sentMessages.some((message) => message.type === "ast.openOptions"));
 });
@@ -3972,7 +3977,7 @@ test("alignment fallback finishes without scheduling repeated full-video transla
   assert.equal(vm.runInNewContext("subtitleState.translationPhase", context), "complete");
   assert.equal(context.document.getElementById("ast-toolbar-button").classList.values.has("fallback"), false);
   assert.match(context.document.getElementById("ast-toolbar-button").title, /翻訳|번역 완료/);
-  assert.match(context.document.getElementById("ast-toolbar-button").title, /Google Translate/);
+  assert.match(context.document.getElementById("ast-toolbar-button").title, /^번역 완료 · 1줄 Google 번역$/);
   assert.notEqual(overlay.style.background, "rgba(117, 0, 0, 0.75)");
   assert.equal(vm.runInNewContext("subtitleState.fallbackRetryTimeoutId", context), null);
   assert.equal(vm.runInNewContext("subtitleState.fallbackRetryPending", context), false);
@@ -3997,7 +4002,7 @@ test("completed document with an alignment fallback uses completion colors and a
   const button = controls.querySelector("#ast-toolbar-button");
   assert.equal(button.classList.values.has("complete"), true);
   assert.equal(button.classList.values.has("fallback"), false);
-  assert.match(button.title, /번역 완료.*Google Translate/);
+  assert.match(button.title, /^번역 완료 · \d+줄 Google 번역$/);
   assert.equal(vm.runInNewContext("subtitleState.fallbackRetryTimeoutId", context), null);
   assert.notEqual(context.document.getElementById("ast-subtitle-overlay").style.background, "rgba(117, 0, 0, 0.75)");
   assert.match(context.document.getElementById("ast-toast").textContent, /일부 구간/);
@@ -4019,7 +4024,7 @@ test("later LLM progress keeps the completion notice about an earlier fallback r
   assert.notEqual(vm.runInNewContext("subtitleState.translationPhase", harness.context), "fallback");
   notify({ isComplete: true, chunkIndex: 1, chunkCount: 2, cues: [{ id: "yt-1", start: 5, end: 10, text: "LLM 번역" }] });
   assert.equal(vm.runInNewContext("subtitleState.translationPhase", harness.context), "complete");
-  assert.match(harness.controls.querySelector("#ast-toolbar-button").title, /Google Translate/);
+  assert.equal(harness.controls.querySelector("#ast-toolbar-button").title, "번역 완료 · 1줄 Google 번역");
 });
 
 
@@ -4373,6 +4378,10 @@ test("YouTube human captions in the target language replace translation requests
   assert.equal(harness.sentMessages.some((message) => message.type === "translation.translateDocument"), false);
   // Using YouTube's own captions is the normal path, so it shows no notice.
   assert.equal(harness.moviePlayer.querySelector("#ast-toast"), null);
+  // The switch shows on/off by itself; which captions are in use is told by the status line only.
+  vm.runInNewContext('ensureProviderMenu("youtube"); renderProviderMenu("youtube")', harness.context);
+  const toggle = harness.context.document.getElementById("ast-provider-menu").querySelector(".ast-youtube-provided-toggle");
+  assert.equal(toggle.children[0].textContent, "YouTube 제공 자막 우선");
 });
 
 test("YouTube falls back to normal translation when no human captions exist", async () => {
@@ -4430,8 +4439,8 @@ test("human caption alignment keeps every source cue and its timing", () => {
   ];
   const aligned = vm.runInNewContext("alignTargetCuesToSource(testSource, testTarget)", harness.context);
   assert.deepEqual(JSON.parse(JSON.stringify(aligned)), [
-    { id: "a", text: "하나 둘" },
-    { id: "b", text: "하나 둘" },
+    { id: "a", text: "하나" },
+    { id: "b", text: "둘" },
     { id: "c", text: "셋" }
   ]);
   harness.context.testTarget = [{ start: 4.2, end: 5.8, text: "셋" }];
@@ -4836,4 +4845,198 @@ test("YouTube waits for an ad to end before asking the player for captions", asy
   await flushPromises();
   assert.equal(requests.length, 1);
   assert.equal(requests[0].languageCode, "en");
+});
+
+test("retranslating a video that shows YouTube's captions sends it to the selected provider", async () => {
+  const { harness, targetRequests } = createHumanCaptionHarness();
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
+  await flushPromises();
+  await clickAstToggle(harness.controls.querySelector("#ast-toolbar-button"));
+  await flushPromises();
+  assert.equal(harness.sentMessages.some((message) => message.type === "translation.translateDocument"), false);
+
+  await vm.runInNewContext('retranslateCurrentVideo("youtube")', harness.context);
+  await flushPromises();
+
+  assert.equal(targetRequests.length, 1);
+  assert.ok(harness.sentMessages.some((message) => message.type === "translation.clearVideoCache"));
+  assert.ok(harness.sentMessages.some((message) => message.type === "translation.translateDocument" && message.mode === "final"));
+});
+
+test("the menu status line names each translation state in plain words", async () => {
+  const harness = createYoutubeHarness();
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
+  await flushPromises();
+  const status = (setup) => vm.runInNewContext(`(() => {
+    Object.assign(subtitleState, {
+      enabled: true, loading: false, translationPhase: "current", activeProviderId: "openai",
+      youtubeProvidedTranslationLanguage: "", youtubeProvidedTranslationSource: "",
+      providerBusy: false, translationFailed: false, hasAlignmentFallback: false,
+      expectedCueIds: new Set(["a", "b", "c", "d"]), finalTranslatedCueIds: new Set(["a"]), fallbackCueIds: new Set(),
+      availableProviders: [{ id: "openai", label: "OpenAI", model: "gpt-6-luna" }, { id: "googleTranslate", label: "Google Translate", model: "" }],
+      targetLanguage: "ko", targetLanguages: [{ code: "ko", label: "한국어" }]
+    }, ${setup});
+    return getTranslationStatus();
+  })()`, harness.context);
+
+  assert.equal(status("{ loading: true }").text, "자막 불러오는 중…");
+  assert.equal(status("{ enabled: false }").text, "자막 꺼짐");
+  assert.equal(status("{ translationPhase: 'source' }").text, "원문 자막 표시 중");
+  assert.equal(status("{ translationPhase: 'temporary' }").text, "빠른 번역 표시 중 · AI 번역 25%");
+  assert.equal(status("{}").text, "AI 번역 중 25%");
+  assert.equal(status("{ activeProviderId: 'googleTranslate' }").text, "번역 중 25%");
+  assert.equal(status("{ translationPhase: 'complete' }").text, "번역 완료 · gpt-6-luna");
+  assert.equal(status("{ translationPhase: 'complete', activeProviderId: 'googleTranslate' }").text, "번역 완료 · Google Translate");
+  assert.equal(status("{ translationPhase: 'complete', fallbackCueIds: new Set(['a', 'b']) }").text, "번역 완료 · 2줄 Google 번역");
+  assert.equal(status("{ translationPhase: 'fallback' }").text, "Google 번역으로 대체 중");
+  assert.equal(status("{ providerBusy: true }").text, "AI 서버 혼잡 · 재시도 중");
+  assert.equal(status("{ translationFailed: true }").text, "번역 실패 · 원문 표시 중");
+  const human = status("{ translationPhase: 'complete', youtubeProvidedTranslationLanguage: 'ko', youtubeProvidedTranslationSource: 'human' }");
+  assert.equal(human.text, "YouTube 한국어 자막 사용 중");
+  assert.equal(human.hint, "AI로 번역하려면 '현재 영상 다시 번역'을 누르세요.");
+  assert.equal(status("{ translationPhase: 'complete', youtubeProvidedTranslationLanguage: 'ko', youtubeProvidedTranslationSource: 'auto' }").text,
+    "YouTube 자동 번역 사용 중");
+});
+
+test("turning YouTube captions off while they download keeps them from replacing the translation", async () => {
+  const { harness } = createHumanCaptionHarness();
+  let deliver;
+  const original = harness.context.astYoutubeCaptionCapture.requestTarget;
+  harness.context.astYoutubeCaptionCapture.requestTarget = (request) => new Promise((resolve) => { deliver = () => resolve(original(request)); });
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
+  await flushPromises();
+  await clickAstToggle(harness.controls.querySelector("#ast-toolbar-button"));
+  await flushPromises();
+  assert.equal(vm.runInNewContext("subtitleState.youtubeProvidedTranslationPending", harness.context), true);
+
+  await vm.runInNewContext('selectPreferYoutubeProvidedTranslation("youtube", false)', harness.context);
+  await flushPromises();
+  deliver();
+  await flushPromises();
+
+  assert.equal(vm.runInNewContext("subtitleState.youtubeProvidedTranslationLanguage", harness.context), "");
+  assert.ok(harness.sentMessages.some((message) => message.type === "translation.translateDocument" && message.mode === "final"));
+});
+
+test("turning YouTube captions off on the settings page translates the playing video", async () => {
+  const { harness } = createHumanCaptionHarness();
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
+  await flushPromises();
+  await clickAstToggle(harness.controls.querySelector("#ast-toolbar-button"));
+  await flushPromises();
+  assert.equal(vm.runInNewContext("subtitleState.youtubeProvidedTranslationLanguage", harness.context), "ko");
+
+  harness.runtimeMessageListeners[0]({ type: "settings.changed", settings: { preferYoutubeProvidedTranslation: false } });
+  await flushPromises();
+
+  assert.equal(vm.runInNewContext("subtitleState.youtubeProvidedTranslationLanguage", harness.context), "");
+  assert.ok(harness.sentMessages.some((message) => message.type === "translation.translateDocument" && message.mode === "final"));
+});
+
+test("YouTube's rolling auto-translation lines map to source cues without repeats or stray periods", () => {
+  const harness = createYoutubeHarness();
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
+  // Real lines from a YouTube auto-translated track: each stays up ~5s past the next one's start,
+  // and they break mid-sentence. Source cues are our phrase-segmented sentences.
+  const word = (text, start) => ({ text, start });
+  harness.context.testRawSource = [
+    { start: 1105.52, end: 1111.2, text: "prepare for Monday. Simple but useful.",
+      words: [word("prepare ", 1105.52), word("for ", 1105.9), word("Monday. ", 1106.3), word("Simple ", 1107.1), word("but ", 1107.5), word("useful.", 1107.9)] },
+    { start: 1108.799, end: 1113.919, text: ">> I got ready for the week on Sunday",
+      words: [word(">> I ", 1108.8), word("got ", 1109.1), word("ready ", 1109.4), word("for ", 1109.7), word("the ", 1109.9), word("week ", 1110.1), word("on ", 1110.4), word("Sunday", 1110.7)] },
+    { start: 1111.2, end: 1116.559, text: "evening. Okay. And what about a very",
+      words: [word("evening. ", 1111.2), word("Okay. ", 1112.1), word("And ", 1112.8), word("what ", 1113.1), word("about ", 1113.3), word("a ", 1113.6), word("very", 1113.8)] }
+  ];
+  harness.context.testTarget = [
+    { start: 1105.52, end: 1111.2, text: "월요일을 대비하세요. 간단하지만 유용합니다." },
+    { start: 1108.799, end: 1113.919, text: "나는 일요일 저녁에 한 주를 시작할 준비를 했다" },
+    { start: 1111.2, end: 1116.559, text: ". 좋아요. 그렇다면 아주" }
+  ];
+  harness.context.testSource = [
+    { id: "a", start: 1105.5, end: 1107.1, text: "prepare for Monday." },
+    { id: "b", start: 1107.1, end: 1108.8, text: "Simple but useful." },
+    { id: "c", start: 1108.8, end: 1112.1, text: ">> I got ready for the week on Sunday evening." },
+    { id: "d", start: 1112.1, end: 1112.8, text: "Okay." },
+    { id: "e", start: 1112.8, end: 1116.5, text: "And what about a very" }
+  ];
+  const aligned = JSON.parse(JSON.stringify(vm.runInNewContext("alignTargetCuesToSource(testSource, testTarget, testRawSource)", harness.context)));
+  assert.deepEqual(aligned.map((cue) => cue.text), [
+    "월요일을 대비하세요.",
+    "간단하지만 유용합니다.",
+    "나는 일요일 저녁에 한 주를 시작할 준비를 했다.",
+    "좋아요.",
+    "그렇다면 아주"
+  ]);
+});
+
+test("a translated sentence shared by two source cues is split between them, not shown twice", () => {
+  const harness = createYoutubeHarness();
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
+  harness.context.testSource = [
+    { id: "a", start: 0, end: 4, text: "And the most important tip of the day, react to the feeling, not only" },
+    { id: "b", start: 4, end: 5, text: "the facts." }
+  ];
+  harness.context.testTarget = [{ start: 0, end: 5, text: "그리고 오늘 가장 중요한 팁은, 사실뿐 아니라 감정에도 반응하라는 것입니다." }];
+  const aligned = JSON.parse(JSON.stringify(vm.runInNewContext("alignTargetCuesToSource(testSource, testTarget)", harness.context)));
+  assert.ok(aligned[0].text && aligned[1].text);
+  assert.equal(`${aligned[0].text} ${aligned[1].text}`, "그리고 오늘 가장 중요한 팁은, 사실뿐 아니라 감정에도 반응하라는 것입니다.");
+});
+
+test("a Shorts page leaves the watch video's subtitles alone", async () => {
+  const harness = createYoutubeHarness({ settings: { subtitleDisplayMode: "source" } });
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
+  await flushPromises();
+  await flushPromises();
+  const overlay = harness.context.document.getElementById("ast-subtitle-overlay");
+  assert.equal(overlay.textContent, "Hello world");
+  const fetchesBefore = harness.sentMessages.filter((message) => message.type === "captions.youtube.fetchTranscript").length;
+
+  Object.assign(harness.context.location, { href: "https://www.youtube.com/shorts/yeyUL913ctU", pathname: "/shorts/yeyUL913ctU", search: "" });
+  assert.equal(vm.runInNewContext("getYoutubeVideoId()", harness.context), null);
+  harness.intervalCallbacks.at(-1)();
+  await flushPromises();
+  assert.equal(harness.sentMessages.filter((message) => message.type === "captions.youtube.fetchTranscript").length, fetchesBefore);
+
+  // Coming back finds the same video and its lines untouched.
+  Object.assign(harness.context.location, { href: "https://www.youtube.com/watch?v=abc123def45", pathname: "/watch", search: "?v=abc123def45" });
+  harness.intervalCallbacks.at(-1)();
+  await flushPromises();
+  assert.equal(overlay.textContent, "Hello world");
+  assert.equal(vm.runInNewContext("subtitleState.loading", harness.context), false);
+});
+
+test("going back to a video while another video's captions are still loading reloads it", async () => {
+  const harness = createYoutubeHarness({
+    settings: { subtitleDisplayMode: "source" },
+    sendMessage(message, { transcriptDocument }) {
+      if (message.type === "captions.youtube.fetchTranscript") {
+        // The second video's captions never arrive, like a Short or a blocked track.
+        if (message.videoId === "zyx987wvu65") return new Promise(() => {});
+        return { ok: true, document: transcriptDocument };
+      }
+      if (message.type === "translation.translateDocument") return { ok: true, document: message.document || transcriptDocument };
+      return { ok: true };
+    }
+  });
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
+  await flushPromises();
+  await flushPromises();
+  const overlay = harness.context.document.getElementById("ast-subtitle-overlay");
+  assert.equal(overlay.textContent, "Hello world");
+
+  Object.assign(harness.context.location, { href: "https://www.youtube.com/watch?v=zyx987wvu65", search: "?v=zyx987wvu65" });
+  harness.intervalCallbacks.at(-1)();
+  await flushPromises();
+  assert.equal(vm.runInNewContext("subtitleState.loadingSessionKey", harness.context), "zyx987wvu65");
+
+  Object.assign(harness.context.location, { href: "https://www.youtube.com/watch?v=abc123def45", search: "?v=abc123def45" });
+  harness.intervalCallbacks.at(-1)();
+  await flushPromises();
+  await flushPromises();
+
+  const fetches = harness.sentMessages.filter((message) => message.type === "captions.youtube.fetchTranscript").map((message) => message.videoId);
+  assert.deepEqual(fetches.slice(-2), ["zyx987wvu65", "abc123def45"]);
+  assert.equal(overlay.textContent, "Hello world");
+  assert.equal(vm.runInNewContext("subtitleState.currentSessionKey", harness.context), "abc123def45");
+  assert.equal(vm.runInNewContext("subtitleState.loading", harness.context), false);
 });

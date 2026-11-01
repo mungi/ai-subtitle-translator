@@ -168,7 +168,11 @@ export function buildProviderRequest(provider, { systemPrompt, input, structured
             ...(reasoningMode === "omit" ? { temperature } : {}),
             max_output_tokens: maxTokens,
             ...(reasoningMode === "omit" ? {} : { reasoning: { effort: reasoningMode } }),
-            text: { verbosity: "low" }
+            // A strict schema keeps a subtitle line such as ">> Yes" from breaking the reply's JSON.
+            text: {
+              verbosity: "low",
+              ...(structuredOutput ? { format: { type: "json_schema", ...TRANSLATION_RESPONSE_FORMAT.json_schema } } : {})
+            }
           })
         }
       };

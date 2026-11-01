@@ -144,7 +144,7 @@
     "message": "Concurrent LLM translations"
   },
   "llmParallelRequestsGuide": {
-    "message": "Process 1–8 LLM chunks concurrently in advanced settings (default: 4). Simple settings always use 2. Changes apply to the next translation job. Higher values may reach API rate limits sooner."
+    "message": "Process 1–8 LLM chunks concurrently in advanced settings (default: 3). Simple settings always use 1. Changes apply to the next translation job. Higher values may reach API rate limits sooner."
   },
   "chunkDuration": {
     "message": "Maximum chunk duration (minutes)"
@@ -606,16 +606,13 @@
     "message": "Subtitles on"
   },
   "contentStatusSource": {
-    "message": "Showing source subtitles"
+    "message": "Showing original subtitles"
   },
   "contentStatusTemporary": {
-    "message": "Showing temporary translation"
-  },
-  "contentStatusCurrent": {
-    "message": "Current subtitle translated; translating the rest"
+    "message": "Showing quick translation"
   },
   "contentStatusCompleteWithFallback": {
-    "message": "Translation complete (includes Google Translate fallback)"
+    "message": "Translation complete · some lines by Google"
   },
   "contentPartialFallback": {
     "message": "Some sections had invalid translation responses and were translated with Google Translate."
@@ -624,7 +621,7 @@
     "message": "Translation complete"
   },
   "contentStatusFallback": {
-    "message": "Showing fallback translation"
+    "message": "Using Google Translate instead"
   },
   "contentToggleSubtitles": {
     "message": "AI Subtitle Translation"
@@ -824,9 +821,6 @@
   "preferYoutubeProvidedTranslationGuide": {
     "message": "Instead of translating, shows YouTube's human-made subtitles in the target language, or YouTube's auto-translation when there are none. Human subtitles always come first. Turn this off to translate with your selected translation style."
   },
-  "contentYoutubeCaptionsInUse": {
-    "message": "in use"
-  },
   "phraseSegmentation": {
     "message": "Restructure subtitles into phrases"
   },
@@ -859,5 +853,80 @@
   },
   "contentTranslationPositionBottom": {
     "message": "Bottom"
+  },
+  "contentStatusLoading": {
+    "message": "Loading subtitles…"
+  },
+  "contentStatusTemporaryProgress": {
+    "message": "Showing quick translation · AI $percent$%",
+    "placeholders": {
+      "percent": {
+        "content": "$1",
+        "example": "42"
+      }
+    }
+  },
+  "contentStatusAiTranslating": {
+    "message": "AI translating"
+  },
+  "contentStatusAiProgress": {
+    "message": "AI translating $percent$%",
+    "placeholders": {
+      "percent": {
+        "content": "$1",
+        "example": "42"
+      }
+    }
+  },
+  "contentStatusMachineTranslating": {
+    "message": "Translating"
+  },
+  "contentStatusMachineProgress": {
+    "message": "Translating $percent$%",
+    "placeholders": {
+      "percent": {
+        "content": "$1",
+        "example": "42"
+      }
+    }
+  },
+  "contentStatusCompleteWith": {
+    "message": "Translation complete · $name$",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "gpt-6-luna"
+      }
+    }
+  },
+  "contentStatusCompleteWithFallbackLines": {
+    "message": "Translation complete · $count$ lines by Google",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "12"
+      }
+    }
+  },
+  "contentStatusServerBusy": {
+    "message": "AI server busy · retrying"
+  },
+  "contentStatusYoutubeHuman": {
+    "message": "Using YouTube $language$ subtitles",
+    "placeholders": {
+      "language": {
+        "content": "$1",
+        "example": "gpt-6-luna"
+      }
+    }
+  },
+  "contentStatusYoutubeAuto": {
+    "message": "Using YouTube auto-translation"
+  },
+  "contentStatusYoutubeHint": {
+    "message": "To translate with AI, choose \"Retranslate this video\"."
+  },
+  "contentStatusFailed": {
+    "message": "Translation failed · showing original"
   }
 }

@@ -113,14 +113,21 @@ test("LLM chunk duration is kept between two and fifteen minutes", () => {
   assert.equal(normalizeSettings({ maxChunkDurationSeconds: 1200 }).maxChunkDurationSeconds, 900);
 });
 
-test("the former LLM output token default is promoted for pre-release settings", () => {
+test("former LLM output token defaults are promoted to 16K, and chosen values are kept", () => {
   const settings = normalizeSettings({
     providers: {
-      google: { maxTokens: 4096 }
+      google: { maxTokens: 4096 },
+      openai: { maxTokens: 8192 },
+      local: { maxTokens: 12000 }
     }
   });
 
-  assert.equal(settings.providers.google.maxTokens, 8192);
+  assert.equal(settings.providers.google.maxTokens, 16384);
+  assert.equal(settings.providers.openai.maxTokens, 16384);
+  assert.equal(settings.providers.local.maxTokens, 12000);
+  for (const id of ["openai", "anthropic", "google", "openrouter", "nvidiaNim", "local"]) {
+    assert.equal(normalizeSettings({}).providers[id].maxTokens, 16384, id);
+  }
 });
 
 test("provider connection test status keeps only successful known providers", () => {

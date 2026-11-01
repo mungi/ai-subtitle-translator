@@ -60,7 +60,8 @@ function mergeProvider(defaultProvider, storedProvider = {}) {
     id: defaultProvider.id,
     label: defaultProvider.label
   };
-  if (Number(storedProvider.maxTokens) === 4096) {
+  // Earlier defaults move to the current one; a value the user chose stays as it is.
+  if ([4096, 8192].includes(Number(storedProvider.maxTokens))) {
     provider.maxTokens = defaultProvider.maxTokens;
   }
   if (defaultProvider.id === "googleTranslate"

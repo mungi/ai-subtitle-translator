@@ -6,8 +6,8 @@ import { translationInternals } from "../extension/shared/translation.js";
 
 test("parallel settings preserve advanced preferences and bound imported values", () => {
   assert.equal(normalizeSettings().settingsMode, "simple");
-  assert.equal(normalizeSettings().llmParallelRequests, 4);
-  for (const [value, expected] of [[undefined, 4], ["bad", 4], [0, 1], [100, 8], [3.9, 3]]) {
+  assert.equal(normalizeSettings().llmParallelRequests, 3);
+  for (const [value, expected] of [[undefined, 3], ["bad", 3], [0, 1], [100, 8], [3.9, 3]]) {
     assert.equal(normalizeSettings({ settingsMode: "advanced", llmParallelRequests: value }).llmParallelRequests, expected);
   }
   const saved = normalizeSettings({ settingsMode: "simple", llmParallelRequests: 7 });
@@ -15,7 +15,7 @@ test("parallel settings preserve advanced preferences and bound imported values"
   assert.equal(normalizeSettings({ ...saved, settingsMode: "advanced" }).llmParallelRequests, 7);
 });
 
-for (const [mode, configured, expected] of [["simple", 8, 2], ["advanced", undefined, 4], ["advanced", 1, 1], ["advanced", 6, 6]]) {
+for (const [mode, configured, expected] of [["simple", 8, 1], ["advanced", undefined, 3], ["advanced", 1, 1], ["advanced", 6, 6]]) {
   test(`${mode} with parallel value ${configured} runs at most ${expected} LLM requests`, async (t) => {
     let active = 0;
     let maximum = 0;

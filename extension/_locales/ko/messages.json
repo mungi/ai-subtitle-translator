@@ -144,7 +144,7 @@
     "message": "LLM 동시 번역 개수"
   },
   "llmParallelRequestsGuide": {
-    "message": "고급 설정의 LLM 번역을 동시에 1~8개 처리합니다. 기본은 4개이며 간단 설정에서는 항상 2개를 사용합니다. 변경은 다음 번역 작업부터 적용되며, 개수가 많으면 API 요청 한도에 더 빨리 도달할 수 있습니다."
+    "message": "고급 설정의 LLM 번역을 동시에 1~8개 처리합니다. 기본은 3개이며 간단 설정에서는 항상 1개를 사용합니다. 변경은 다음 번역 작업부터 적용되며, 개수가 많으면 API 요청 한도에 더 빨리 도달할 수 있습니다."
   },
   "chunkDuration": {
     "message": "자막 분할 최대 시간(분)"
@@ -609,13 +609,10 @@
     "message": "원문 자막 표시 중"
   },
   "contentStatusTemporary": {
-    "message": "임시 번역 표시 중"
-  },
-  "contentStatusCurrent": {
-    "message": "현재 자막 번역 완료 · 나머지 번역 중"
+    "message": "빠른 번역 표시 중"
   },
   "contentStatusCompleteWithFallback": {
-    "message": "번역 완료 (Google Translate 대체 번역 포함)"
+    "message": "번역 완료 · 일부 Google 번역"
   },
   "contentPartialFallback": {
     "message": "일부 구간의 번역 응답을 확인하지 못해 해당 구간만 Google Translate로 번역했습니다."
@@ -624,7 +621,7 @@
     "message": "번역 완료"
   },
   "contentStatusFallback": {
-    "message": "대체 번역 표시 중"
+    "message": "Google 번역으로 대체 중"
   },
   "contentToggleSubtitles": {
     "message": "AI 자막 번역"
@@ -824,9 +821,6 @@
   "preferYoutubeProvidedTranslationGuide": {
     "message": "YouTube에 목표 언어로 된 사람 자막이 있으면 그 자막을, 없으면 YouTube 자동 번역을 번역 대신 보여 줍니다. 사람 자막이 항상 우선합니다. 선택한 번역 스타일로 직접 번역하려면 끄세요."
   },
-  "contentYoutubeCaptionsInUse": {
-    "message": "사용 중"
-  },
   "phraseSegmentation": {
     "message": "자막을 구문 단위로 재구성"
   },
@@ -859,5 +853,80 @@
   },
   "contentTranslationPositionBottom": {
     "message": "하단"
+  },
+  "contentStatusLoading": {
+    "message": "자막 불러오는 중…"
+  },
+  "contentStatusTemporaryProgress": {
+    "message": "빠른 번역 표시 중 · AI 번역 $percent$%",
+    "placeholders": {
+      "percent": {
+        "content": "$1",
+        "example": "42"
+      }
+    }
+  },
+  "contentStatusAiTranslating": {
+    "message": "AI 번역 중"
+  },
+  "contentStatusAiProgress": {
+    "message": "AI 번역 중 $percent$%",
+    "placeholders": {
+      "percent": {
+        "content": "$1",
+        "example": "42"
+      }
+    }
+  },
+  "contentStatusMachineTranslating": {
+    "message": "번역 중"
+  },
+  "contentStatusMachineProgress": {
+    "message": "번역 중 $percent$%",
+    "placeholders": {
+      "percent": {
+        "content": "$1",
+        "example": "42"
+      }
+    }
+  },
+  "contentStatusCompleteWith": {
+    "message": "번역 완료 · $name$",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "gpt-6-luna"
+      }
+    }
+  },
+  "contentStatusCompleteWithFallbackLines": {
+    "message": "번역 완료 · $count$줄 Google 번역",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "12"
+      }
+    }
+  },
+  "contentStatusServerBusy": {
+    "message": "AI 서버 혼잡 · 재시도 중"
+  },
+  "contentStatusYoutubeHuman": {
+    "message": "YouTube $language$ 자막 사용 중",
+    "placeholders": {
+      "language": {
+        "content": "$1",
+        "example": "gpt-6-luna"
+      }
+    }
+  },
+  "contentStatusYoutubeAuto": {
+    "message": "YouTube 자동 번역 사용 중"
+  },
+  "contentStatusYoutubeHint": {
+    "message": "AI로 번역하려면 '현재 영상 다시 번역'을 누르세요."
+  },
+  "contentStatusFailed": {
+    "message": "번역 실패 · 원문 표시 중"
   }
 }

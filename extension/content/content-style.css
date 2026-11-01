@@ -666,3 +666,53 @@
     opacity: 0.45;
   }
 }
+
+/* Read-only status line under the menu: a step smaller and dimmer than the items above it. */
+.ast-provider-status {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 26px;
+  margin-top: 4px;
+  padding: 4px 12px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  cursor: default;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.ast-provider-status-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The dot repeats the toolbar icon's colour for the same phase. */
+.ast-provider-status-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.ast-provider-status[data-phase="temporary"] .ast-provider-status-dot { background: #facc15; }
+.ast-provider-status[data-phase="current"] .ast-provider-status-dot { background: #34d399; }
+.ast-provider-status[data-phase="complete"] .ast-provider-status-dot { background: #a78bfa; }
+.ast-provider-status[data-phase="fallback"] .ast-provider-status-dot { background: #fb7185; }
+
+.ast-provider-menu-udemy .ast-provider-status {
+  padding: 4px 32px 0;
+  border-top-color: #6a6f73;
+}
+
+.ast-provider-menu-ted .ast-provider-status {
+  color: rgba(247, 248, 250, 0.62) !important;
+  -webkit-text-fill-color: rgba(247, 248, 250, 0.62) !important;
+  line-height: 1.4 !important;
+}

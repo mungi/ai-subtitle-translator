@@ -31,7 +31,7 @@ export const PROVIDERS = {
     apiKey: "",
     model: "gpt-6-luna",
     temperature: 0.2,
-    maxTokens: 8192
+    maxTokens: 16384
   },
   anthropic: {
     id: "anthropic",
@@ -42,7 +42,7 @@ export const PROVIDERS = {
     model: "claude-haiku-5-5",
     anthropicVersion: "2023-06-01",
     temperature: 0.2,
-    maxTokens: 8192
+    maxTokens: 16384
   },
   google: {
     id: "google",
@@ -52,7 +52,7 @@ export const PROVIDERS = {
     apiKey: "",
     model: "gemini-3.1-flash-lite",
     temperature: 0.2,
-    maxTokens: 8192
+    maxTokens: 16384
   },
   openrouter: {
     id: "openrouter",
@@ -66,7 +66,7 @@ export const PROVIDERS = {
     siteUrl: "",
     appTitle: "AST - AI Subtitle Translator",
     temperature: 0.2,
-    maxTokens: 8192
+    maxTokens: 16384
   },
   nvidiaNim: {
     id: "nvidiaNim",
@@ -76,7 +76,7 @@ export const PROVIDERS = {
     apiKey: "",
     model: "openai/gpt-oss-120b",
     temperature: 0.2,
-    maxTokens: 8192
+    maxTokens: 16384
   },
   local: {
     id: "local",
@@ -86,7 +86,7 @@ export const PROVIDERS = {
     apiKey: "",
     model: "google/gemma-4-e4b",
     temperature: 0.2,
-    maxTokens: 8192
+    maxTokens: 16384
   }
 };
 
@@ -393,12 +393,12 @@ export function buildSystemPromptFromSettings(settings = {}) {
 
 export function normalizeLlmParallelRequests(value) {
   const count = Number(value);
-  return Number.isFinite(count) ? Math.min(8, Math.max(1, Math.trunc(count))) : 4;
+  return Number.isFinite(count) ? Math.min(8, Math.max(1, Math.trunc(count))) : 3;
 }
 
 export const DEFAULT_SETTINGS = {
   settingsMode: "simple",
-  llmParallelRequests: 4,
+  llmParallelRequests: 3,
   subtitleDisplayMode: "dual",
   activeProvider: "googleTranslate",
   targetLanguage: "",

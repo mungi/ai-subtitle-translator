@@ -19,7 +19,8 @@ const ALIGNMENT_FALLBACK_REASON = "alignment_failed";
 const LLM_ALIGNMENT_MAX_CUES = 40;
 const LLM_ALIGNMENT_MAX_CHARS = 3000;
 const LLM_ALIGNMENT_MAX_SECONDS = 90;
-const LLM_PARALLEL_CHUNK_LIMIT = 2;
+// Simple mode usually runs on a free API tier, where two parallel requests already hit 429.
+const LLM_PARALLEL_CHUNK_LIMIT = 1;
 const GOOGLE_MAX_CHARS_PER_CHUNK = 1500;
 const GOOGLE_TRANSLATE_PROVIDER_ID = "googleTranslate";
 const DEEPL_MAX_TEXTS_PER_REQUEST = 50;
@@ -76,12 +77,20 @@ function selectSentenceContext(cues, before = false) {
   return before ? selected.reverse() : selected;
 }
 
+// YouTube marks a speaker change with ">>". Models copy it into the reply, where it lands
+// next to JSON quotes and breaks the syntax, so a leading one is dropped and an inner one becomes a dash.
+function stripSpeakerMarkers(text) {
+  const cleaned = String(text ?? "").replace(/^\s*>>+\s*/, "").replace(/\s*>>+\s*/g, " — ").trim();
+  return cleaned || "…";
+}
+
 function buildTranslationInput(document, { contextBefore = [], contextAfter = document.contextAfter || [] } = {}) {
+  const clean = (cues) => cues.map((cue) => ({ ...cue, text: stripSpeakerMarkers(cue.text) }));
   return JSON.stringify({
     sourceLanguage: document.sourceLanguage,
-    contextBefore: selectSentenceContext(contextBefore, true),
-    contextAfter: selectSentenceContext(contextAfter),
-    cues: document.cues.map(({ id, text }) => ({ id, text }))
+    contextBefore: selectSentenceContext(clean(contextBefore), true),
+    contextAfter: selectSentenceContext(clean(contextAfter)),
+    cues: document.cues.map(({ id, text }) => ({ id, text: stripSpeakerMarkers(text) }))
   });
 }
 
@@ -853,26 +862,38 @@ async function translateSentenceGroups(provider, settings, chunk, contextBefore,
     const text = cache?.get(group.text);
     if (text) cached.set(group.id, text);
   }
-  const pending = groups.filter((group) => !cached.has(group.id));
-  const groupDocument = { ...chunk, cues: pending };
-  let response = [];
-  if (pending.length) {
+  const translated = new Map();
+  // A cut-off or malformed reply leaves part of the batch untranslated. Retrying that part in
+  // halves costs a few requests; retrying it one sentence at a time costs one per sentence.
+  const translateBatch = async (batch) => {
+    const batchDocument = { ...chunk, cues: batch };
+    let response = [];
     try {
-      response = await request(groupDocument);
+      response = await request(batchDocument);
     } catch (error) {
       if (!error.retryWithSmallerChunk) throw error;
     }
-  }
-  const analysis = analyzeChunkTranslations(groupDocument, response);
-  // Any unknown or duplicate ID invalidates the batch; missing groups do not invalidate other sentences.
-  const trusted = !analysis.invalidIds.length && !analysis.unexpectedIds.length && !analysis.duplicateIds.length;
+    const analysis = analyzeChunkTranslations(batchDocument, response);
+    // Any unknown or duplicate ID invalidates the batch; missing groups do not invalidate other sentences.
+    const trusted = !analysis.invalidIds.length && !analysis.unexpectedIds.length && !analysis.duplicateIds.length;
+    const accepted = trusted ? batch.filter((group) => analysis.translationById.has(group.id)) : [];
+    for (const group of accepted) translated.set(group.id, analysis.translationById.get(group.id));
+    // Persist every valid sentence before waiting on a retry or another chunk.
+    if (accepted.length && cache) await cache.save(accepted.map((group) => ({ source: group.text, text: translated.get(group.id) })));
+    const missing = batch.filter((group) => !translated.has(group.id));
+    if (missing.length < 2) return;
+    const middle = Math.ceil(missing.length / 2);
+    // A single leftover sentence goes to the per-sentence retry below.
+    for (const half of [missing.slice(0, middle), missing.slice(middle)]) {
+      if (half.length > 1) await translateBatch(half);
+    }
+  };
+  const pending = groups.filter((group) => !cached.has(group.id));
+  if (pending.length) await translateBatch(pending);
   const result = [];
   const fallbackIds = [];
-  // Persist every valid sentence before waiting on a retry or another chunk.
-  if (trusted && cache) await cache.save(pending.filter((group) => analysis.translationById.has(group.id))
-    .map((group) => ({ source: group.text, text: analysis.translationById.get(group.id) })));
   for (const group of groups) {
-    let text = cached.get(group.id) || (trusted ? analysis.translationById.get(group.id) : null);
+    let text = cached.get(group.id) || translated.get(group.id);
     if (!text) {
       try {
         const retry = await request({ ...chunk, cues: [group] });

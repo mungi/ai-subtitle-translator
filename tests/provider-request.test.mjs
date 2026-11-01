@@ -185,6 +185,17 @@ test("OpenAI Responses requests disable reasoning and use low verbosity by defau
   const body = JSON.parse(request.init.body);
   assert.equal(body.reasoning.effort, "none");
   assert.equal(body.text.verbosity, "low");
+  assert.equal(body.text.format.type, "json_schema");
+  assert.equal(body.text.format.strict, true);
+  assert.equal(body.text.format.name, "subtitle_translations");
+  assert.deepEqual(body.text.format.schema.required, ["translations"]);
+  assert.deepEqual(body.text.format.schema.properties.translations.items.required, ["id", "text"]);
+
+  // The connection test asks for plain text, so it carries no schema.
+  const plain = JSON.parse(buildProviderRequest({ ...PROVIDERS.openai, apiKey: "openai-test-key" }, {
+    systemPrompt: "Reply OK.", input: "ping", structuredOutput: false
+  }).init.body);
+  assert.equal(plain.text.format, undefined);
 });
 
 test("Anthropic requests use low output effort and omit deprecated temperature", () => {
