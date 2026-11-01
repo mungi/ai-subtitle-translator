@@ -44,6 +44,9 @@
   "simpleGoogleIntroGuide": {
     "message": "Google AI로 자막을 번역합니다. 아래 안내대로 API 키를 만든 뒤 입력하면 Gemini 3.1 Flash Lite가 자동으로 설정됩니다. API 키 확인을 눌러 연결을 확인하세요."
   },
+  "simpleGooglePaidApiNotice": {
+    "message": "최근 Google AI 무료 API는 사용량이 많은 시간대에 오류가 잦습니다. 안정적인 번역이 필요하면 고급 설정에서 OpenAI gpt-6-luna나 Anthropic claude-haiku-5-5 유료 API를 권장합니다(문장 10,000개당 약 $$0.2~$$0.5, API 키는 각 제공업체에서 발급)."
+  },
   "simpleGoogleTestApiKey": {
     "message": "API 키 확인"
   },
@@ -659,6 +662,12 @@
   "contentRateLimitFallback": {
     "message": "API의 일시적인 요청 제한으로 Google Translate로 대체 번역합니다. 대기 후 선택한 모델로 다시 시도합니다."
   },
+  "contentServerBusyFallback": {
+    "message": "AI 번역 서버 혼잡으로 Google Translate로 대체 번역합니다. 잠시 후 선택한 모델로 다시 시도합니다."
+  },
+  "contentServerBusyRetrying": {
+    "message": "AI 번역 서버가 혼잡해 응답이 늦어지고 있습니다. 잠시 간격을 두고 다시 시도합니다."
+  },
   "contentFallback": {
     "message": "선택한 번역 제공업체에서 번역하지 못해 Google Translate로 대체 번역합니다."
   },
@@ -803,6 +812,9 @@
   "contentRateLimitError": {
     "message": "일시적인 API 요청 제한입니다. 대기 후 다시 시도합니다."
   },
+  "contentServerBusyError": {
+    "message": "AI 번역 서버가 혼잡합니다. 잠시 후 다시 시도합니다."
+  },
   "contentRequestRestrictedError": {
     "message": "API 요청이 제한되었습니다. 사용 한도 소진 여부는 확인되지 않았습니다. 대기 후 다시 시도합니다."
   },
@@ -814,24 +826,6 @@
   },
   "contentYoutubeCaptionsInUse": {
     "message": "사용 중"
-  },
-  "contentYoutubeHumanCaptionsApplied": {
-    "message": "YouTube 사람 자막($language$)을 표시합니다.",
-    "placeholders": {
-      "language": {
-        "content": "$1",
-        "example": "ko"
-      }
-    }
-  },
-  "contentYoutubeAutoTranslationApplied": {
-    "message": "YouTube 자동 번역($language$)을 표시합니다.",
-    "placeholders": {
-      "language": {
-        "content": "$1",
-        "example": "ko"
-      }
-    }
   },
   "phraseSegmentation": {
     "message": "자막을 구문 단위로 재구성"

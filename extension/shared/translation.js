@@ -35,6 +35,10 @@ const LLM_TRANSIENT_RETRY_BASE_DELAY_MS = 1000;
 const LLM_TRANSIENT_RETRY_MAX_AFTER_MS = 30000;
 const LLM_TRANSIENT_STATUS_CODES = new Set([408, 500, 502, 503, 504]);
 const LLM_CHUNK_SIZE_STATUS_CODES = new Set([413]);
+const LLM_SERVER_BUSY_STATUS_CODES = new Set([503, 529]);
+const LLM_SERVER_BUSY_FALLBACK_THRESHOLD = 3;
+const LLM_SERVER_BUSY_RETRY_BASE_DELAY_MS = 3000;
+const LLM_SERVER_BUSY_RECOVERY_MS = 30000;
 
 function throwIfAborted(signal) {
   if (signal?.aborted) throw signal.reason || new DOMException("Translation canceled.", "AbortError");
@@ -610,7 +614,8 @@ function isChunkSizeError(error) {
     .test(`${error?.message || ""} ${error?.details || ""}`);
 }
 
-async function fetchLlmChunkTextWithRetry(requestJson, request, signal) {
+async function fetchLlmChunkTextWithRetry(requestJson, request, requestController) {
+  const signal = requestController?.signal;
   let retryNumber = 0;
   while (true) {
     try {
@@ -618,6 +623,10 @@ async function fetchLlmChunkTextWithRetry(requestJson, request, signal) {
       return await requestJson(request);
     } catch (error) {
       throwIfAborted(signal);
+      if (requestController?.isServerBusyError(error)) {
+        await requestController.recordServerBusyError(error);
+        continue;
+      }
       retryNumber += 1;
       const delayMs = getTransientRetryDelayMs(error, retryNumber);
       if (delayMs === null || retryNumber >= LLM_TRANSIENT_RETRY_MAX_ATTEMPTS) throw error;
@@ -630,11 +639,14 @@ function createLlmRequestController({
   maxConcurrentRequests = LLM_PARALLEL_CHUNK_LIMIT,
   rateLimitFallbackThreshold = LLM_RATE_LIMIT_FALLBACK_THRESHOLD,
   waitForRateLimit = (delayMs, signal) => waitForAbortableDelay(delayMs, signal),
+  serverBusyFallbackThreshold = LLM_SERVER_BUSY_FALLBACK_THRESHOLD,
+  onServerBusy,
   signal
 } = {}) {
   let concurrentRequestLimit = Math.max(1, Number(maxConcurrentRequests) || 1);
   let activeRequestCount = 0;
   let rateLimitErrorCount = 0;
+  let serverBusyErrorCount = 0;
   let terminalError = null;
   const waiters = [];
 
@@ -697,11 +709,40 @@ function createLlmRequestController({
 
       await waitForRateLimit(Math.max(providerRetryDelay(error) || 0, LLM_RATE_LIMIT_RETRY_BASE_DELAY_MS * (2 ** (rateLimitErrorCount - 1))), signal);
     },
+    isServerBusyError(error) {
+      if (error?.serverBusy) return true;
+      const status = Number(error?.status);
+      if (LLM_SERVER_BUSY_STATUS_CODES.has(status)) return true;
+      // After an overload response, Chrome briefly refuses the extension's requests to that host,
+      // and fetch rejects without a status. Those never reached the server, so they are the same outage.
+      return serverBusyErrorCount > 0 && !Number.isFinite(status) && error?.name === "TypeError";
+    },
+    // An overloaded provider is shared by every chunk: slow down together and hand the rest to the fallback early.
+    async recordServerBusyError(error) {
+      if (terminalError) throw terminalError;
+      error.serverBusy = true;
+      concurrentRequestLimit = 1;
+      serverBusyErrorCount += 1;
+      if (serverBusyErrorCount === 1) onServerBusy?.();
+
+      if (serverBusyErrorCount >= serverBusyFallbackThreshold) {
+        error.retryAfterMs = Math.max(Number(error.retryAfterMs) || 0, LLM_SERVER_BUSY_RECOVERY_MS);
+        terminalError = error;
+        rejectWaitingRequests(error);
+        throw error;
+      }
+
+      const delayMs = Math.max(providerRetryDelay(error) || 0, LLM_SERVER_BUSY_RETRY_BASE_DELAY_MS * (2 ** (serverBusyErrorCount - 1)));
+      await waitForRateLimit(Math.round(delayMs * (0.8 + Math.random() * 0.4)), signal);
+    },
     get concurrentRequestLimit() {
       return concurrentRequestLimit;
     },
     get rateLimitErrorCount() {
       return rateLimitErrorCount;
+    },
+    get serverBusyErrorCount() {
+      return serverBusyErrorCount;
     },
     get signal() {
       return signal;
@@ -728,14 +769,14 @@ async function fetchLlmChunkTranslations(provider, settings, chunk, contextBefor
     : fetchProviderJson(provider, payload);
 
   try {
-    const text = await fetchLlmChunkTextWithRetry(requestJson, request, requestController?.signal);
+    const text = await fetchLlmChunkTextWithRetry(requestJson, request, requestController);
     return parseTranslationResponse(text);
   } catch (error) {
     if (!shouldRetryOpenRouterWithoutReasoning(provider, error)) throw error;
 
     provider.reasoningProfile = createReasoningProfile(provider, "omit");
     const compatibleRequest = buildProviderRequest(provider, requestOptions);
-    const text = await fetchLlmChunkTextWithRetry(requestJson, compatibleRequest, requestController?.signal);
+    const text = await fetchLlmChunkTextWithRetry(requestJson, compatibleRequest, requestController);
     return parseTranslationResponse(text);
   }
 }
@@ -859,8 +900,20 @@ async function translateLlmChunksWithPriority(provider, settings, document, chun
   const translationsByChunk = new Array(chunks.length);
   const parallelLimit = settings.settingsMode === "advanced"
     ? normalizeLlmParallelRequests(settings.llmParallelRequests) : LLM_PARALLEL_CHUNK_LIMIT;
-  const requestController = createLlmRequestController({ signal, maxConcurrentRequests: parallelLimit });
   let completedChunkCount = 0;
+  const requestController = createLlmRequestController({
+    signal,
+    maxConcurrentRequests: parallelLimit,
+    // Tell the page right away; the fallback notice only comes once retries are used up.
+    onServerBusy: () => onProgress?.({
+      chunkIndex: -1,
+      chunkCount: chunks.length,
+      completedChunkCount,
+      isComplete: false,
+      cues: [],
+      providerNotice: "server_busy"
+    })
+  });
   const fallbackCueIds = new Set();
   let documentFallbackReason;
   const fallbackRetryPolicy = { fallbackRetryBlocked: false, fallbackRetryAfterMs: 0 };

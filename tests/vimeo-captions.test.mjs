@@ -104,7 +104,7 @@ test("NVIDIA Academy and Vimeo use Vimeo's bottom control bar and a visible prov
   assert.match(contentScript, /function renderSourceCaptionMenu\(menu, platform\)/);
   assert.match(contentScript, /function renderTranslationStyleMenu\(menu, platform\)/);
   assert.match(contentScript, /settings\.setTranslationStyle/);
-  assert.match(contentScript, /function selectDefaultSourceCaptionTrack\(tracks\)/);
+  assert.match(contentScript, /function selectDefaultSourceCaptionTrack\(tracks, preferredLanguage = ""\)/);
   assert.match(contentScript, /function getVimeoPlayerConfigResourceUrl\(videoId\)/);
   assert.match(contentScript, /function getVimeoTextTracksFromDom\(videoId\)/);
   assert.match(contentScript, /document\.querySelectorAll\("video track\[src\]"\)/);

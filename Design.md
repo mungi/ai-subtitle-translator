@@ -82,7 +82,7 @@ OpenAI, Anthropic, Gemini, OpenRouter, NVIDIA NIM, Custom LLM은 옵션 화면�
 
 Hosted provider의 Base URL은 각 provider의 공식 HTTPS origin으로 제한한다. Custom LLM은 `localhost` 또는 `127.0.0.1`의 HTTP/HTTPS URL과 사용자가 입력한 사용자 지정 HTTPS URL을 허용하며, URL 안의 사용자 정보와 fragment는 거부한다. 이 검사는 모델 조회와 실제 번역 요청 양쪽에 적용하고 HTTP redirect는 자동 추적하지 않는다.
 
-모델 목록 조회 후에는 실제 반환 목록에서 권장 모델을 자동 선택하고 저장한다. Google AI는 `gemini-3.1-flash-lite`, OpenAI는 `gpt-5.6-luna`, Anthropic은 `claude-haiku-4-5-20251001`, OpenRouter는 `deepseek/deepseek-v4-flash`, NVIDIA NIM은 `openai/gpt-oss-120b`를 최우선으로 선택하고 연결 테스트를 한 번 수행한다. Custom LLM은 `google/gemma-4-e4b`를 최우선으로 선택하지만 자동 연결 테스트는 실행하지 않는다. 해당 ID가 없으면 Flash-Lite, Haiku, Qwen/Gemma 소형 instruct 계열을 우선하고, 없으면 사용 가능한 첫 text model로 fallback한다. audio, realtime, transcription, image, embedding 등 자막 번역에 맞지 않는 변형은 추천 대상에서 제외한다.
+모델 목록 조회 후에는 실제 반환 목록에서 권장 모델을 자동 선택하고 저장한다. Google AI는 `gemini-3.1-flash-lite`, OpenAI는 `gpt-6-luna`, Anthropic은 `claude-haiku-5-5`, OpenRouter는 `deepseek/deepseek-v4-flash`, NVIDIA NIM은 `openai/gpt-oss-120b`를 최우선으로 선택하고 연결 테스트를 한 번 수행한다. Custom LLM은 `google/gemma-4-e4b`를 최우선으로 선택하지만 자동 연결 테스트는 실행하지 않는다. 해당 ID가 없으면 Flash-Lite, Haiku, Qwen/Gemma 소형 instruct 계열을 우선하고, 없으면 사용 가능한 첫 text model로 fallback한다. audio, realtime, transcription, image, embedding 등 자막 번역에 맞지 않는 변형은 추천 대상에서 제외한다.
 
 ## 설정 화면
 

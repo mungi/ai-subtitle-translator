@@ -1,8 +1,14 @@
 (() => {
+  // Word-timed json3 for a long video passes 3 MB, so the cap only guards against runaway bodies.
+  const MAX_CAPTION_CHARS = 32 * 1024 * 1024;
   const DATA_EVENT = "ast.youtube.captionData";
   const REQUEST_EVENT = "ast.youtube.captionRequest";
   const TARGET_REQUEST_EVENT = "ast.youtube.targetCaptionRequest";
   const TARGET_RESULT_EVENT = "ast.youtube.targetCaptionResult";
+  const TRACKS_REQUEST_EVENT = "ast.youtube.trackListRequest";
+  const TRACKS_EVENT = "ast.youtube.trackList";
+  const PLAYER_WAIT_ATTEMPTS = 16;
+  const PLAYER_WAIT_MS = 250;
   const cache = new Map();
   // Signed player URLs stay in the page; they are only reused here to ask for another track.
   const playerUrls = new Map();
@@ -31,7 +37,7 @@
     try {
       const url = new URL(rawUrl, location.origin);
       if (url.origin !== "https://www.youtube.com" || url.pathname !== "/api/timedtext"
-        || url.searchParams.has("tlang") || !text?.trim() || text.length > 2 * 1024 * 1024) return;
+        || url.searchParams.has("tlang") || !text?.trim() || text.length > MAX_CAPTION_CHARS) return;
       const caption = {
         videoId: url.searchParams.get("v"),
         languageCode: url.searchParams.get("lang"),
@@ -102,7 +108,7 @@
     const result = await originalFetch.call(window, url.toString(), { credentials: "include" });
     if (!result.ok) return "";
     const text = await result.text();
-    return text.trim() && text.length <= 2 * 1024 * 1024 ? text : "";
+    return text.trim() && text.length <= MAX_CAPTION_CHARS ? text : "";
   }
 
   // Human captions in the target language come first; YouTube's machine translation of the
@@ -159,6 +165,36 @@
     fetchTargetCaption(request).then(reply, () => reply(null));
   });
 
+  // Right after switching videos the player still describes the previous one; wait briefly for it.
+  function whenPlayerShows(videoId, callback, attempts = PLAYER_WAIT_ATTEMPTS) {
+    const player = document.getElementById("movie_player");
+    let response = null;
+    try { response = player?.getPlayerResponse?.(); } catch { /* The player may be navigating. */ }
+    if (response?.videoDetails?.videoId === videoId) {
+      callback(player, response);
+    } else if (attempts > 0) {
+      setTimeout(() => whenPlayerShows(videoId, callback, attempts - 1), PLAYER_WAIT_MS);
+    }
+  }
+
+  window.addEventListener("message", (event) => {
+    if (event.source !== window || event.origin !== location.origin || event.data?.type !== TRACKS_REQUEST_EVENT) return;
+    const videoId = event.data.videoId;
+    if (!/^[\w-]{11}$/.test(videoId || "")) return;
+    whenPlayerShows(videoId, (_player, response) => {
+      // Track metadata only; caption bodies still arrive through the player's own requests.
+      const tracks = (response.captions?.playerCaptionsTracklistRenderer?.captionTracks || [])
+        .filter((track) => track?.languageCode)
+        .map((track) => ({
+          languageCode: track.languageCode,
+          kind: track.kind === "asr" ? "asr" : "",
+          name: track.name?.simpleText || track.name?.runs?.map((run) => run.text).join("") || "",
+          baseUrl: typeof track.baseUrl === "string" ? track.baseUrl : ""
+        }));
+      window.postMessage({ type: TRACKS_EVENT, videoId, tracks }, location.origin);
+    });
+  });
+
   window.addEventListener("message", (event) => {
     if (event.source !== window || event.origin !== location.origin || event.data?.type !== REQUEST_EVENT) return;
     const request = event.data.request;
@@ -170,15 +206,15 @@
       window.postMessage({ type: DATA_EVENT, caption: cached }, location.origin);
       return;
     }
+    whenPlayerShows(request.videoId, (player, response) => requestFromPlayer(request, player, response));
+  });
 
-    // Ask the current native player to acquire its own authenticated caption
-    // response, then restore the user's caption visibility and selected track.
-    const player = document.getElementById("movie_player");
+  // Ask the current native player to acquire its own authenticated caption
+  // response, then restore the user's caption visibility and selected track.
+  function requestFromPlayer(request, player, response) {
     if (!player?.getPlayerResponse || !player.setOption || !player.toggleSubtitles) return;
     if (player.classList?.contains("ad-showing") || player.classList?.contains("ad-interrupting")) return;
     try {
-      const response = player.getPlayerResponse();
-      if (response?.videoDetails?.videoId !== request.videoId) return;
       const nativeTracks = player.getOption?.("captions", "tracklist");
       const tracks = nativeTracks?.length ? nativeTracks
         : response.captions?.playerCaptionsTracklistRenderer?.captionTracks || [];
@@ -233,5 +269,5 @@
     } catch {
       try { restorePlayer?.finish(); } catch { /* The player may be navigating. */ }
     }
-  });
+  }
 })();

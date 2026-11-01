@@ -192,8 +192,8 @@ test("OpenAI-compatible provider is labeled Custom LLM in settings UI", () => {
 
 test("hosted LLM providers default to the configured recommended models", () => {
   assert.equal(PROVIDERS.google.model, "gemini-3.1-flash-lite");
-  assert.equal(PROVIDERS.openai.model, "gpt-5.6-luna");
-  assert.equal(PROVIDERS.anthropic.model, "claude-haiku-4-5-20251001");
+  assert.equal(PROVIDERS.openai.model, "gpt-6-luna");
+  assert.equal(PROVIDERS.anthropic.model, "claude-haiku-5-5");
   assert.equal(PROVIDERS.openrouter.model, "deepseek/deepseek-v4-flash:nitro");
   assert.equal(PROVIDERS.openrouter.nitro, true);
   assert.equal(PROVIDERS.openrouter.disableReasoning, true);

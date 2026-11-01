@@ -13,6 +13,7 @@ const BACKGROUND_MESSAGE_TYPES = new Set([
   "settings.setTargetLanguage",
   "settings.setSubtitleDisplayMode",
   "settings.setPreferYoutubeProvidedTranslation",
+  "settings.setSourceCaptionLanguage",
   "ast.openOptions",
   "ast.providerMenu.setOpen",
   "captions.youtube.listTracks",
@@ -46,6 +47,7 @@ const CONTENT_SCRIPT_MESSAGE_TYPES = new Set([
   "settings.setTargetLanguage",
   "settings.setSubtitleDisplayMode",
   "settings.setPreferYoutubeProvidedTranslation",
+  "settings.setSourceCaptionLanguage",
   "ast.openOptions",
   "ast.providerMenu.setOpen",
   "captions.youtube.listTracks",
@@ -211,6 +213,10 @@ export function validateBackgroundMessage(message) {
       break;
     case "settings.setSubtitleDisplayMode":
       if (!["dual", "source", "translated"].includes(message.mode)) error = "Unsupported subtitle display mode.";
+      break;
+    case "settings.setSourceCaptionLanguage":
+      if (!["youtube", "udemy", "ted", "nvidia", "vimeo"].includes(message.platform)) error = "Unsupported platform.";
+      else if (!/^[\w-]{1,35}$/.test(String(message.languageCode || ""))) error = "languageCode is invalid.";
       break;
     case "settings.setPreferYoutubeProvidedTranslation":
       if (typeof message.enabled !== "boolean") error = "enabled must be a boolean.";

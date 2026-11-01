@@ -173,3 +173,9 @@ test("subtitle style patches accept the translation position only as a boolean",
   assert.equal(validateBackgroundMessage({ type: "settings.updateSubtitleStyle", patch: { translationOnTop: "true" } }).ok, false);
   assert.equal(validateBackgroundMessage({ type: "settings.updateSubtitleStyle", patch: { textColor: "#ffffff" } }).ok, false);
 });
+
+test("source caption language messages need a supported platform and a language code", () => {
+  assert.equal(validateBackgroundMessage({ type: "settings.setSourceCaptionLanguage", platform: "youtube", languageCode: "ko" }).ok, true);
+  assert.equal(validateBackgroundMessage({ type: "settings.setSourceCaptionLanguage", platform: "other", languageCode: "ko" }).ok, false);
+  assert.equal(validateBackgroundMessage({ type: "settings.setSourceCaptionLanguage", platform: "youtube", languageCode: "ko;x" }).ok, false);
+});

@@ -44,6 +44,9 @@
   "simpleGoogleIntroGuide": {
     "message": "Translate subtitles with Google AI. Create an API key using the guide below and enter it here; Gemini 3.1 Flash Lite is set automatically. Select Check API key to verify the connection."
   },
+  "simpleGooglePaidApiNotice": {
+    "message": "The free Google AI API often returns errors during busy hours. For steadier translation, we recommend a paid API in Advanced Settings: OpenAI gpt-6-luna or Anthropic claude-haiku-5-5 (about $$0.2–$$0.5 per 10,000 sentences; get the API key from each provider)."
+  },
   "simpleGoogleTestApiKey": {
     "message": "Check API key"
   },
@@ -659,6 +662,12 @@
   "contentRateLimitFallback": {
     "message": "The API is temporarily rate limited. Using Google Translate and retrying the selected model after a wait."
   },
+  "contentServerBusyFallback": {
+    "message": "The AI translation server is busy. Using Google Translate and retrying the selected model shortly."
+  },
+  "contentServerBusyRetrying": {
+    "message": "The AI translation server is busy, so responses are delayed. Retrying with longer waits."
+  },
   "contentFallback": {
     "message": "The selected translation provider failed. Falling back to Google Translate."
   },
@@ -803,6 +812,9 @@
   "contentRateLimitError": {
     "message": "The API is temporarily rate limited. Retrying after a wait."
   },
+  "contentServerBusyError": {
+    "message": "The AI translation server is busy. Retrying shortly."
+  },
   "contentRequestRestrictedError": {
     "message": "The API request was restricted. Allowance exhaustion has not been confirmed. Retrying after a wait."
   },
@@ -814,24 +826,6 @@
   },
   "contentYoutubeCaptionsInUse": {
     "message": "in use"
-  },
-  "contentYoutubeHumanCaptionsApplied": {
-    "message": "Showing YouTube human subtitles ($language$).",
-    "placeholders": {
-      "language": {
-        "content": "$1",
-        "example": "ko"
-      }
-    }
-  },
-  "contentYoutubeAutoTranslationApplied": {
-    "message": "Showing YouTube auto-translation ($language$).",
-    "placeholders": {
-      "language": {
-        "content": "$1",
-        "example": "ko"
-      }
-    }
   },
   "phraseSegmentation": {
     "message": "Restructure subtitles into phrases"

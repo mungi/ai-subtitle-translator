@@ -44,6 +44,9 @@
   "simpleGoogleIntroGuide": {
     "message": "Google AI で字幕を翻訳します。下の案内に沿って API キーを作成して入力すると、Gemini 3.1 Flash Lite が自動設定されます。「API キーを確認」を押して接続を確認してください。"
   },
+  "simpleGooglePaidApiNotice": {
+    "message": "最近、Google AI の無料 API は利用が集中する時間帯にエラーが多発しています。安定した翻訳が必要な場合は、詳細設定で OpenAI gpt-6-luna または Anthropic claude-haiku-5-5 の有料 API をおすすめします（10,000 文あたり約 $$0.2〜$$0.5、API キーは各プロバイダーで発行）。"
+  },
   "simpleGoogleTestApiKey": {
     "message": "API キーを確認"
   },
@@ -659,6 +662,12 @@
   "contentRateLimitFallback": {
     "message": "APIの一時的なリクエスト制限により、Google Translateで代替翻訳します。待機後に選択したモデルで再試行します。"
   },
+  "contentServerBusyFallback": {
+    "message": "AI翻訳サーバーの混雑により、Google Translateで代替翻訳します。しばらくしてから選択したモデルで再試行します。"
+  },
+  "contentServerBusyRetrying": {
+    "message": "AI翻訳サーバーが混雑しているため、応答が遅れています。間隔を空けて再試行します。"
+  },
   "contentFallback": {
     "message": "選択した翻訳プロバイダーで翻訳できなかったため、Google Translate に切り替えます。"
   },
@@ -803,6 +812,9 @@
   "contentRateLimitError": {
     "message": "APIの一時的なリクエスト制限です。待機後に再試行します。"
   },
+  "contentServerBusyError": {
+    "message": "AI翻訳サーバーが混雑しています。しばらくしてから再試行します。"
+  },
   "contentRequestRestrictedError": {
     "message": "APIリクエストが制限されました。利用上限に達したかどうかは確認できていません。待機後に再試行します。"
   },
@@ -814,24 +826,6 @@
   },
   "contentYoutubeCaptionsInUse": {
     "message": "使用中"
-  },
-  "contentYoutubeHumanCaptionsApplied": {
-    "message": "YouTube の人による字幕（$language$）を表示しています。",
-    "placeholders": {
-      "language": {
-        "content": "$1",
-        "example": "ko"
-      }
-    }
-  },
-  "contentYoutubeAutoTranslationApplied": {
-    "message": "YouTube の自動翻訳（$language$）を表示しています。",
-    "placeholders": {
-      "language": {
-        "content": "$1",
-        "example": "ko"
-      }
-    }
   },
   "phraseSegmentation": {
     "message": "字幕をフレーズ単位で再構成"

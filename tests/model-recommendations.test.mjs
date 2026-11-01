@@ -16,11 +16,22 @@ test("Google AI recommends Gemini 3.1 Flash Lite over larger and media models", 
 
 test("provider recommendations choose configured models before lightweight fallbacks", () => {
   assert.equal(selectRecommendedModel("openai", [
+    { id: "gpt-6", label: "GPT 6" },
+    { id: "gpt-5.6-luna", label: "GPT 5.6 Luna" },
+    { id: "gpt-6-luna", label: "GPT 6 Luna" },
+    { id: "gpt-5.4-mini", label: "GPT 5.4 Mini" }
+  ]).id, "gpt-6-luna");
+  assert.equal(selectRecommendedModel("openai", [
     { id: "gpt-5.6", label: "GPT 5.6" },
     { id: "gpt-5.6-luna", label: "GPT 5.6 Luna" },
     { id: "gpt-5.4-mini", label: "GPT 5.4 Mini" }
   ]).id, "gpt-5.6-luna");
 
+  assert.equal(selectRecommendedModel("anthropic", [
+    { id: "claude-sonnet-5-5", label: "Claude Sonnet 5.5" },
+    { id: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5 (20251001)" },
+    { id: "claude-haiku-5-5", label: "Claude Haiku 5.5" }
+  ]).id, "claude-haiku-5-5");
   assert.equal(selectRecommendedModel("anthropic", [
     { id: "claude-sonnet-5", label: "Claude Sonnet 5" },
     { id: "claude-haiku-4-5", label: "Claude Haiku 4.5" },

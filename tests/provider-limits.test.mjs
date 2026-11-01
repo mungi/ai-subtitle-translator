@@ -61,3 +61,8 @@ test("provider response details survive parsing and daily exhaustion stops queue
     globalThis.fetch = originalFetch;
   }
 });
+
+test("confirmed overload is reported as a busy server, not a usage limit", () => {
+  assert.equal(classifyProviderLimit({ status: 503, serverBusy: true }), "server_busy");
+  assert.equal(classifyProviderLimit({ name: "TypeError", serverBusy: true }), "server_busy");
+});

@@ -11,6 +11,8 @@ export function classifyProviderLimit(error) {
     || /daily (?:quota|limit)|(?:quota|limit)[^\n.]*per day|requests per day[^\n.]*exceeded|credit balance[^\n.]*too low|insufficient (?:credits|balance)|billing (?:hard )?limit|일일[^\n.]*한도/.test(message)) {
     return "quota_exceeded";
   }
+  // Set by the LLM request controller once overload responses have been confirmed.
+  if (error?.serverBusy) return "server_busy";
   if (Number(error?.status) !== 429) return null;
   if (/per.?minute|per.?second/.test(quotaIds)
     || /rate.?limit|too many requests|per minute|per second|\brpm\b|\btpm\b/.test(message)

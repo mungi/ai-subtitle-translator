@@ -3,6 +3,7 @@ import test from "node:test";
 import { PROVIDERS } from "../extension/shared/defaults.js";
 import { normalizeSettings } from "../extension/shared/storage.js";
 import { translateSubtitleDocument, translationInternals } from "../extension/shared/translation.js";
+import { classifyProviderLimit, providerRetryDelay } from "../extension/shared/provider-limits.js";
 
 const sourceDocument = {
   platform: "test",
@@ -1449,4 +1450,72 @@ test("LLM failure falls back to Google Translate even when DeepL is selected for
     globalThis.fetch = originalFetch;
     globalThis.setTimeout = originalSetTimeout;
   }
+});
+
+const busyGeminiProvider = {
+  id: "google",
+  apiStyle: "google-generate-content",
+  baseUrl: "https://generativelanguage.googleapis.com/v1beta",
+  apiKey: "google-key",
+  model: "gemini-test",
+  maxTokens: 4096
+};
+
+async function runBusyChunk(respond) {
+  const originalFetch = globalThis.fetch;
+  const delays = [];
+  let notices = 0;
+  let requestCount = 0;
+  const controller = translationInternals.createLlmRequestController({
+    waitForRateLimit: async (delayMs) => delays.push(delayMs),
+    onServerBusy: () => { notices += 1; }
+  });
+  globalThis.fetch = async () => respond(++requestCount);
+  try {
+    const error = await translationInternals.translateLlmChunkWithRetry({ ...busyGeminiProvider }, {
+      targetLanguage: "ko",
+      translationStyle: "natural"
+    }, { ...sourceDocument, chunkIndex: 0, chunkCount: 1 }, [], controller).then(() => null, (reason) => reason);
+    return { error, delays, notices, requestCount, controller };
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+}
+
+const overloaded = () => ({
+  ok: false,
+  status: 503,
+  statusText: "Service Unavailable",
+  json: async () => ({ error: { code: 503, message: "This model is currently experiencing high demand.", status: "UNAVAILABLE" } })
+});
+
+test("overload replies slow every chunk down and hand off to the fallback after three tries", async () => {
+  const { error, delays, notices, requestCount, controller } = await runBusyChunk(overloaded);
+
+  assert.equal(requestCount, 3);
+  assert.equal(error?.serverBusy, true);
+  assert.equal(classifyProviderLimit(error), "server_busy");
+  assert.ok(providerRetryDelay(error) >= 30000);
+  assert.equal(notices, 1);
+  assert.equal(controller.concurrentRequestLimit, 1);
+  assert.equal(delays.length, 2);
+  assert.ok(delays[0] >= 2400 && delays[0] <= 3600, String(delays[0]));
+  assert.ok(delays[1] >= 4800 && delays[1] <= 7200, String(delays[1]));
+});
+
+test("requests the browser blocks after an overload reply count toward the same outage", async () => {
+  const { error, requestCount } = await runBusyChunk((count) => {
+    if (count === 1) return overloaded();
+    throw new TypeError("Failed to fetch");
+  });
+
+  assert.equal(requestCount, 3);
+  assert.equal(error?.serverBusy, true);
+});
+
+test("a network error with no overload before it keeps the usual transient retry", () => {
+  const controller = translationInternals.createLlmRequestController();
+  assert.equal(controller.isServerBusyError(new TypeError("Failed to fetch")), false);
+  assert.equal(controller.isServerBusyError({ status: 503 }), true);
+  assert.equal(controller.isServerBusyError({ status: 500 }), false);
 });

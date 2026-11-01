@@ -29,7 +29,7 @@ export const PROVIDERS = {
     apiStyle: "openai-responses",
     baseUrl: "https://api.openai.com/v1",
     apiKey: "",
-    model: "gpt-5.6-luna",
+    model: "gpt-6-luna",
     temperature: 0.2,
     maxTokens: 8192
   },
@@ -39,7 +39,7 @@ export const PROVIDERS = {
     apiStyle: "anthropic-messages",
     baseUrl: "https://api.anthropic.com",
     apiKey: "",
-    model: "claude-haiku-4-5-20251001",
+    model: "claude-haiku-5-5",
     anthropicVersion: "2023-06-01",
     temperature: 0.2,
     maxTokens: 8192
@@ -405,6 +405,7 @@ export const DEFAULT_SETTINGS = {
   translationStyle: "custom",
   preferYoutubeProvidedTranslation: true,
   phraseSegmentation: true,
+  sourceCaptionLanguages: {},
   phraseSegmentationSkipYoutubeManual: false,
   wordProgressHighlight: true,
   customSystemPrompt: DEFAULT_CUSTOM_STYLE_SYSTEM_PROMPT,

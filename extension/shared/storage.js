@@ -145,11 +145,20 @@ export function normalizeSettings(settings = {}) {
     activeProvider,
     preferYoutubeProvidedTranslation: settings.preferYoutubeProvidedTranslation !== false,
     phraseSegmentation: settings.phraseSegmentation !== false,
+    sourceCaptionLanguages: normalizeSourceCaptionLanguages(settings.sourceCaptionLanguages),
     phraseSegmentationSkipYoutubeManual: settings.phraseSegmentationSkipYoutubeManual === true,
     wordProgressHighlight: settings.wordProgressHighlight !== false,
     customSystemPrompt: extractStyleSystemPrompt(settings.customSystemPrompt || defaults.customSystemPrompt || buildDefaultCustomStyleSystemPrompt(targetLanguage)),
     custom2SystemPrompt: extractStyleSystemPrompt(settings.custom2SystemPrompt || defaults.custom2SystemPrompt || buildDefaultCustom2StyleSystemPrompt())
   };
+}
+
+function normalizeSourceCaptionLanguages(value) {
+  const languages = {};
+  for (const [platform, languageCode] of Object.entries(value && typeof value === "object" ? value : {})) {
+    if (/^[a-z]{1,16}$/.test(platform) && /^[\w-]{1,35}$/.test(String(languageCode || ""))) languages[platform] = languageCode;
+  }
+  return languages;
 }
 
 // Settings saved before the source line had its own font keep showing both lines alike;

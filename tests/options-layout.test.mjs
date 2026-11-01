@@ -93,6 +93,7 @@ test("simple settings retain the existing Google guide and show the API key guid
     /<div class="simple-google-key-row">\s*<div class="simple-google-key-field">[\s\S]*id="simpleGoogleApiKey"[\s\S]*id="toggleSimpleGoogleApiKeyVisibility"[\s\S]*<\/div>\s*<button id="testSimpleGoogleApiKey"[^>]*data-i18n="simpleGoogleTestApiKey"[^>]*><\/button>\s*<\/div>\s*<p id="simpleSettingsStatus"[^>]*role="status"><\/p>/
   );
   assert.ok(simpleHtml.indexOf('id="simpleSettingsStatus"') < simpleHtml.indexOf('id="simpleGoogleGuide"'));
+  assert.match(simpleHtml, /<p id="simpleGooglePaidApiNotice"[^>]*data-i18n="simpleGooglePaidApiNotice"[^>]*><\/p>\s*<section id="simpleTranslationUsageGuide"/);
   assert.match(simpleHtml, /id="simpleGoogleKeyGuide"/);
   assert.match(simpleHtml, /data-i18n="simpleGoogleKeyGuideTitle"/);
   assert.match(
@@ -226,6 +227,10 @@ test("simple settings messages are synchronized in Korean, English, and Japanese
   assert.equal(
     message("ko", "simpleGoogleIntroGuide"),
     "Google AI로 자막을 번역합니다. 아래 안내대로 API 키를 만든 뒤 입력하면 Gemini 3.1 Flash Lite가 자동으로 설정됩니다. API 키 확인을 눌러 연결을 확인하세요."
+  );
+  assert.equal(
+    message("ko", "simpleGooglePaidApiNotice"),
+    "최근 Google AI 무료 API는 사용량이 많은 시간대에 오류가 잦습니다. 안정적인 번역이 필요하면 고급 설정에서 OpenAI gpt-6-luna나 Anthropic claude-haiku-5-5 유료 API를 권장합니다(문장 10,000개당 약 $$0.2~$$0.5, API 키는 각 제공업체에서 발급)."
   );
   assert.equal(
     message("ko", "simpleGoogleFreeTierNotice"),

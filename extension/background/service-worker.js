@@ -435,6 +435,15 @@ export function setPreferYoutubeProvidedTranslation(enabled) {
   });
 }
 
+export function setSourceCaptionLanguage(platform, languageCode) {
+  return enqueueSettingsMutation(async () => {
+    const settings = await getSettings();
+    settings.sourceCaptionLanguages = { ...(settings.sourceCaptionLanguages || {}), [platform]: languageCode };
+    await saveSettings(settings);
+    return { platform, languageCode };
+  });
+}
+
 export function setSubtitleDisplayMode(mode) {
   if (!["dual", "source", "translated"].includes(mode)) {
     return Promise.reject(new Error(`Unsupported subtitle display mode: ${mode}`));
@@ -555,6 +564,13 @@ export function dispatchBackgroundMessage(message, sender, sendResponse) {
 
   if (message?.type === "settings.setPreferYoutubeProvidedTranslation") {
     setPreferYoutubeProvidedTranslation(message.enabled)
+      .then((result) => sendResponse({ ok: true, result }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.type === "settings.setSourceCaptionLanguage") {
+    setSourceCaptionLanguage(message.platform, message.languageCode)
       .then((result) => sendResponse({ ok: true, result }))
       .catch((error) => sendResponse({ ok: false, error: error.message }));
     return true;

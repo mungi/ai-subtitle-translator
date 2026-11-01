@@ -8,6 +8,8 @@ const PROVIDER_MODEL_PREFERENCES = {
     /gemini.*flash/i
   ],
   openai: [
+    "gpt-6-luna",
+    /^gpt-6(?:\.\d+)?-luna(?:-|$)/i,
     "gpt-5.6-luna",
     /^gpt-5(?:\.\d+)?-mini(?:-|$)/i,
     /^gpt-5.*mini/i,
@@ -16,6 +18,8 @@ const PROVIDER_MODEL_PREFERENCES = {
     /gpt.*mini/i
   ],
   anthropic: [
+    "claude-haiku-5-5",
+    /^claude-haiku-5(?:-\d+)?(?:-|$)/i,
     "claude-haiku-4-5-20251001",
     /claude.*haiku.*4[-.]?5/i,
     /claude.*haiku/i
