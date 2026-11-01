@@ -14,5 +14,8 @@ test("release script publishes the versioned ZIP as a GitHub Release asset", () 
   assert.match(releaseScript, /zip_path="release\/ai-subtitle-translator-\$\{tag\}\.zip"/);
   assert.match(releaseScript, /gh release view "\$tag"/);
   assert.match(releaseScript, /gh release upload "\$tag" "\$zip_path" --clobber/);
-  assert.match(releaseScript, /gh release create "\$tag" "\$zip_path" --title "\$tag" --generate-notes/);
+  // Releases are titled "AST v0.2.0", both new ones and ones re-uploaded to.
+  assert.match(releaseScript, /title="AST \$\{tag\}"/);
+  assert.match(releaseScript, /gh release edit "\$tag" --title "\$title"/);
+  assert.match(releaseScript, /gh release create "\$tag" "\$zip_path" --title "\$title" --generate-notes/);
 });

@@ -25,7 +25,9 @@ Naturally translate subtitles from videos on the following websites into your pr
   - Fast translation is displayed first while LLM translation is being prepared
   - Choose a source subtitle language provided by the video (default: English)
   - Subtitle display, position adjustment, and width adjustment
-  - Choose dual, source, or translated subtitles (default: translated subtitles)
+  - Choose dual, source, or translated subtitles (default: dual subtitles)
+  - Prefer YouTube's human subtitles or auto-translation (optional)
+  - Regroup auto-generated subtitles into phrases for easier reading
   - Customize subtitle font, color, shadow, outline, background color, and opacity
   - Translation styles: Natural, Lecture, Technical, Custom 1 (Star Instructor), and Custom 2
   - Chunked and parallel translation of subtitles for long videos, plus a translation cache
@@ -49,6 +51,18 @@ Naturally translate subtitles from videos on the following websites into your pr
   - If you have a DeepL API key, you can use DeepL for fast translation.
 
 # Major Changes
+  [ v0.2.0 (2026-11-01) ]
+  ※ Starting with this update, site access changes to "all sites". Chrome pauses the extension right after the update, so you need to allow the permission again on the extensions page. (See "Permissions" below.)
+  - YouTube: Added the "Prefer YouTube subtitles" option, which uses human subtitles in the target language when available and YouTube's auto-translation otherwise (default: on).
+  - YouTube: Steadier caption loading for long videos, after switching videos or returning from Shorts, and after ads. The chosen source language is kept for the next video.
+  - Added phrase-based regrouping of subtitles (default: on, with an option to keep uploaded subtitles as they are).
+  - Separate fonts for source and translated subtitles, a choice of translated subtitle position (top or bottom), and dual subtitles as the default display.
+  - Added a status line at the bottom of the player menu showing the translation stage and progress. Routine notices no longer pop up; pop-ups appear only for errors and exceptions.
+  - When an AI translation server is busy, retries wait longer and Google Translate takes over sooner. Fewer re-requests after bad responses improve speed and cost.
+  - Default models changed to gpt-6-luna for OpenAI and claude-haiku-5-5 for Anthropic. The default maximum output is 16,384 tokens.
+  - DeepL Free or Pro endpoint by plan, and a paid-API recommendation in Simple Settings.
+  - Turning AI subtitle translation off now stops LLM translation requests.
+
   [ v0.1.4 (2026-10-28) ]
   - Improved YouTube caption retrieval and synchronization, added source word progress highlighting, and hid AST subtitles during ads.
   - Added dual, source, and translated subtitle modes, plus right-to-left support for Persian and Arabic.
@@ -67,6 +81,20 @@ Naturally translate subtitles from videos on the following websites into your pr
   - Source: https://github.com/mungi/ai-subtitle-translator
   - Site: https://mungi.github.io/ai-subtitle-translator/
   - Issue reports and feature requests: https://github.com/mungi/ai-subtitle-translator/issues
+
+# Permissions
+  - Site access (all sites)
+    - Since v0.2.0, the list of individual sites the extension could access (24 entries) is replaced by a single "all sites" permission.
+    - Why it is needed
+      - We plan to keep adding supported video sites. Granting access once avoids a new permission request, and a fresh approval, every time a site is added.
+      - Custom LLM: an OpenAI-compatible server you run or choose can live at any address. Previously, every change of address needed its own permission request.
+      - Subtitle servers of video sites and the endpoints of the translation providers you choose work right away.
+      - Chrome's site access list showed a long list of addresses that was hard to read.
+    - What it is actually used for
+      - The subtitle script runs only on supported video sites (Udemy, NVIDIA Academy, YouTube, TED, Vimeo). It does not read or change other websites.
+      - Network requests go only to supported sites for subtitles and to the translation provider you select. Request targets are checked again in code.
+  - storage: stores settings, encrypted API keys, and the translation cache in your browser.
+  - scripting: runs the script that fetches subtitles on supported video sites.
 
 # Privacy and Data Handling
 - Privacy policy: https://mungi.github.io/ai-subtitle-translator/privacy-en.html

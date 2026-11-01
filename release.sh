@@ -16,9 +16,11 @@ npm run release
 
 tag="$(git describe --tags --exact-match HEAD)"
 zip_path="release/ai-subtitle-translator-${tag}.zip"
+title="AST ${tag}"
 
 if gh release view "$tag" >/dev/null 2>&1; then
   gh release upload "$tag" "$zip_path" --clobber
+  gh release edit "$tag" --title "$title"
 else
-  gh release create "$tag" "$zip_path" --title "$tag" --generate-notes
+  gh release create "$tag" "$zip_path" --title "$title" --generate-notes
 fi
