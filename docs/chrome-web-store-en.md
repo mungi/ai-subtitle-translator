@@ -9,6 +9,7 @@ Naturally translate subtitles from videos on the following websites into your pr
 
 # Key Highlights
   - Translate subtitles quickly with Google Translate, or connect an LLM for natural translations that consider context.
+  - Watch with dual subtitles: the original and the translation shown together.
   - Use prompts to specify a translation style.
   - Customize the subtitle display style directly.
   - Supports multiple LLM providers, including commercial AI APIs, OpenAI-compatible APIs, and local servers. Choose providers, models, and API keys in Settings; see the Chrome Web Store settings screenshot for the full list of supported providers.
@@ -16,6 +17,7 @@ Naturally translate subtitles from videos on the following websites into your pr
 # Notes
   - Some translation providers require an API key. The API key for Custom LLM is optional.
   - Create a Google AI API key and connect the free-tier Gemini 3.1 Flash Lite model to get fast AI translations. (Recommended)
+  - The free Google AI API may return errors during busy hours. For steadier translation, a paid API such as OpenAI gpt-6-luna or Anthropic claude-haiku-5-5 is recommended (about $0.2–$0.5 per 10,000 sentences).
   - Check each LLM API provider's policy for free allowances, limits, and any applicable charges.
 
 # Main Features
@@ -26,8 +28,10 @@ Naturally translate subtitles from videos on the following websites into your pr
   - Choose a source subtitle language provided by the video (default: English)
   - Subtitle display, position adjustment, and width adjustment
   - Choose dual, source, or translated subtitles (default: dual subtitles)
-  - Prefer YouTube's human subtitles or auto-translation (optional)
+  - Use YouTube's own subtitles in your language, or YouTube's auto-translation, when available (optional)
+  - Separate fonts for the original and translated lines, and a choice of translation position (top or bottom)
   - Regroup auto-generated subtitles into phrases for easier reading
+  - Translation status and progress shown in the player menu
   - Customize subtitle font, color, shadow, outline, background color, and opacity
   - Translation styles: Natural, Lecture, Technical, Custom 1 (Star Instructor), and Custom 2
   - Chunked and parallel translation of subtitles for long videos, plus a translation cache
@@ -48,20 +52,17 @@ Naturally translate subtitles from videos on the following websites into your pr
   - To use a provider that requires an API key, enter the key issued by that provider, then click `Test connection`.
   - Adjust the translation style and subtitle display style as needed.
   - Back up all settings, including API keys. Backup files are encrypted with AES-256-GCM, and the password used during backup is required to restore them.
-  - If you have a DeepL API key, you can use DeepL for fast translation.
+  - If you have a DeepL API key, you can use DeepL for fast translation (Free or Pro plan).
 
 # Major Changes
   [ v0.2.0 (2026-11-01) ]
-  ※ Starting with this update, site access changes to "all sites". Chrome pauses the extension right after the update, so you need to allow the permission again on the extensions page. (See "Permissions" below.)
-  - YouTube: Added the "Prefer YouTube subtitles" option, which uses human subtitles in the target language when available and YouTube's auto-translation otherwise (default: on).
-  - YouTube: Steadier caption loading for long videos, after switching videos or returning from Shorts, and after ads. The chosen source language is kept for the next video.
-  - Added phrase-based regrouping of subtitles (default: on, with an option to keep uploaded subtitles as they are).
-  - Separate fonts for source and translated subtitles, a choice of translated subtitle position (top or bottom), and dual subtitles as the default display.
-  - Added a status line at the bottom of the player menu showing the translation stage and progress. Routine notices no longer pop up; pop-ups appear only for errors and exceptions.
-  - When an AI translation server is busy, retries wait longer and Google Translate takes over sooner. Fewer re-requests after bad responses improve speed and cost.
-  - Default models changed to gpt-6-luna for OpenAI and claude-haiku-5-5 for Anthropic. The default maximum output is 16,384 tokens.
-  - DeepL Free or Pro endpoint by plan, and a paid-API recommendation in Simple Settings.
-  - Turning AI subtitle translation off now stops LLM translation requests.
+  ※ Site access now covers all sites. Chrome pauses the extension after this update until you approve the new permission on the extensions page. (See "Permissions" below.)
+  - Dual subtitles are now the default, with separate fonts and a top/bottom position option.
+  - UX fixes for video switching, Shorts, long videos, and retranslation; fewer pop-ups.
+  - Prefer YouTube's own subtitles or auto-translation when available.
+  - Phrase-based regrouping of auto-generated subtitles.
+  - Translation status and progress in the player menu.
+  - More reliable AI translation and new default models (gpt-6-luna, claude-haiku-5-5).
 
   [ v0.1.4 (2026-10-28) ]
   - Improved YouTube caption retrieval and synchronization, added source word progress highlighting, and hid AST subtitles during ads.
