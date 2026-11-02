@@ -162,20 +162,19 @@ function normalizeSourceCaptionLanguages(value) {
   return languages;
 }
 
-// Settings saved before the source line had its own font keep showing both lines alike;
-// only a fresh or reset style uses the source defaults.
+// The source line's font defaults to Arial unless one was saved. Size and color saved before the
+// source line had its own keep both lines alike.
 function withSourceFont(style, saved = {}) {
-  const sourceFont = style.sourceFontPreset ? {} : {
-    sourceFontPreset: style.fontPreset,
-    sourceFontFamily: style.fontFamily,
-    sourceWebFontCss: style.webFontCss,
-    sourceCustomWebFontCss: style.customWebFontCss
-  };
   return {
     ...style,
-    ...sourceFont,
     sourceFontSize: saved?.sourceFontSize ?? saved?.fontSize ?? style.sourceFontSize,
-    sourceTextColor: saved?.sourceTextColor || saved?.textColor || style.sourceTextColor
+    sourceTextColor: saved?.sourceTextColor || saved?.textColor || style.sourceTextColor,
+    // 0.75 was the previous default and moves to the current one once. The marker is saved with the
+    // style, so a viewer who later picks 75% on purpose keeps it.
+    backgroundOpacity: !saved?.backgroundOpacityDefaultApplied && Number(saved?.backgroundOpacity) === 0.75
+      ? DEFAULT_SETTINGS.subtitleStyle.backgroundOpacity
+      : style.backgroundOpacity,
+    backgroundOpacityDefaultApplied: true
   };
 }
 

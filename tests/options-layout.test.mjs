@@ -500,6 +500,9 @@ test("fetching models selects the recommended lightweight model and automaticall
 test("subtitle background controls include opacity and temporary fallback color", () => {
   assert.doesNotMatch(optionsHtml, /배경 투명도/);
   assert.match(optionsHtml, /data-i18n="backgroundOpacity"><\/span>/);
+  // The opacity slider shows its value as a percentage, like the chunk duration slider.
+  assert.match(optionsHtml, /<div class="range-control">\s*<input id="subtitleBackgroundOpacity" type="range"[^>]*aria-describedby="subtitleBackgroundOpacityValue">\s*<output id="subtitleBackgroundOpacityValue" for="subtitleBackgroundOpacity">80%<\/output>/);
+  assert.ok(optionsJs.includes("subtitleBackgroundOpacityValue.textContent = `${Math.round(backgroundOpacity * 100)}%`"));
   assert.match(optionsHtml, /data-i18n="pendingBackgroundColor"><\/span>/);
   assert.match(optionsHtml, /id="subtitlePendingBackgroundColor" type="color"/);
   assert.equal(message("ko", "pendingBackgroundColor"), "임시·대체 번역 배경색");
@@ -650,15 +653,31 @@ test("subtitle style has a source font group above a translation font group, eac
   assert.ok(sourceGroup > 0 && translationGroup > sourceGroup);
   const sourceHtml = optionsHtml.slice(sourceGroup, translationGroup);
   const translationHtml = optionsHtml.slice(translationGroup, optionsHtml.indexOf("</fieldset>", translationGroup));
-  for (const id of ["subtitleSourceFontSize", "subtitleSourceFontFamily", "subtitleSourceTextColor", "subtitleSourceCustomWebFontCss"]) {
+  for (const id of ["subtitleSourceFontSize", "subtitleSourceFontFamily", "subtitleSourceTextColor", "subtitleSourceCustomWebFontCss", "subtitleSourceLocalFont", "sourceLoadLocalFonts"]) {
     assert.match(sourceHtml, new RegExp(`id="${id}"`));
   }
-  for (const id of ["subtitleFontSize", "subtitleFontFamily", "subtitleTextColor", "subtitleCustomWebFontCss"]) {
+  for (const id of ["subtitleFontSize", "subtitleFontFamily", "subtitleTextColor", "subtitleCustomWebFontCss", "subtitleLocalFont", "translationLoadLocalFonts"]) {
     assert.match(translationHtml, new RegExp(`id="${id}"`));
   }
   assert.ok(optionsJs.includes("sourceFontSize: Number(subtitleStyleInputs.sourceFontSize.value || 28),"));
   assert.ok(optionsJs.includes("sourceTextColor: subtitleStyleInputs.sourceTextColor.value,"));
-  assert.ok(optionsJs.includes('keys: { fontPreset: "sourceFontPreset", fontFamily: "sourceFontFamily", webFontCss: "sourceWebFontCss", customWebFontCss: "sourceCustomWebFontCss" }'));
+  assert.ok(optionsJs.includes('keys: { fontPreset: "sourceFontPreset", fontFamily: "sourceFontFamily", webFontCss: "sourceWebFontCss", customWebFontCss: "sourceCustomWebFontCss", localFontName: "sourceLocalFontName" }'));
+});
+
+test("a font installed on this PC can be chosen when Chrome can list local fonts", () => {
+  // The list loads on a click (Chrome asks for permission then), and the option only appears where
+  // the API exists or a local font was saved before.
+  assert.ok(optionsJs.includes('const canListLocalFonts = typeof globalThis.queryLocalFonts === "function";'));
+  assert.ok(optionsJs.includes("const fonts = await globalThis.queryLocalFonts();"));
+  assert.ok(optionsJs.includes('slot.localButton.addEventListener("click", () => loadLocalFonts(slot));'));
+  assert.ok(optionsJs.includes("const showLocal = canListLocalFonts || Object.values(fontSlots).some("));
+  // The chosen font comes first, with Arial behind it for PCs that do not have it.
+  assert.ok(optionsJs.includes('return name ? `"${name.replace(/["\\\\]/g, "\\\\$&")}", Arial, sans-serif` : "Arial, sans-serif";'));
+  for (const locale of ["ko", "en", "ja"]) {
+    for (const key of ["localFontOption", "localFont", "loadLocalFonts", "localFontPlaceholder", "localFontGuide", "localFontsLoaded", "localFontsUnavailable"]) {
+      assert.ok(message(locale, key), `${locale}:${key}`);
+    }
+  }
 });
 
 test("subtitle preview draws one background box around both lines, like the player", () => {
@@ -672,4 +691,34 @@ test("the line order checkbox sits under the subtitle preview", () => {
   assert.ok(optionsJs.includes("translationOnTop: subtitleStyleInputs.translationOnTop.checked"));
   assert.equal(JSON.parse(readFileSync("extension/_locales/ko/messages.json", "utf8")).translationOnTop.message, "번역 자막을 원문 자막 상단에 표시");
   assert.ok(optionsJs.includes('subtitleSourcePreview.style.order = style.translationOnTop ? "1" : "";'));
+});
+
+test("each font group has a weight slider that moves from 100 to 900 in steps of 100", () => {
+  for (const [id, weight] of [["subtitleSourceFontWeight", 400], ["subtitleFontWeight", 700]]) {
+    assert.match(optionsHtml, new RegExp(`<input id="${id}" type="range" min="100" max="900" step="100" aria-describedby="${id}Value">\\s*<output id="${id}Value" for="${id}">${weight}</output>`));
+  }
+  // No stops per font: every weight can be picked and judged by eye in the preview.
+  assert.ok(optionsJs.includes("function updateFontWeightLabels()"));
+  assert.doesNotMatch(optionsJs, /snapFontWeight|getSlotFontWeights/);
+  assert.ok(optionsJs.includes("fontWeight: Number(subtitleStyleInputs.fontWeight.value) || 700,"));
+  assert.ok(optionsJs.includes("sourceFontWeight: Number(subtitleStyleInputs.sourceFontWeight.value) || 400,"));
+  for (const locale of ["ko", "en", "ja"]) assert.ok(message(locale, "fontWeight"), locale);
+});
+
+test("both preview lines are editable as plain text, so pasted formatting cannot override the style", () => {
+  for (const id of ["subtitleSourcePreview", "subtitleStylePreview"]) {
+    assert.match(optionsHtml, new RegExp(`id="${id}"[^>]*contenteditable="plaintext-only"[^>]*role="textbox"`));
+  }
+  // The sample text is set on load and on a style reset only, so edits survive style changes.
+  const preview = optionsJs.slice(optionsJs.indexOf("function applySubtitlePreview()"), optionsJs.indexOf("function readProviderForm()"));
+  assert.doesNotMatch(preview, /subtitleSourcePreview\.textContent =/);
+  assert.equal(optionsJs.split('subtitleSourcePreview.textContent = t("sourcePreviewText");').length - 1, 2);
+});
+
+test("clearing the translation cache asks for confirmation first and can be cancelled", () => {
+  const handler = optionsJs.slice(optionsJs.indexOf('document.getElementById("clearCache").addEventListener'));
+  assert.ok(handler.indexOf('if (!globalThis.confirm(t("clearCacheConfirm"))) return;') < handler.indexOf('type: "translation.clearCache"'));
+  assert.ok(handler.includes('if (!globalThis.confirm(t("clearCacheConfirm"))) return;'));
+  for (const locale of ["ko", "en", "ja"]) assert.ok(message(locale, "clearCacheConfirm"), locale);
+  assert.match(message("ko", "clearCacheConfirm"), /^번역 캐시를 삭제할까요\?/);
 });

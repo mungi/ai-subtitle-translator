@@ -45,7 +45,7 @@ test("default translation style and subtitle appearance match the intended initi
   assert.equal(DEFAULT_SETTINGS.subtitleStyle.outlineEnabled, true);
   assert.equal(DEFAULT_SETTINGS.subtitleStyle.outlineWidth, 2);
   assert.equal(DEFAULT_SETTINGS.subtitleStyle.pendingBackgroundColor, "#750000");
-  assert.equal(DEFAULT_SETTINGS.subtitleStyle.backgroundOpacity, 0.75);
+  assert.equal(DEFAULT_SETTINGS.subtitleStyle.backgroundOpacity, 0.8);
 });
 
 test("Japanese UI defaults subtitle font to Noto Sans JP", () => {
@@ -225,11 +225,14 @@ test("phrase segmentation and word progress are on by default; the YouTube excep
   assert.equal(changed.wordProgressHighlight, false);
 });
 
-test("the source subtitle font starts as the translation font and can then differ", () => {
+test("the source subtitle font defaults to Arial whatever the translation font, and can be changed", () => {
   const inherited = normalizeSettings({ subtitleStyle: { fontPreset: "noto-sans-kr", fontFamily: "'Noto Sans KR', sans-serif", webFontCss: "/* kr */" } }).subtitleStyle;
-  assert.equal(inherited.sourceFontPreset, "noto-sans-kr");
-  assert.equal(inherited.sourceFontFamily, "'Noto Sans KR', sans-serif");
-  assert.equal(inherited.sourceWebFontCss, "/* kr */");
+  assert.equal(inherited.fontFamily, "'Noto Sans KR', sans-serif");
+  assert.equal(inherited.sourceFontPreset, "system-arial");
+  assert.equal(inherited.sourceFontFamily, "Arial, sans-serif");
+  assert.equal(inherited.sourceWebFontCss, "");
+  assert.equal(normalizeSettings().subtitleStyle.sourceFontPreset, "system-arial");
+  assert.equal(normalizeSettings().subtitleStyle.fontPreset, "gowun-batang");
   // Size and color were not saved here, so the source line uses its own defaults.
   assert.equal(inherited.sourceFontSize, 28);
   assert.equal(inherited.sourceTextColor, "#f2f2f2");
@@ -253,4 +256,24 @@ test("the source subtitle font starts as the translation font and can then diffe
 test("the original line is shown above the translation by default", () => {
   assert.equal(normalizeSettings().subtitleStyle.translationOnTop, false);
   assert.equal(normalizeSettings({ subtitleStyle: { translationOnTop: true } }).subtitleStyle.translationOnTop, true);
+});
+
+test("the former 75% subtitle background opacity moves to the 80% default, and other choices stay", () => {
+  assert.equal(normalizeSettings({}).subtitleStyle.backgroundOpacity, 0.8);
+  assert.equal(normalizeSettings({ subtitleStyle: { backgroundOpacity: 0.75 } }).subtitleStyle.backgroundOpacity, 0.8);
+  assert.equal(normalizeSettings({ subtitleStyle: { backgroundOpacity: 0.5 } }).subtitleStyle.backgroundOpacity, 0.5);
+  assert.equal(normalizeSettings({ subtitleStyle: { backgroundOpacity: 0 } }).subtitleStyle.backgroundOpacity, 0);
+});
+
+test("a 75% opacity chosen after the move to 80% is kept", () => {
+  const moved = normalizeSettings({ subtitleStyle: { backgroundOpacity: 0.75 } });
+  assert.equal(moved.subtitleStyle.backgroundOpacity, 0.8);
+  const chosenLater = normalizeSettings({ ...moved, subtitleStyle: { ...moved.subtitleStyle, backgroundOpacity: 0.75 } });
+  assert.equal(chosenLater.subtitleStyle.backgroundOpacity, 0.75);
+});
+
+test("the translation line defaults to bold and the original line to regular weight", () => {
+  const style = normalizeSettings().subtitleStyle;
+  assert.equal(style.fontWeight, 700);
+  assert.equal(style.sourceFontWeight, 400);
 });

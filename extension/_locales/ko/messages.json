@@ -928,5 +928,38 @@
   },
   "contentStatusFailed": {
     "message": "번역 실패 · 원문 표시 중"
+  },
+  "localFontOption": {
+    "message": "[이 PC에 설치된 폰트]"
+  },
+  "localFont": {
+    "message": "설치된 폰트"
+  },
+  "loadLocalFonts": {
+    "message": "폰트 목록 불러오기"
+  },
+  "localFontPlaceholder": {
+    "message": "목록을 불러온 뒤 선택하세요 →"
+  },
+  "localFontGuide": {
+    "message": "이 PC에 설치된 폰트를 자막에 씁니다. 처음 불러올 때 Chrome이 폰트 접근 권한을 묻습니다. 폰트가 없는 PC에서는 Arial로 표시됩니다."
+  },
+  "localFontsLoaded": {
+    "message": "폰트 $count$개를 불러왔습니다. 폰트가 없는 PC에서는 Arial로 표시됩니다.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "120"
+      }
+    }
+  },
+  "localFontsUnavailable": {
+    "message": "폰트 목록을 불러오지 못했습니다. Chrome에서 이 확장 프로그램의 로컬 폰트 접근을 허용했는지 확인하세요. 기본 제공 폰트는 그대로 쓸 수 있습니다."
+  },
+  "fontWeight": {
+    "message": "글자 굵기"
+  },
+  "clearCacheConfirm": {
+    "message": "번역 캐시를 삭제할까요?\n\n저장해 둔 모든 영상의 번역 결과가 지워집니다. 이미 번역한 영상을 다시 보면 처음부터 다시 번역하며, AI 제공업체를 쓰는 경우 API 사용량과 비용이 다시 발생합니다."
   }
 }

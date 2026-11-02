@@ -435,6 +435,13 @@ export const DEFAULT_SETTINGS = {
     textColor: "#e2ffad",
     sourceFontSize: 28,
     sourceTextColor: "#f2f2f2",
+    // The original line defaults to Arial at regular weight in every language; the translation font
+    // varies by language and stays bold (700), as subtitles looked before the weight setting.
+    fontWeight: 700,
+    sourceFontWeight: 400,
+    sourceFontPreset: "system-arial",
+    sourceFontFamily: "Arial, sans-serif",
+    sourceWebFontCss: "",
     translationOnTop: false,
     shadowEnabled: true,
     shadowColor: "#000000",
@@ -445,7 +452,7 @@ export const DEFAULT_SETTINGS = {
     outlineWidth: 2,
     backgroundColor: "#000000",
     pendingBackgroundColor: "#750000",
-    backgroundOpacity: 0.75
+    backgroundOpacity: 0.8
   },
   providers: PROVIDERS
 };

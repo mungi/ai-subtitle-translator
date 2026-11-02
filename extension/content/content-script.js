@@ -669,6 +669,18 @@ function renderProviderMenu(platform = detectPlatform()) {
       item.classList.add("pending");
     }
 
+    // Machine translation has no model to choose; LLM providers show the one they are set to.
+    if (provider.model && !isMachineTranslationProvider(provider.id)) {
+      const model = document.createElement("span");
+      model.className = "ast-provider-model";
+      // OpenRouter and NVIDIA NIM ids carry the model maker ("openai/gpt-oss-120b"); the name alone fits better.
+      model.textContent = ["openrouter", "nvidiaNim"].includes(provider.id)
+        ? provider.model.replace(/^[^/]+\//, "")
+        : provider.model;
+      model.title = provider.model;
+      item.append(model);
+    }
+
     const indicator = document.createElement("span");
     indicator.className = "ast-provider-selection-indicator";
     indicator.setAttribute("aria-hidden", "true");
@@ -1931,6 +1943,7 @@ function applySourceLineStyle(line, overlay) {
   line.style.fontSize = formatPx(scalePx(fontSize, getOverlayScale(overlay), 8));
   line.style.color = style.sourceTextColor || "#f2f2f2";
   line.style.fontFamily = style.sourceFontFamily || style.fontFamily || "Arial, sans-serif";
+  line.style.fontWeight = String(clampNumber(style.sourceFontWeight, 100, 900, 400));
 }
 
 function applyOverlayStyle(overlay) {
@@ -1939,7 +1952,7 @@ function applyOverlayStyle(overlay) {
   const x = clampNumber(style.positionX, 0, 100, 50);
   const y = clampNumber(style.positionY, 0, 100, 78);
   const width = clampNumber(style.width, 160, OVERLAY_MAX_STYLE_WIDTH, 1024);
-  const backgroundOpacity = clampNumber(style.backgroundOpacity, 0, 1, 0.75);
+  const backgroundOpacity = clampNumber(style.backgroundOpacity, 0, 1, 0.8);
   const backgroundColor = getOverlayBackgroundColor(style);
   const scale = getOverlayScale(overlay);
   const maxWidth = getOverlayMaxWidth(overlay);
@@ -1962,6 +1975,7 @@ function applyOverlayStyle(overlay) {
   overlay.style.padding = `${formatPx(scalePx(8, scale, 3))} ${formatPx(scalePx(14, scale, 5))}`;
   overlay.style.fontSize = formatPx(fontSize);
   overlay.style.fontFamily = style.fontFamily || "Arial, sans-serif";
+  overlay.style.fontWeight = String(clampNumber(style.fontWeight, 100, 900, 700));
   overlay.style.color = style.textColor || "#e2ffad";
   overlay.style.textShadow = buildTextShadow(style, scale);
   overlay.style.webkitTextStroke = outlineEnabled
@@ -3460,11 +3474,23 @@ function buildYoutubeProvidedTranslation(document, caption) {
   return cues ? { languageCode: caption.languageCode, source: caption.source, cues } : null;
 }
 
-// YouTube's machine translation keeps the source track's lines, so a large count gap or mostly
-// unchanged text means the translation did not apply and our own pipeline should run instead.
+const YOUTUBE_AUTO_TRANSLATION_SPAN_TOLERANCE_SECONDS = 30;
+const YOUTUBE_AUTO_TRANSLATION_MIN_COVERAGE = 0.9;
+
+// Decides whether YouTube's machine translation can stand in for our own. It often merges two
+// source lines into one translated line, so line counts differ; what matters is that it spans the
+// same time, leaves almost no source line uncovered, and is actually translated.
 function isUsableYoutubeAutoTranslation(sourceCues, targetCues) {
   if (!sourceCues?.length || !targetCues?.length) return false;
-  if (Math.abs(sourceCues.length - targetCues.length) > sourceCues.length * 0.1) return false;
+  const span = (cues) => [Math.min(...cues.map((cue) => cue.start)), Math.max(...cues.map((cue) => cue.end))];
+  const [sourceStart, sourceEnd] = span(sourceCues);
+  const [targetStart, targetEnd] = span(targetCues);
+  // A different cut of the video, or a track cut short, starts or ends somewhere else.
+  if (Math.abs(sourceStart - targetStart) > YOUTUBE_AUTO_TRANSLATION_SPAN_TOLERANCE_SECONDS
+    || Math.abs(sourceEnd - targetEnd) > YOUTUBE_AUTO_TRANSLATION_SPAN_TOLERANCE_SECONDS) return false;
+  const covered = sourceCues.filter((cue) => targetCues.some((target) => target.start < cue.end && target.end > cue.start)).length;
+  if (covered < sourceCues.length * YOUTUBE_AUTO_TRANSLATION_MIN_COVERAGE) return false;
+  // Mostly unchanged text means the translation did not apply.
   const normalize = (text) => String(text || "").toLowerCase().replace(/\s+/g, " ").trim();
   const sourceTexts = new Set(sourceCues.map((cue) => normalize(cue.text)));
   const unchanged = targetCues.filter((cue) => sourceTexts.has(normalize(cue.text))).length;

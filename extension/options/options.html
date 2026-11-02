@@ -208,8 +208,8 @@
         </div>
         <div class="subtitle-preview-frame">
           <div class="subtitle-preview-stack">
-            <div id="subtitleSourcePreview" class="subtitle-style-preview subtitle-source-preview" aria-hidden="true"></div>
-            <div id="subtitleStylePreview" class="subtitle-style-preview" contenteditable="true" role="textbox" aria-multiline="true"></div>
+            <div id="subtitleSourcePreview" class="subtitle-style-preview subtitle-source-preview" contenteditable="plaintext-only" role="textbox" aria-multiline="true"></div>
+            <div id="subtitleStylePreview" class="subtitle-style-preview" contenteditable="plaintext-only" role="textbox" aria-multiline="true"></div>
           </div>
         </div>
         <label class="checkbox-field subtitle-order-field">
@@ -232,6 +232,13 @@
                 <span data-i18n="textColor"></span>
                 <input id="subtitleSourceTextColor" type="color">
               </label>
+              <label class="range-field">
+                <span data-i18n="fontWeight"></span>
+                <div class="range-control font-weight-control">
+                  <input id="subtitleSourceFontWeight" type="range" min="100" max="900" step="100" aria-describedby="subtitleSourceFontWeightValue">
+                  <output id="subtitleSourceFontWeightValue" for="subtitleSourceFontWeight">400</output>
+                </div>
+              </label>
               <label class="wide hidden" id="sourceCustomWebFontField">
                 <span data-i18n="customWebFontCss"></span>
                 <textarea id="subtitleSourceCustomWebFontCss" rows="7" spellcheck="false"></textarea>
@@ -240,6 +247,14 @@
                 <span data-i18n="customWebFontGuide"></span>
                 <a href="https://noonnu.cc/index?locale=ko&category_use_ids=6" target="_blank" rel="noreferrer">noonnu.cc</a>
               </p>
+              <div class="wide hidden local-font-field" id="sourceLocalFontField">
+                <span class="field-label" data-i18n="localFont"></span>
+                <div class="local-font-control">
+                  <select id="subtitleSourceLocalFont" aria-describedby="sourceLocalFontStatus"></select>
+                  <button id="sourceLoadLocalFonts" type="button" class="ghost" data-i18n="loadLocalFonts"></button>
+                </div>
+                <p class="font-guide" id="sourceLocalFontStatus" aria-live="polite" data-i18n="localFontGuide"></p>
+              </div>
             </div>
           </fieldset>
 
@@ -258,6 +273,13 @@
                 <span data-i18n="textColor"></span>
                 <input id="subtitleTextColor" type="color">
               </label>
+              <label class="range-field">
+                <span data-i18n="fontWeight"></span>
+                <div class="range-control font-weight-control">
+                  <input id="subtitleFontWeight" type="range" min="100" max="900" step="100" aria-describedby="subtitleFontWeightValue">
+                  <output id="subtitleFontWeightValue" for="subtitleFontWeight">700</output>
+                </div>
+              </label>
               <label class="wide hidden" id="customWebFontField">
                 <span data-i18n="customWebFontCss"></span>
                 <textarea id="subtitleCustomWebFontCss" rows="7" spellcheck="false"></textarea>
@@ -266,6 +288,14 @@
                 <span data-i18n="customWebFontGuide"></span>
                 <a href="https://noonnu.cc/index?locale=ko&category_use_ids=6" target="_blank" rel="noreferrer">noonnu.cc</a>
               </p>
+              <div class="wide hidden local-font-field" id="translationLocalFontField">
+                <span class="field-label" data-i18n="localFont"></span>
+                <div class="local-font-control">
+                  <select id="subtitleLocalFont" aria-describedby="translationLocalFontStatus"></select>
+                  <button id="translationLoadLocalFonts" type="button" class="ghost" data-i18n="loadLocalFonts"></button>
+                </div>
+                <p class="font-guide" id="translationLocalFontStatus" aria-live="polite" data-i18n="localFontGuide"></p>
+              </div>
             </div>
           </fieldset>
 
@@ -320,9 +350,12 @@
                 <span data-i18n="pendingBackgroundColor"></span>
                 <input id="subtitlePendingBackgroundColor" type="color">
               </label>
-              <label>
+              <label class="range-field">
                 <span data-i18n="backgroundOpacity"></span>
-                <input id="subtitleBackgroundOpacity" type="range" min="0" max="1" step="0.05">
+                <div class="range-control">
+                  <input id="subtitleBackgroundOpacity" type="range" min="0" max="1" step="0.05" aria-describedby="subtitleBackgroundOpacityValue">
+                  <output id="subtitleBackgroundOpacityValue" for="subtitleBackgroundOpacity">80%</output>
+                </div>
               </label>
             </div>
           </fieldset>

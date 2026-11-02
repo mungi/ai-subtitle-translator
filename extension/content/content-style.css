@@ -204,6 +204,18 @@
   text-overflow: ellipsis;
 }
 
+/* The model a provider is set to, shown dimmed beside its name. */
+.ast-provider-model {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 12px;
+  font-weight: 400;
+}
+
 .ast-provider-selection-indicator {
   width: 8px;
   height: 8px;
@@ -361,8 +373,10 @@
   bottom: 0;
   z-index: 1;
   box-sizing: border-box;
-  width: 256px;
-  max-width: min(300px, calc(100vw - 24px));
+  /* Grows to its longest label (English ones run longer) so names are not cut off. */
+  width: max-content;
+  min-width: 256px;
+  max-width: min(420px, calc(100vw - 24px));
   max-height: min(320px, calc(100vh - 24px));
   overflow-y: auto;
   margin: 0;
@@ -715,4 +729,14 @@
   color: rgba(247, 248, 250, 0.62) !important;
   -webkit-text-fill-color: rgba(247, 248, 250, 0.62) !important;
   line-height: 1.4 !important;
+}
+
+/* The provider name keeps its width; a long model name is the one that gets cut. */
+.ast-provider-item .ast-provider-menu-label {
+  flex: 1 0 auto;
+}
+
+.ast-provider-menu-ted .ast-provider-model {
+  color: rgba(247, 248, 250, 0.55) !important;
+  -webkit-text-fill-color: rgba(247, 248, 250, 0.55) !important;
 }

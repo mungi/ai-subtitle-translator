@@ -1768,7 +1768,7 @@ test("a cached LLM result replaces temporary subtitles and keeps the completed U
   assert.equal(overlay.textContent, "캐시된 최종 번역");
   assert.equal(button.classList.values.has("temporary"), false);
   assert.equal(button.classList.values.has("complete"), true);
-  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.75)");
+  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.8)");
 
   harness.runtimeMessageListeners[0]({
     type: "translation.progress",
@@ -2819,7 +2819,7 @@ test("final LLM progress switches subtitle background and toolbar icon to comple
     });
   }
 
-  assert.equal(overlay.style.background, "rgba(117, 0, 0, 0.75)");
+  assert.equal(overlay.style.background, "rgba(117, 0, 0, 0.8)");
   assert.equal(button.classList.values.has("temporary"), true);
 
   for (const listener of runtimeMessageListeners) {
@@ -2842,7 +2842,7 @@ test("final LLM progress switches subtitle background and toolbar icon to comple
     });
   }
 
-  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.75)");
+  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.8)");
   assert.equal(button.classList.values.has("temporary"), false);
   assert.equal(button.classList.values.has("complete"), true);
   assert.equal(button.classList.values.has("fallback"), false);
@@ -2905,7 +2905,7 @@ test("YouTube final translation shows pending colors until the final response co
 
   const overlay = context.document.getElementById("ast-subtitle-overlay");
   assert.equal(overlay.textContent, "Hello world");
-  assert.equal(overlay.style.background, "rgba(117, 0, 0, 0.75)");
+  assert.equal(overlay.style.background, "rgba(117, 0, 0, 0.8)");
   assert.equal(button.classList.values.has("temporary"), true);
   assert.equal(button.classList.values.has("complete"), false);
 
@@ -2929,7 +2929,7 @@ test("YouTube final translation shows pending colors until the final response co
   await flushPromises();
 
   assert.equal(overlay.textContent, "Final translated subtitle");
-  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.75)");
+  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.8)");
   assert.equal(button.classList.values.has("temporary"), false);
   assert.equal(button.classList.values.has("complete"), true);
 });
@@ -2963,7 +2963,7 @@ test("current YouTube cue final progress switches from pending to current-ready 
   const video = harness.context.document.querySelector("#movie_player video, video");
   const overlay = harness.context.document.getElementById("ast-subtitle-overlay");
   assert.equal(button.classList.values.has("temporary"), true);
-  assert.equal(overlay.style.background, "rgba(117, 0, 0, 0.75)");
+  assert.equal(overlay.style.background, "rgba(117, 0, 0, 0.8)");
 
   for (const listener of harness.runtimeMessageListeners) {
     listener({
@@ -2983,7 +2983,7 @@ test("current YouTube cue final progress switches from pending to current-ready 
   assert.equal(button.classList.values.has("current"), true);
   assert.equal(button.classList.values.has("temporary"), false);
   assert.equal(button.classList.values.has("complete"), false);
-  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.75)");
+  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.8)");
   assert.equal(overlay.textContent, "First final subtitle");
 
   video.currentTime = 6;
@@ -2991,7 +2991,7 @@ test("current YouTube cue final progress switches from pending to current-ready 
 
   assert.equal(button.classList.values.has("current"), false);
   assert.equal(button.classList.values.has("temporary"), true);
-  assert.equal(overlay.style.background, "rgba(117, 0, 0, 0.75)");
+  assert.equal(overlay.style.background, "rgba(117, 0, 0, 0.8)");
   assert.equal(overlay.textContent, "Second cue");
 
   for (const listener of harness.runtimeMessageListeners) {
@@ -3012,7 +3012,7 @@ test("current YouTube cue final progress switches from pending to current-ready 
   assert.equal(button.classList.values.has("current"), true);
   assert.equal(button.classList.values.has("temporary"), false);
   assert.equal(button.classList.values.has("complete"), false);
-  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.75)");
+  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.8)");
   assert.equal(overlay.textContent, "Second final subtitle");
 
   for (const listener of harness.runtimeMessageListeners) {
@@ -3033,7 +3033,7 @@ test("current YouTube cue final progress switches from pending to current-ready 
   assert.equal(button.classList.values.has("current"), false);
   assert.equal(button.classList.values.has("complete"), true);
   assert.equal(button.classList.values.has("temporary"), false);
-  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.75)");
+  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.8)");
 });
 
 test("out-of-order parallel final progress waits for every chunk before completing", async () => {
@@ -3224,7 +3224,7 @@ test("intermediate final LLM progress does not mark YouTube subtitles complete",
   assert.equal(button.classList.values.has("complete"), false);
   assert.equal(button.classList.values.has("current"), true);
   assert.equal(button.classList.values.has("temporary"), false);
-  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.75)");
+  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.8)");
   assert.equal(overlay.textContent, "First LLM chunk subtitle");
 });
 
@@ -3272,7 +3272,7 @@ test("final LLM cue coverage marks YouTube subtitles complete even before final 
 
   assert.equal(button.classList.values.has("complete"), false);
   assert.equal(button.classList.values.has("current"), true);
-  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.75)");
+  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.8)");
 
   for (const listener of harness.runtimeMessageListeners) {
     listener({
@@ -3291,7 +3291,7 @@ test("final LLM cue coverage marks YouTube subtitles complete even before final 
 
   assert.equal(button.classList.values.has("complete"), true);
   assert.equal(button.classList.values.has("temporary"), false);
-  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.75)");
+  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.8)");
   assert.equal(overlay.textContent, "First final subtitle");
 });
 
@@ -3323,7 +3323,7 @@ test("final LLM progress repaints the current YouTube overlay after DOM replacem
   assert.notEqual(currentOverlay, overlay);
   assert.equal(currentOverlay.parentElement, moviePlayer);
   assert.equal(currentOverlay.textContent, "LLM translated after replacement");
-  assert.equal(currentOverlay.style.background, "rgba(0, 0, 0, 0.75)");
+  assert.equal(currentOverlay.style.background, "rgba(0, 0, 0, 0.8)");
 });
 
 test("final LLM progress repaints the current Udemy video overlay after video replacement", async () => {
@@ -3365,7 +3365,7 @@ test("final LLM progress repaints the current Udemy video overlay after video re
   assert.ok(currentOverlay, "expected the replacement Udemy video parent to receive an overlay");
   assert.equal(replacement.astSubtitleCues[0].text, "Udemy LLM translated subtitle");
   assert.equal(currentOverlay.textContent, "Udemy LLM translated subtitle");
-  assert.equal(currentOverlay.style.background, "rgba(0, 0, 0, 0.75)");
+  assert.equal(currentOverlay.style.background, "rgba(0, 0, 0, 0.8)");
 });
 
 test("Udemy automatic refresh waits silently while lecture page data is temporarily missing", async () => {
@@ -3509,7 +3509,7 @@ test("late temporary progress does not overwrite current-ready YouTube LLM subti
 
   assert.equal(button.classList.values.has("current"), true);
   assert.equal(button.classList.values.has("temporary"), false);
-  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.75)");
+  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.8)");
   assert.equal(overlay.textContent, "First final subtitle");
 });
 
@@ -3608,7 +3608,7 @@ test("late fallback progress cannot overwrite completed LLM subtitles or turn th
     });
   }
 
-  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.75)");
+  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.8)");
   assert.equal(button.classList.values.has("temporary"), false);
   assert.equal(button.classList.values.has("complete"), true);
   assert.equal(button.classList.values.has("fallback"), false);
@@ -3978,7 +3978,7 @@ test("alignment fallback finishes without scheduling repeated full-video transla
   assert.equal(context.document.getElementById("ast-toolbar-button").classList.values.has("fallback"), false);
   assert.match(context.document.getElementById("ast-toolbar-button").title, /翻訳|번역 완료/);
   assert.match(context.document.getElementById("ast-toolbar-button").title, /^번역 완료 · 1줄 Google 번역$/);
-  assert.notEqual(overlay.style.background, "rgba(117, 0, 0, 0.75)");
+  assert.notEqual(overlay.style.background, "rgba(117, 0, 0, 0.8)");
   assert.equal(vm.runInNewContext("subtitleState.fallbackRetryTimeoutId", context), null);
   assert.equal(vm.runInNewContext("subtitleState.fallbackRetryPending", context), false);
 });
@@ -4004,7 +4004,7 @@ test("completed document with an alignment fallback uses completion colors and a
   assert.equal(button.classList.values.has("fallback"), false);
   assert.match(button.title, /^번역 완료 · \d+줄 Google 번역$/);
   assert.equal(vm.runInNewContext("subtitleState.fallbackRetryTimeoutId", context), null);
-  assert.notEqual(context.document.getElementById("ast-subtitle-overlay").style.background, "rgba(117, 0, 0, 0.75)");
+  assert.notEqual(context.document.getElementById("ast-subtitle-overlay").style.background, "rgba(117, 0, 0, 0.8)");
   assert.match(context.document.getElementById("ast-toast").textContent, /일부 구간/);
 });
 
@@ -4205,12 +4205,12 @@ test("presented video frame uses its displayed cue for translation background", 
   frame(1, { mediaTime: 3.01 });
   const overlay = h.context.document.getElementById("ast-subtitle-overlay");
   assert.equal(overlay.textContent, "번역됨");
-  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.75)");
+  assert.equal(overlay.style.background, "rgba(0, 0, 0, 0.8)");
   assert.equal(vm.runInNewContext("subtitleState.translationPhase", h.context), "current");
   h.video.currentTime = 5.99;
   frame(2, { mediaTime: 6.01 });
   assert.equal(overlay.textContent, "Third");
-  assert.equal(overlay.style.background, "rgba(117, 0, 0, 0.75)");
+  assert.equal(overlay.style.background, "rgba(117, 0, 0, 0.8)");
   assert.equal(vm.runInNewContext("subtitleState.translationPhase", h.context), "temporary");
 });
 
@@ -4480,8 +4480,9 @@ test("YouTube auto-translation that left the text untranslated falls back to our
   assert.ok(harness.sentMessages.some((message) => message.type === "translation.translateDocument"));
 });
 
-test("YouTube auto-translation with a different line count falls back to our translation", async () => {
-  const { harness } = createHumanCaptionHarness({ targetCaption: autoTranslation(["안녕", "세상", "추가", "줄"]) });
+test("YouTube auto-translation that runs well past the source span falls back to our translation", async () => {
+  // 20 lines of 2s end at 40s while the source ends at 4s: a different cut of the video.
+  const { harness } = createHumanCaptionHarness({ targetCaption: autoTranslation(Array.from({ length: 20 }, (_, i) => `줄 ${i}`)) });
   vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
   await flushPromises();
   await clickAstToggle(harness.controls.querySelector("#ast-toolbar-button"));
@@ -5039,4 +5040,77 @@ test("going back to a video while another video's captions are still loading rel
   assert.equal(overlay.textContent, "Hello world");
   assert.equal(vm.runInNewContext("subtitleState.currentSessionKey", harness.context), "abc123def45");
   assert.equal(vm.runInNewContext("subtitleState.loading", harness.context), false);
+});
+
+test("each LLM provider in the player menu shows the model it is set to", async () => {
+  const harness = createYoutubeHarness({
+    settings: {
+      activeProvider: "openai",
+      providerTestStatus: { openai: "success" },
+      providers: { openai: { model: "gpt-6-luna" } }
+    }
+  });
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
+  await flushPromises();
+  // The menu reads providers from settings when it opens; fill them the same way here.
+  vm.runInNewContext(`subtitleState.availableProviders = getAvailableProviders({
+    activeProvider: "openai",
+    providerTestStatus: { openai: "success", openrouter: "success", nvidiaNim: "success" },
+    providers: { openai: { model: "gpt-6-luna" }, openrouter: { model: "deepseek/deepseek-v4-flash:nitro" }, nvidiaNim: { model: "openai/gpt-oss-120b" } }
+  }); ensureProviderMenu("youtube"); renderProviderMenu("youtube")`, harness.context);
+  const menu = harness.context.document.getElementById("ast-provider-menu");
+  const item = (id) => menu.children.find((child) => child.dataset?.providerId === id);
+  const model = (id) => item(id).children.find((child) => child.className === "ast-provider-model");
+
+  assert.equal(model("openai")?.textContent, "gpt-6-luna");
+  assert.equal(model("googleTranslate"), undefined);
+  // OpenRouter and NVIDIA NIM drop the model maker prefix; the full id stays in the tooltip.
+  assert.equal(model("openrouter").textContent, "deepseek-v4-flash:nitro");
+  assert.equal(model("openrouter").title, "deepseek/deepseek-v4-flash:nitro");
+  assert.equal(model("nvidiaNim").textContent, "gpt-oss-120b");
+});
+
+test("player submenus grow to their longest label instead of cutting it off", () => {
+  const css = readFileSync("extension/content/content-style.css", "utf8");
+  assert.match(css, /\.ast-translation-style-list \{[\s\S]*?width: max-content;[\s\S]*?min-width: 256px;/);
+});
+
+test("source and translated lines use their own font weight", async () => {
+  const harness = createYoutubeHarness({ settings: {
+    subtitleDisplayMode: "dual",
+    subtitleStyle: { fontWeight: 300, sourceFontWeight: 900 }
+  } });
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
+  await flushPromises();
+  await clickAstToggle(harness.controls.querySelector("#ast-toolbar-button"));
+  await flushPromises();
+  harness.video.astSubtitleCues = [{ id: "yt-0", start: 0, end: 5, text: "안녕 세상", sourceText: "Hello world" }];
+  vm.runInNewContext("renderCurrentOverlayCue(subtitleState.currentVideo)", harness.context);
+
+  const overlay = harness.context.document.getElementById("ast-subtitle-overlay");
+  const source = overlay.children.find((child) => child.className?.includes("ast-subtitle-source-line"));
+  assert.equal(overlay.style.fontWeight, "300");
+  assert.equal(source.style.fontWeight, "900");
+});
+
+test("YouTube's auto-translation is judged by time coverage, so merged lines are still accepted", () => {
+  const harness = createYoutubeHarness();
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
+  const cue = (start, end, text) => ({ start, end, text });
+  const source = Array.from({ length: 10 }, (_, i) => cue(i * 2, i * 2 + 2, `line ${i}`));
+  const check = (target) => {
+    harness.context.testSource = source;
+    harness.context.testTarget = target;
+    return vm.runInNewContext("isUsableYoutubeAutoTranslation(testSource, testTarget)", harness.context);
+  };
+
+  // Two source lines translated as one: 10 lines become 5, yet every source line is covered.
+  const merged = Array.from({ length: 5 }, (_, i) => cue(i * 4, i * 4 + 4, `번역 ${i}`));
+  assert.equal(check(merged), true);
+  // A track that stops halfway does not cover enough and ends too early.
+  assert.equal(check(merged.slice(0, 3)), false);
+  // A different cut starting a minute later fails the span check.
+  assert.equal(check(merged.map((item) => ({ ...item, start: item.start + 60, end: item.end + 60 }))), false);
+  // Lines that are still in the source language mean the translation did not apply.
+  assert.equal(check(source.map((item) => ({ ...item }))), false);
 });

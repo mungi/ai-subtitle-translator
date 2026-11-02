@@ -29,6 +29,7 @@ const MESSAGE_SUBSTITUTION_NAMES = {
   restoreKeyTestFailureItem: ["provider", "error"],
   reasoningSettingDetected: ["mode"],
   durationMinutes: ["minutes"],
+  localFontsLoaded: ["count"],
   localLlmRequestUrl: ["url"],
   modelExample: ["model"]
 };
@@ -202,6 +203,10 @@ const subtitleStyleInputs = {
   fontSize: document.getElementById("subtitleFontSize"),
   fontFamily: document.getElementById("subtitleFontFamily"),
   customWebFontCss: document.getElementById("subtitleCustomWebFontCss"),
+  localFont: document.getElementById("subtitleLocalFont"),
+  sourceLocalFont: document.getElementById("subtitleSourceLocalFont"),
+  fontWeight: document.getElementById("subtitleFontWeight"),
+  sourceFontWeight: document.getElementById("subtitleSourceFontWeight"),
   sourceFontSize: document.getElementById("subtitleSourceFontSize"),
   sourceFontFamily: document.getElementById("subtitleSourceFontFamily"),
   sourceTextColor: document.getElementById("subtitleSourceTextColor"),
@@ -219,6 +224,7 @@ const subtitleStyleInputs = {
   backgroundOpacity: document.getElementById("subtitleBackgroundOpacity"),
   translationOnTop: document.getElementById("subtitleTranslationOnTop")
 };
+const subtitleBackgroundOpacityValue = document.getElementById("subtitleBackgroundOpacityValue");
 
 function applyLocaleText() {
   document.documentElement.lang = chrome.i18n.getMessage("@@ui_locale") || uiLanguage;
@@ -639,26 +645,98 @@ const fontSlots = {
     customCss: subtitleStyleInputs.customWebFontCss,
     customField: customWebFontField,
     guide: customWebFontGuide,
-    keys: { fontPreset: "fontPreset", fontFamily: "fontFamily", webFontCss: "webFontCss", customWebFontCss: "customWebFontCss" }
+    localSelect: subtitleStyleInputs.localFont,
+    localField: document.getElementById("translationLocalFontField"),
+    localButton: document.getElementById("translationLoadLocalFonts"),
+    localStatus: document.getElementById("translationLocalFontStatus"),
+    weightInput: subtitleStyleInputs.fontWeight,
+    weightValue: document.getElementById("subtitleFontWeightValue"),
+    keys: { fontPreset: "fontPreset", fontFamily: "fontFamily", webFontCss: "webFontCss", customWebFontCss: "customWebFontCss", localFontName: "localFontName" }
   },
   source: {
     select: subtitleStyleInputs.sourceFontFamily,
     customCss: subtitleStyleInputs.sourceCustomWebFontCss,
     customField: sourceCustomWebFontField,
     guide: sourceCustomWebFontGuide,
-    keys: { fontPreset: "sourceFontPreset", fontFamily: "sourceFontFamily", webFontCss: "sourceWebFontCss", customWebFontCss: "sourceCustomWebFontCss" }
+    localSelect: subtitleStyleInputs.sourceLocalFont,
+    localField: document.getElementById("sourceLocalFontField"),
+    localButton: document.getElementById("sourceLoadLocalFonts"),
+    localStatus: document.getElementById("sourceLocalFontStatus"),
+    weightInput: subtitleStyleInputs.sourceFontWeight,
+    weightValue: document.getElementById("subtitleSourceFontWeightValue"),
+    keys: { fontPreset: "sourceFontPreset", fontFamily: "sourceFontFamily", webFontCss: "sourceWebFontCss", customWebFontCss: "sourceCustomWebFontCss", localFontName: "sourceLocalFontName" }
   }
 };
+
+// Fonts installed on this PC are listed through Chrome's Local Font Access API, which asks once
+// for permission. Where it is missing or refused, the built-in fonts above stay the choice.
+const LOCAL_FONT_PRESET = "local";
+const canListLocalFonts = typeof globalThis.queryLocalFonts === "function";
+let localFontFamilies = null;
+
+// Every weight from 100 to 900 can be chosen; how a font draws each one is judged in the preview,
+// since fonts differ in the weights they have and the browser fills gaps with the nearest one.
+const FONT_WEIGHT_NAMES = { 100: "Thin", 200: "ExtraLight", 300: "Light", 400: "Regular", 500: "Medium", 600: "SemiBold", 700: "Bold", 800: "ExtraBold", 900: "Black" };
+
+function updateFontWeightLabels() {
+  for (const slot of Object.values(fontSlots)) {
+    const weight = Number(slot.weightInput.value) || 700;
+    slot.weightValue.textContent = `${weight} ${FONT_WEIGHT_NAMES[weight] || ""}`.trim();
+  }
+}
+
+// The chosen font goes first; if another PC does not have it, the subtitle falls back to Arial.
+function getLocalFontFamily(name) {
+  return name ? `"${name.replace(/["\\]/g, "\\$&")}", Arial, sans-serif` : "Arial, sans-serif";
+}
+
+function renderLocalFontOptions(slot, selectedName = slot.localSelect.value) {
+  const names = localFontFamilies ? [...localFontFamilies] : [];
+  if (selectedName && !names.includes(selectedName)) names.unshift(selectedName);
+  slot.localSelect.innerHTML = [
+    `<option value="">${escapeHtml(t("localFontPlaceholder"))}</option>`,
+    ...names.map((name) => `<option value="${escapeHtml(name)}" style="font-family: ${escapeHtml(getLocalFontFamily(name))}">${escapeHtml(name)}</option>`)
+  ].join("");
+  slot.localSelect.value = selectedName || "";
+}
+
+async function loadLocalFonts(slot) {
+  try {
+    const fonts = await globalThis.queryLocalFonts();
+    localFontFamilies = [...new Set(fonts.map((font) => font.family).filter(Boolean))]
+      .sort((left, right) => left.localeCompare(right, uiLanguage));
+    for (const item of Object.values(fontSlots)) {
+      renderLocalFontOptions(item);
+      item.localStatus.textContent = t("localFontsLoaded", { count: localFontFamilies.length });
+      item.localStatus.classList.remove("error");
+    }
+  } catch (error) {
+    console.warn("[AST] Could not list local fonts:", error?.message || error);
+    slot.localStatus.textContent = t("localFontsUnavailable");
+    slot.localStatus.classList.add("error");
+  }
+}
 
 function getFontSettingsFromInputs(slot) {
   const presetId = slot.select.value;
   const customWebFontCss = slot.customCss.value.trim() || DEFAULT_CUSTOM_WEB_FONT_CSS;
+  const localFontName = slot.localSelect.value;
   if (presetId === "custom") {
     return {
       fontPreset: "custom",
       fontFamily: extractFontFamilyFromCss(customWebFontCss),
       webFontCss: customWebFontCss,
-      customWebFontCss
+      customWebFontCss,
+      localFontName
+    };
+  }
+  if (presetId === LOCAL_FONT_PRESET) {
+    return {
+      fontPreset: LOCAL_FONT_PRESET,
+      fontFamily: getLocalFontFamily(localFontName),
+      webFontCss: "",
+      customWebFontCss,
+      localFontName
     };
   }
 
@@ -667,7 +745,8 @@ function getFontSettingsFromInputs(slot) {
     fontPreset: preset.id,
     fontFamily: preset.fontFamily,
     webFontCss: preset.css,
-    customWebFontCss
+    customWebFontCss,
+    localFontName
   };
 }
 
@@ -680,10 +759,14 @@ function readFontSlots() {
   return values;
 }
 
-function renderFontPresetOptions() {
+function renderFontPresetOptions(style = settings.subtitleStyle || {}) {
+  // A local font saved earlier stays selectable even where the list cannot be loaded.
+  const showLocal = canListLocalFonts || Object.values(fontSlots).some((slot) => style[slot.keys.fontPreset] === LOCAL_FONT_PRESET);
   const options = [
     ...WEB_FONT_PRESETS.map((preset) => `<option value="${preset.id}">${escapeHtml(getWebFontPresetLabel(preset, uiLanguage))}</option>`),
-    `<option value="custom">${t("customWebFontSettings")}</option>`
+    // The two options that open extra fields stand out from the font names in bold.
+    ...(showLocal ? [`<option value="${LOCAL_FONT_PRESET}" class="font-option-special">${escapeHtml(t("localFontOption"))}</option>`] : []),
+    `<option value="custom" class="font-option-special">${t("customWebFontSettings")}</option>`
   ].join("");
   for (const slot of Object.values(fontSlots)) slot.select.innerHTML = options;
 }
@@ -693,6 +776,8 @@ function updateCustomWebFontVisibility() {
     const isCustom = slot.select.value === "custom";
     slot.customField.classList.toggle("hidden", !isCustom);
     slot.guide.classList.toggle("hidden", !isCustom);
+    slot.localField.classList.toggle("hidden", slot.select.value !== LOCAL_FONT_PRESET);
+    slot.localButton.hidden = !canListLocalFonts;
   }
 }
 
@@ -742,6 +827,8 @@ function readSubtitleStyleSettings() {
     sourceTextColor: subtitleStyleInputs.sourceTextColor.value,
     ...readFontSlots(),
     textColor: subtitleStyleInputs.textColor.value,
+    fontWeight: Number(subtitleStyleInputs.fontWeight.value) || 700,
+    sourceFontWeight: Number(subtitleStyleInputs.sourceFontWeight.value) || 400,
     shadowEnabled: subtitleStyleInputs.shadowEnabled.checked,
     shadowColor: subtitleStyleInputs.shadowColor.value,
     shadowBlur: Number(subtitleStyleInputs.shadowBlur.value || 0),
@@ -757,6 +844,7 @@ function readSubtitleStyleSettings() {
 }
 
 function applySubtitlePreview() {
+  updateFontWeightLabels();
   readSubtitleStyleSettings();
   const style = settings.subtitleStyle || {};
   updateCustomWebFontVisibility();
@@ -772,6 +860,7 @@ function applySubtitlePreview() {
   subtitleStylePreview.style.fontSize = `${clampNumber(style.fontSize, 10, 64, 30)}px`;
   subtitleStylePreview.style.fontFamily = style.fontFamily || "Arial, sans-serif";
   subtitleStylePreview.style.color = style.textColor || "#e2ffad";
+  subtitleStylePreview.style.fontWeight = String(clampNumber(style.fontWeight, 100, 900, 700));
   subtitleStylePreview.style.textShadow = buildPreviewTextShadow(style);
   const outlineWidth = clampNumber(style.outlineWidth, 0, 16, 2);
   subtitleStylePreview.style.webkitTextStroke = style.outlineEnabled ?? true
@@ -779,13 +868,15 @@ function applySubtitlePreview() {
     : "0 transparent";
   subtitleStylePreview.style.paintOrder = "stroke fill";
   // Both lines share one background box, as in the player overlay.
-  subtitleStylePreview.parentElement.style.background = `rgba(${hexToRgb(style.backgroundColor)}, ${clampNumber(style.backgroundOpacity, 0, 1, 0.75)})`;
+  const backgroundOpacity = clampNumber(style.backgroundOpacity, 0, 1, 0.8);
+  subtitleStylePreview.parentElement.style.background = `rgba(${hexToRgb(style.backgroundColor)}, ${backgroundOpacity})`;
+  subtitleBackgroundOpacityValue.textContent = `${Math.round(backgroundOpacity * 100)}%`;
   // The source line shares every style except its size, color and font.
   subtitleSourcePreview.style.cssText = subtitleStylePreview.style.cssText;
   subtitleSourcePreview.style.fontFamily = style.sourceFontFamily || style.fontFamily || "Arial, sans-serif";
   subtitleSourcePreview.style.fontSize = `${clampNumber(style.sourceFontSize ?? style.fontSize, 10, 64, 30)}px`;
   subtitleSourcePreview.style.color = style.sourceTextColor || "#f2f2f2";
-  subtitleSourcePreview.textContent = t("sourcePreviewText");
+  subtitleSourcePreview.style.fontWeight = String(clampNumber(style.sourceFontWeight, 100, 900, 400));
   // Grid order moves the source line below the translation without touching the editable element.
   subtitleSourcePreview.style.order = style.translationOnTop ? "1" : "";
 }
@@ -874,8 +965,11 @@ function renderSubtitleStyleSettings() {
     slot.select.value = style[slot.keys.fontPreset] || style.fontPreset || "gangwon-moduche";
     if (!slot.select.value) slot.select.value = "gangwon-moduche";
     slot.customCss.value = style[slot.keys.customWebFontCss] || DEFAULT_CUSTOM_WEB_FONT_CSS;
+    renderLocalFontOptions(slot, style[slot.keys.localFontName] || "");
   }
   subtitleStyleInputs.textColor.value = style.textColor || "#e2ffad";
+  subtitleStyleInputs.fontWeight.value = style.fontWeight ?? 700;
+  subtitleStyleInputs.sourceFontWeight.value = style.sourceFontWeight ?? 400;
   subtitleStyleInputs.shadowEnabled.checked = Boolean(style.shadowEnabled);
   subtitleStyleInputs.shadowColor.value = style.shadowColor || "#000000";
   subtitleStyleInputs.shadowBlur.value = style.shadowBlur ?? 3;
@@ -885,7 +979,7 @@ function renderSubtitleStyleSettings() {
   subtitleStyleInputs.outlineWidth.value = style.outlineWidth ?? 2;
   subtitleStyleInputs.backgroundColor.value = style.backgroundColor || "#000000";
   subtitleStyleInputs.pendingBackgroundColor.value = style.pendingBackgroundColor || "#750000";
-  subtitleStyleInputs.backgroundOpacity.value = style.backgroundOpacity ?? 0.75;
+  subtitleStyleInputs.backgroundOpacity.value = style.backgroundOpacity ?? 0.8;
   subtitleStyleInputs.translationOnTop.checked = style.translationOnTop === true;
   updateCustomWebFontVisibility();
   applySubtitlePreview();
@@ -1559,6 +1653,7 @@ async function resetSubtitleStyleSettingsSection() {
   captureCurrentFormState();
   settings.subtitleStyle = clone(normalizeSettings().subtitleStyle);
   subtitleStylePreview.textContent = getDefaultPreviewText();
+  subtitleSourcePreview.textContent = t("sourcePreviewText");
   await persistSectionReset();
 }
 
@@ -1607,6 +1702,7 @@ async function init() {
   renderExtensionVersion();
   bindSecretVisibilityButton(simpleGoogleApiKeyInput, simpleGoogleApiKeyVisibilityButton);
   subtitleStylePreview.textContent = getDefaultPreviewText();
+  subtitleSourcePreview.textContent = t("sourcePreviewText");
   settings = await getSettings();
   selectedProviderId = settings.activeProvider;
   renderAll();
@@ -1632,6 +1728,10 @@ async function init() {
     input.addEventListener("input", applySubtitlePreview);
     input.addEventListener("change", applySubtitlePreview);
   });
+  for (const slot of Object.values(fontSlots)) {
+    // Chrome asks for the font permission only on a click, so the list loads on request.
+    slot.localButton.addEventListener("click", () => loadLocalFonts(slot));
+  }
   activeProviderSelect.addEventListener("change", () => {
     scheduleAutomaticSave({ immediate: true });
   });
@@ -1774,6 +1874,7 @@ async function init() {
     resetSubtitleStyleSettingsSection().catch((error) => setStatus(`${t("saveFailed")}: ${error.message}`, "error"));
   });
   document.getElementById("clearCache").addEventListener("click", async () => {
+    if (!globalThis.confirm(t("clearCacheConfirm"))) return;
     const response = await chrome.runtime.sendMessage({ type: "translation.clearCache" });
     if (!response?.ok) {
       setStatus(`${t("cacheClearFailed")}: ${response?.error || "Unknown error"}`, "error");

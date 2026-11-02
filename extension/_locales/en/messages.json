@@ -928,5 +928,38 @@
   },
   "contentStatusFailed": {
     "message": "Translation failed · showing original"
+  },
+  "localFontOption": {
+    "message": "[Font installed on this PC]"
+  },
+  "localFont": {
+    "message": "Installed font"
+  },
+  "loadLocalFonts": {
+    "message": "Load font list"
+  },
+  "localFontPlaceholder": {
+    "message": "Load the list, then choose a font →"
+  },
+  "localFontGuide": {
+    "message": "Uses a font installed on this PC for subtitles. Chrome asks for font access the first time the list loads. On a PC without the font, Arial is shown instead."
+  },
+  "localFontsLoaded": {
+    "message": "Loaded $count$ fonts. On a PC without the chosen font, Arial is shown instead.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "120"
+      }
+    }
+  },
+  "localFontsUnavailable": {
+    "message": "Could not load the font list. Check that Chrome allows this extension to access local fonts. The built-in fonts are still available."
+  },
+  "fontWeight": {
+    "message": "Font weight"
+  },
+  "clearCacheConfirm": {
+    "message": "Clear the translation cache?\n\nSaved translations for all videos will be deleted. Videos you have already translated will be translated again from the start, and with an AI provider this uses API quota and may cost again."
   }
 }

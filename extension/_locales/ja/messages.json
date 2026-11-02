@@ -928,5 +928,38 @@
   },
   "contentStatusFailed": {
     "message": "翻訳失敗 · 原文を表示中"
+  },
+  "localFontOption": {
+    "message": "[この PC にインストールされたフォント]"
+  },
+  "localFont": {
+    "message": "インストール済みフォント"
+  },
+  "loadLocalFonts": {
+    "message": "フォント一覧を読み込む"
+  },
+  "localFontPlaceholder": {
+    "message": "一覧を読み込んでから選択してください →"
+  },
+  "localFontGuide": {
+    "message": "この PC にインストールされたフォントを字幕に使います。初めて読み込むときに Chrome がフォントへのアクセス許可を求めます。フォントがない PC では Arial で表示されます。"
+  },
+  "localFontsLoaded": {
+    "message": "フォントを $count$ 件読み込みました。選んだフォントがない PC では Arial で表示されます。",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "120"
+      }
+    }
+  },
+  "localFontsUnavailable": {
+    "message": "フォント一覧を読み込めませんでした。Chrome でこの拡張機能のローカルフォントへのアクセスが許可されているか確認してください。標準のフォントは引き続き使えます。"
+  },
+  "fontWeight": {
+    "message": "文字の太さ"
+  },
+  "clearCacheConfirm": {
+    "message": "翻訳キャッシュを削除しますか？\n\n保存済みのすべての動画の翻訳結果が削除されます。翻訳済みの動画をもう一度見ると最初から翻訳し直すため、AI プロバイダーを使っている場合は API の使用量と費用が再び発生します。"
   }
 }
