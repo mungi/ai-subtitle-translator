@@ -346,6 +346,18 @@ export function getCustomSystemPromptSettingKey(styleId) {
   return styleId === "custom2" ? "custom2SystemPrompt" : "customSystemPrompt";
 }
 
+export const CUSTOM_STYLE_LABEL_MAX_LENGTH = 24;
+
+export function getCustomStyleLabelSettingKey(styleId) {
+  return styleId === "custom2" ? "custom2StyleLabel" : "customStyleLabel";
+}
+
+// The label shown beside "Custom 1/2" in the player menu. Never saved is the default; saved empty means none.
+export function normalizeCustomStyleLabel(value, fallback = "") {
+  if (typeof value !== "string") return fallback;
+  return value.replace(/\s+/g, " ").trim().slice(0, CUSTOM_STYLE_LABEL_MAX_LENGTH).trim();
+}
+
 export function extractStyleSystemPrompt(systemPrompt) {
   const text = String(systemPrompt || "").trim();
   const styleIndex = text.search(/(^|\n)Style:/);
@@ -410,6 +422,8 @@ export const DEFAULT_SETTINGS = {
   wordProgressHighlight: true,
   customSystemPrompt: DEFAULT_CUSTOM_STYLE_SYSTEM_PROMPT,
   custom2SystemPrompt: DEFAULT_CUSTOM_2_STYLE_SYSTEM_PROMPT,
+  customStyleLabel: "Star Instructor",
+  custom2StyleLabel: "Friendly Teacher",
   maxChunkDurationSeconds: 420,
   cacheTranslations: true,
   fallback: {

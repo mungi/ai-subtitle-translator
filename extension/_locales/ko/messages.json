@@ -851,6 +851,18 @@
   "contentTranslationPositionTop": {
     "message": "상단"
   },
+  "customStyleLabel": {
+    "message": "커스텀 스타일 라벨"
+  },
+  "customStyleLabelPlaceholder": {
+    "message": "예: 일타 강사"
+  },
+  "contentStyleYoutubeProvided": {
+    "message": "YouTube 자동 번역"
+  },
+  "contentWordHighlight": {
+    "message": "단어 강조"
+  },
   "contentTranslationPositionBottom": {
     "message": "하단"
   },

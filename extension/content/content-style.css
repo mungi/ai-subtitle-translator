@@ -64,6 +64,14 @@
   opacity: 1;
 }
 
+.ast-toolbar-button.youtube-auto {
+  --ast-toolbar-icon-bg: #fb923c;
+  --ast-toolbar-icon-outline: #ffedd5;
+  --ast-toolbar-icon-mark: #431407;
+  color: #fb923c;
+  opacity: 1;
+}
+
 .ast-toolbar-button.loading svg {
   animation: ast-pulse 900ms ease-in-out infinite;
 }
@@ -175,6 +183,11 @@
 
 .ast-provider-menu[data-phase="fallback"] {
   --ast-provider-state-color: #fb7185;
+}
+
+/* YouTube's own auto-translation shown as is. */
+.ast-provider-menu[data-phase="youtube-auto"] {
+  --ast-provider-state-color: #fb923c;
 }
 
 .ast-provider-menu-item {
@@ -318,6 +331,13 @@
   cursor: default;
 }
 
+/* The word-highlight switch is as wide as the Top/Bottom control below it. */
+.ast-segmented-control,
+.ast-word-highlight-toggle {
+  box-sizing: border-box;
+  width: 160px;
+}
+
 .ast-segmented-control {
   display: inline-flex;
   flex: 0 0 auto;
@@ -326,7 +346,31 @@
   border-radius: 6px;
 }
 
+.ast-word-highlight-toggle {
+  flex: 0 0 auto;
+  padding: 2px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+
+.ast-word-highlight-toggle:hover,
+.ast-word-highlight-toggle:focus-visible {
+  outline: none;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.ast-word-highlight-toggle.active {
+  background: var(--ast-provider-state-color);
+  color: #ffffff;
+}
+
 .ast-segmented-option {
+  flex: 1 1 0;
   padding: 2px 10px;
   border: 0;
   background: transparent;
@@ -389,6 +433,7 @@
 
 .ast-source-caption-submenu:hover .ast-source-caption-list,
 .ast-subtitle-display-submenu:hover .ast-subtitle-display-list,
+.ast-subtitle-display-submenu.ast-submenu-open .ast-subtitle-display-list,
 .ast-subtitle-display-submenu:focus-within .ast-subtitle-display-list,
 .ast-target-language-submenu:hover .ast-target-language-list,
 .ast-target-language-submenu:focus-within .ast-target-language-list,
@@ -719,6 +764,12 @@
 .ast-provider-status[data-phase="current"] .ast-provider-status-dot { background: #34d399; }
 .ast-provider-status[data-phase="complete"] .ast-provider-status-dot { background: #a78bfa; }
 .ast-provider-status[data-phase="fallback"] .ast-provider-status-dot { background: #fb7185; }
+.ast-provider-status[data-phase="youtube-auto"] .ast-provider-status-dot { background: #fb923c; }
+.ast-provider-status[data-phase="youtube-auto"] .ast-provider-status-text { color: #fb923c; }
+
+.ast-translation-style-provided {
+  color: #fb923c;
+}
 
 .ast-provider-menu-udemy .ast-provider-status {
   padding: 4px 32px 0;

@@ -371,7 +371,17 @@ function getSourceCaptionTrackLabel(track) {
 }
 
 function getTranslationStyleLabel(styleId) {
+  // A Custom style with a user label shows only that label, in brackets to set it apart from the presets.
+  const customLabel = subtitleState.customStyleLabels?.[styleId];
+  if (customLabel) return `[${customLabel}]`;
   return contentText(TRANSLATION_STYLE_MESSAGE_KEYS[styleId] || "styleNatural").split(/\s+-\s+/, 1)[0];
+}
+
+function applyCustomStyleLabels(settings = {}) {
+  subtitleState.customStyleLabels = {
+    custom: typeof settings.customStyleLabel === "string" ? settings.customStyleLabel : "",
+    custom2: typeof settings.custom2StyleLabel === "string" ? settings.custom2StyleLabel : ""
+  };
 }
 
 function renderSourceCaptionMenu(menu, platform) {
@@ -453,15 +463,29 @@ function renderTargetLanguageMenu(menu, platform) {
   menu.append(submenu);
 }
 
+// "Translation style: <style>". While YouTube's own auto-translation is shown as is, none of our
+// styles applies, so the value reads "YouTube provided" in that state's color.
+function fillTranslationStyleToggleLabel(label) {
+  if (!label) return;
+  const prefix = `${contentText("translationStyle")}: `;
+  if (getDisplayedPhase() !== "youtube-auto") {
+    label.textContent = `${prefix}${getTranslationStyleLabel(subtitleState.translationStyle || "custom")}`;
+    return;
+  }
+  const provided = document.createElement("span");
+  provided.className = "ast-translation-style-provided";
+  provided.textContent = contentText("contentStyleYoutubeProvided");
+  label.textContent = prefix;
+  label.append(provided);
+}
+
 function renderTranslationStyleMenu(menu, platform) {
   const selectedStyle = subtitleState.translationStyle || "custom";
   const submenu = document.createElement("div");
   submenu.className = "ast-translation-style-submenu";
 
-  const toggle = createProviderMenuButton(
-    "ast-provider-menu-item ast-translation-style-toggle",
-    `${contentText("translationStyle")}: ${getTranslationStyleLabel(selectedStyle)}`
-  );
+  const toggle = createProviderMenuButton("ast-provider-menu-item ast-translation-style-toggle", "");
+  fillTranslationStyleToggleLabel(toggle.querySelector(".ast-provider-menu-label"));
   toggle.setAttribute("role", "menuitem");
   toggle.setAttribute("aria-haspopup", "menu");
   submenu.append(toggle);
@@ -519,6 +543,8 @@ function renderTranslationStyleMenu(menu, platform) {
 function renderSubtitleDisplayMenu(menu) {
   const submenu = document.createElement("div");
   submenu.className = "ast-subtitle-display-submenu";
+  if (reopenSubtitleDisplaySubmenu) submenu.classList.add("ast-submenu-open");
+  submenu.addEventListener("mouseleave", () => submenu.classList.remove("ast-submenu-open"));
   const selectedMode = subtitleState.subtitleDisplayMode;
   const toggle = createProviderMenuButton(
     "ast-provider-menu-item ast-subtitle-display-toggle",
@@ -532,21 +558,71 @@ function renderSubtitleDisplayMenu(menu) {
   list.className = "ast-subtitle-display-list";
   list.setAttribute("role", "group");
   list.setAttribute("aria-label", contentText("contentSubtitleDisplay"));
+  const showWordHighlight = detectPlatform() === "youtube";
   for (const [mode, messageKey] of Object.entries(SUBTITLE_DISPLAY_MESSAGE_KEYS)) {
-    const item = createProviderMenuButton("ast-provider-menu-item ast-subtitle-display-item", contentText(messageKey));
+    const withWordHighlight = mode === "source" && showWordHighlight;
+    // The source row also holds the word-highlight switch, so it is a div: a button cannot contain one.
+    const item = withWordHighlight
+      ? document.createElement("div")
+      : document.createElement("button");
+    if (!withWordHighlight) item.type = "button";
+    item.className = "ast-provider-menu-item ast-subtitle-display-item";
+    const label = document.createElement("span");
+    label.className = "ast-provider-menu-label";
+    label.textContent = contentText(messageKey);
+    item.append(label);
     item.dataset.mode = mode;
     item.setAttribute("role", "menuitemradio");
     item.setAttribute("aria-checked", String(mode === selectedMode));
     if (mode === selectedMode) item.classList.add("active");
+    const select = () => selectSubtitleDisplayMode(mode).catch((error) => showToast(error.message));
     item.addEventListener("click", (event) => {
       event.stopPropagation();
-      selectSubtitleDisplayMode(mode).catch((error) => showToast(error.message));
+      keepSubtitleDisplaySubmenuOpen(item, false);
+      select();
     });
+    if (withWordHighlight) {
+      item.tabIndex = 0;
+      item.addEventListener("keydown", (event) => {
+        if (event.target !== item || (event.key !== "Enter" && event.key !== " ")) return;
+        event.preventDefault();
+        event.stopPropagation();
+        keepSubtitleDisplaySubmenuOpen(item, false);
+        select();
+      });
+      item.append(renderWordHighlightToggle());
+    }
     list.append(item);
   }
   list.append(...renderTranslationPositionControl());
   submenu.append(list);
   menu.append(submenu);
+}
+
+// Switch at the right of the "Source subtitles" row: colors the spoken words of the source line as it plays.
+function renderWordHighlightToggle() {
+  const on = subtitleState.wordProgressHighlight !== false;
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "ast-word-highlight-toggle";
+  if (on) button.classList.add("active");
+  button.textContent = contentText("contentWordHighlight");
+  button.setAttribute("role", "menuitemcheckbox");
+  button.setAttribute("aria-checked", String(on));
+  button.addEventListener("click", (event) => {
+    event.stopPropagation();
+    keepSubtitleDisplaySubmenuOpen(button);
+    selectWordProgressHighlight(!on).catch((error) => showToast(error.message));
+  });
+  return button;
+}
+
+async function selectWordProgressHighlight(enabled) {
+  const response = await sendRuntimeMessage({ type: "settings.setWordProgressHighlight", enabled });
+  if (!response?.ok) throw new Error(response?.error || "Could not save word highlight.");
+  subtitleState.wordProgressHighlight = enabled;
+  if (subtitleState.currentVideo) renderCurrentOverlayCue(subtitleState.currentVideo);
+  refreshOpenProviderMenu();
 }
 
 // "Translation position: top | bottom" at the bottom of the display submenu; it orders the dual lines.
@@ -575,6 +651,7 @@ function renderTranslationPositionControl() {
     if (value === onTop) option.classList.add("active");
     option.addEventListener("click", (event) => {
       event.stopPropagation();
+      keepSubtitleDisplaySubmenuOpen(option);
       selectTranslationPosition(value).catch((error) => showToast(error.message));
     });
     group.append(option);
@@ -603,7 +680,7 @@ function renderProviderMenu(platform = detectPlatform()) {
   const menu = document.getElementById(PROVIDER_MENU_ID);
   if (!menu) return;
   clearElement(menu);
-  menu.dataset.phase = subtitleState.translationPhase;
+  menu.dataset.phase = getDisplayedPhase();
 
   const toggleButton = createProviderMenuButton(
     "ast-provider-menu-item ast-provider-toggle-control",
@@ -812,6 +889,7 @@ async function refreshAvailableProviders() {
     .some((provider) => provider.id === settings.activeProvider);
   subtitleState.activeProviderId = activeProviderAvailable ? settings.activeProvider : "googleTranslate";
   subtitleState.translationStyle = settings.translationStyle || "custom";
+  applyCustomStyleLabels(settings);
   subtitleState.preferYoutubeProvidedTranslation = settings.preferYoutubeProvidedTranslation !== false;
   applyCaptionDisplaySettings(settings);
   subtitleState.targetLanguages = settings.targetLanguages || subtitleState.targetLanguages;
@@ -898,14 +976,32 @@ async function selectSourceCaptionTrack(platform, trackId) {
   }
 }
 
+// Redrawing replaces the display submenu, which only stays open while hovered, so a click inside it
+// would close it. The switches in it (word highlight, translation position) mark it open so the new
+// one is re-opened; picking a display mode leaves it unmarked and closes it.
+let reopenSubtitleDisplaySubmenu = false;
+
+function keepSubtitleDisplaySubmenuOpen(element, open = true) {
+  element.closest(".ast-subtitle-display-submenu")?.classList.toggle("ast-submenu-open", open);
+}
+
 function refreshOpenProviderMenu() {
   const menu = document.getElementById(PROVIDER_MENU_ID);
-  if (menu && !menu.hidden) renderProviderMenu(menu.dataset.platform || detectPlatform());
+  if (!menu || menu.hidden) return;
+  reopenSubtitleDisplaySubmenu = Boolean(menu.querySelector(".ast-subtitle-display-submenu.ast-submenu-open"));
+  try {
+    renderProviderMenu(menu.dataset.platform || detectPlatform());
+  } finally {
+    reopenSubtitleDisplaySubmenu = false;
+  }
 }
 
 function updateOpenProviderMenuPhase() {
   const menu = document.getElementById(PROVIDER_MENU_ID);
-  if (menu && !menu.hidden) menu.dataset.phase = subtitleState.translationPhase;
+  if (menu && !menu.hidden) {
+    menu.dataset.phase = getDisplayedPhase();
+    fillTranslationStyleToggleLabel(menu.querySelector(".ast-translation-style-toggle .ast-provider-menu-label"));
+  }
   updateProviderMenuStatus();
 }
 
@@ -2265,16 +2361,26 @@ function ensureOverlay(video, platform = subtitleState.currentPlatform || detect
   return overlay;
 }
 
+// The phase that picks the state color. Using YouTube's own auto-translation as is gets its own
+// color instead of "complete", since no translation of ours is involved.
+function getDisplayedPhase(enabled = subtitleState.enabled, loading = subtitleState.loading) {
+  if (enabled && !loading && subtitleState.youtubeProvidedTranslationLanguage
+    && subtitleState.youtubeProvidedTranslationSource === "auto") return "youtube-auto";
+  return subtitleState.translationPhase;
+}
+
 function setButtonState(enabled, loading = false) {
   const button = document.getElementById(BUTTON_ID);
   if (!button) return;
 
+  const phase = getDisplayedPhase(enabled, loading);
   button.classList.toggle("active", enabled);
   button.classList.toggle("loading", loading);
-  button.classList.toggle("temporary", subtitleState.translationPhase === "temporary");
-  button.classList.toggle("current", subtitleState.translationPhase === "current");
-  button.classList.toggle("complete", subtitleState.translationPhase === "complete");
-  button.classList.toggle("fallback", subtitleState.translationPhase === "fallback");
+  button.classList.toggle("temporary", phase === "temporary");
+  button.classList.toggle("current", phase === "current");
+  button.classList.toggle("complete", phase === "complete");
+  button.classList.toggle("fallback", phase === "fallback");
+  button.classList.toggle("youtube-auto", phase === "youtube-auto");
   button.setAttribute("aria-pressed", String(enabled));
   button.title = getTranslationStatus(enabled, loading).text;
   updateOpenProviderMenuPhase();
@@ -2328,7 +2434,7 @@ function updateProviderMenuStatus(enabled = subtitleState.enabled, loading = sub
   const line = document.getElementById(PROVIDER_MENU_ID)?.querySelector(".ast-provider-status");
   if (!line) return;
   const status = getTranslationStatus(enabled, loading);
-  line.dataset.phase = loading ? "loading" : enabled ? subtitleState.translationPhase : "off";
+  line.dataset.phase = loading ? "loading" : enabled ? getDisplayedPhase(enabled, loading) : "off";
   line.querySelector(".ast-provider-status-text").textContent = status.text;
   line.title = status.hint ? `${status.text}\n${status.hint}` : status.text;
 }
@@ -3260,6 +3366,7 @@ async function loadSubtitleStyle() {
     subtitleState.subtitleDisplayMode = Object.hasOwn(SUBTITLE_DISPLAY_MESSAGE_KEYS, settings.subtitleDisplayMode)
       ? settings.subtitleDisplayMode : "dual";
     subtitleState.translationStyle = settings.translationStyle || "custom";
+    applyCustomStyleLabels(settings);
     subtitleState.targetLanguages = settings.targetLanguages || subtitleState.targetLanguages;
     subtitleState.targetLanguage = settings.targetLanguage || "";
   } catch (error) {
@@ -4221,6 +4328,7 @@ chrome.runtime.onMessage.addListener((message) => {
       subtitleState.subtitleDisplayMode = settings.subtitleDisplayMode;
     }
     subtitleState.translationStyle = settings.translationStyle || subtitleState.translationStyle;
+    applyCustomStyleLabels(settings);
     if (typeof settings.preferYoutubeProvidedTranslation === "boolean"
       && settings.preferYoutubeProvidedTranslation !== subtitleState.preferYoutubeProvidedTranslation) {
       applyPreferYoutubeProvidedTranslation(settings.preferYoutubeProvidedTranslation);

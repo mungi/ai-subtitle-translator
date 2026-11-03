@@ -1,6 +1,18 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildDefaultCustom2StyleSystemPrompt, buildDefaultCustomStyleSystemPrompt, buildPresetSystemPrompt, buildStyleSystemPrompt, buildSystemPromptFromSettings, DEFAULT_SETTINGS, extractStyleSystemPrompt, TRANSLATION_STYLES } from "../extension/shared/defaults.js";
+import { buildDefaultCustom2StyleSystemPrompt, buildDefaultCustomStyleSystemPrompt, buildPresetSystemPrompt, buildStyleSystemPrompt, buildSystemPromptFromSettings, CUSTOM_STYLE_LABEL_MAX_LENGTH, DEFAULT_SETTINGS, extractStyleSystemPrompt, getCustomStyleLabelSettingKey, normalizeCustomStyleLabel, TRANSLATION_STYLES } from "../extension/shared/defaults.js";
+
+test("custom style labels default to Star Instructor and Friendly Teacher and keep user edits", () => {
+  assert.equal(DEFAULT_SETTINGS.customStyleLabel, "Star Instructor");
+  assert.equal(DEFAULT_SETTINGS.custom2StyleLabel, "Friendly Teacher");
+  assert.equal(getCustomStyleLabelSettingKey("custom"), "customStyleLabel");
+  assert.equal(getCustomStyleLabelSettingKey("custom2"), "custom2StyleLabel");
+  // Never saved falls back to the default; a saved empty string means no label.
+  assert.equal(normalizeCustomStyleLabel(undefined, "Star Instructor"), "Star Instructor");
+  assert.equal(normalizeCustomStyleLabel("", "Star Instructor"), "");
+  assert.equal(normalizeCustomStyleLabel("  My   style  "), "My style");
+  assert.equal(normalizeCustomStyleLabel("x".repeat(CUSTOM_STYLE_LABEL_MAX_LENGTH + 10)).length, CUSTOM_STYLE_LABEL_MAX_LENGTH);
+});
 
 test("preset system prompts include auto-caption correction guidance and target language", () => {
   const prompt = buildPresetSystemPrompt("lecture", "ko");

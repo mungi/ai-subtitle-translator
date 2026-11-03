@@ -371,7 +371,7 @@ test("active provider select only shows providers that pass connection tests", (
 test("active provider guide uses the full row above translation style", () => {
   assert.match(
     optionsHtml,
-    /<p class="wide active-provider-guide" data-i18n="activeProviderGuide"><\/p>\s*<label class="wide">\s*<span data-i18n="translationStyle">/
+    /<p class="wide active-provider-guide" data-i18n="activeProviderGuide"><\/p>\s*<div class="wide translation-style-row">\s*<label>\s*<span data-i18n="translationStyle">/
   );
   assert.match(message("ko", "activeProviderGuide"), /Google Translate는 항상 사용할 수 있으며/);
   assert.match(optionsCss, /\.active-provider-guide\s*\{[\s\S]*color: var\(--muted\);/);
@@ -406,8 +406,11 @@ test("settings are saved automatically with delayed text input and immediate sel
 
 test("system prompt editor is a full-width general setting and custom-only editable", () => {
   assert.match(optionsHtml, /<label class="wide system-prompt-field">\s*<textarea id="systemPrompt"[\s\S]*readonly/);
-  // The prompt sits right under the style it describes.
-  assert.match(optionsHtml, /<select id="translationStyle"><\/select>\s*<\/label>\s*<label class="wide system-prompt-field">/);
+  // The prompt sits right under the style row: the select on the left half, the Custom 1/2 label box on the right.
+  assert.match(optionsHtml, /<div class="wide translation-style-row">\s*<label>\s*<span data-i18n="translationStyle"><\/span>\s*<select id="translationStyle"><\/select>\s*<\/label>\s*<label>[\s\S]*?<input id="customStyleLabel"[^>]* disabled[^>]*>\s*<\/label>\s*<\/div>\s*<label class="wide system-prompt-field">/);
+  assert.match(optionsCss, /\.translation-style-row\s*\{[\s\S]*?grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/);
+  assert.match(optionsJs, /customStyleLabelInput\.disabled = !isCustom/);
+  assert.match(optionsJs, /settings\[customStyleConfig\.labelSettingKey\] = normalizeCustomStyleLabel\(customStyleLabelInput\.value\)/);
   assert.doesNotMatch(optionsHtml, /data-i18n="systemPrompt"/);
   assert.match(optionsCss, /\.form-grid \.wide\s*\{[\s\S]*grid-column: 1 \/ -1;/);
   assert.equal(message("ko", "styleCustom"), "Custom 1 - 사용자 번역 스타일 1");

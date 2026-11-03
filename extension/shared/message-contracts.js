@@ -13,6 +13,7 @@ const BACKGROUND_MESSAGE_TYPES = new Set([
   "settings.setTargetLanguage",
   "settings.setSubtitleDisplayMode",
   "settings.setPreferYoutubeProvidedTranslation",
+  "settings.setWordProgressHighlight",
   "settings.setSourceCaptionLanguage",
   "ast.openOptions",
   "ast.providerMenu.setOpen",
@@ -47,6 +48,7 @@ const CONTENT_SCRIPT_MESSAGE_TYPES = new Set([
   "settings.setTargetLanguage",
   "settings.setSubtitleDisplayMode",
   "settings.setPreferYoutubeProvidedTranslation",
+  "settings.setWordProgressHighlight",
   "settings.setSourceCaptionLanguage",
   "ast.openOptions",
   "ast.providerMenu.setOpen",
@@ -219,6 +221,7 @@ export function validateBackgroundMessage(message) {
       else if (!/^[\w-]{1,35}$/.test(String(message.languageCode || ""))) error = "languageCode is invalid.";
       break;
     case "settings.setPreferYoutubeProvidedTranslation":
+    case "settings.setWordProgressHighlight":
       if (typeof message.enabled !== "boolean") error = "enabled must be a boolean.";
       break;
     case "ast.providerMenu.setOpen":

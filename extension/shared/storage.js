@@ -1,4 +1,4 @@
-import { buildDefaultCustom2StyleSystemPrompt, buildDefaultCustomStyleSystemPrompt, DEFAULT_SETTINGS, extractStyleSystemPrompt, getTargetLanguageLabel, normalizeLlmParallelRequests, PROVIDERS, TARGET_LANGUAGES, WEB_FONT_PRESETS } from "./defaults.js";
+import { buildDefaultCustom2StyleSystemPrompt, buildDefaultCustomStyleSystemPrompt, DEFAULT_SETTINGS, extractStyleSystemPrompt, getTargetLanguageLabel, normalizeCustomStyleLabel, normalizeLlmParallelRequests, PROVIDERS, TARGET_LANGUAGES, WEB_FONT_PRESETS } from "./defaults.js";
 import { clearEncryptedProviderSecrets, readEncryptedProviderSecrets, writeEncryptedProviderSecrets } from "./secret-storage.js";
 
 const SETTINGS_KEY = "llmSettings";
@@ -150,7 +150,9 @@ export function normalizeSettings(settings = {}) {
     phraseSegmentationSkipYoutubeManual: settings.phraseSegmentationSkipYoutubeManual === true,
     wordProgressHighlight: settings.wordProgressHighlight !== false,
     customSystemPrompt: extractStyleSystemPrompt(settings.customSystemPrompt || defaults.customSystemPrompt || buildDefaultCustomStyleSystemPrompt(targetLanguage)),
-    custom2SystemPrompt: extractStyleSystemPrompt(settings.custom2SystemPrompt || defaults.custom2SystemPrompt || buildDefaultCustom2StyleSystemPrompt())
+    custom2SystemPrompt: extractStyleSystemPrompt(settings.custom2SystemPrompt || defaults.custom2SystemPrompt || buildDefaultCustom2StyleSystemPrompt()),
+    customStyleLabel: normalizeCustomStyleLabel(settings.customStyleLabel, defaults.customStyleLabel),
+    custom2StyleLabel: normalizeCustomStyleLabel(settings.custom2StyleLabel, defaults.custom2StyleLabel)
   };
 }
 

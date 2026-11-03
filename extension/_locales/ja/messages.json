@@ -851,6 +851,18 @@
   "contentTranslationPositionTop": {
     "message": "上"
   },
+  "customStyleLabel": {
+    "message": "カスタムスタイルのラベル"
+  },
+  "customStyleLabelPlaceholder": {
+    "message": "例: カリスマ講師"
+  },
+  "contentStyleYoutubeProvided": {
+    "message": "YouTube 自動翻訳"
+  },
+  "contentWordHighlight": {
+    "message": "単語強調"
+  },
   "contentTranslationPositionBottom": {
     "message": "下"
   },

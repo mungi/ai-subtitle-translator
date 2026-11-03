@@ -1,4 +1,4 @@
-import { buildDefaultCustom2StyleSystemPrompt, buildDefaultCustomStyleSystemPrompt, buildStyleSystemPrompt, DEFAULT_CUSTOM_WEB_FONT_CSS, getDeepLEndpoint, DEFAULT_SETTINGS, extractStyleSystemPrompt, getTargetLanguageLabel, getWebFontPresetLabel, normalizeLlmParallelRequests, TARGET_LANGUAGES, TRANSLATION_STYLES, WEB_FONT_PRESETS } from "../shared/defaults.js";
+import { buildDefaultCustom2StyleSystemPrompt, buildDefaultCustomStyleSystemPrompt, buildStyleSystemPrompt, DEFAULT_CUSTOM_WEB_FONT_CSS, getDeepLEndpoint, DEFAULT_SETTINGS, extractStyleSystemPrompt, getTargetLanguageLabel, getWebFontPresetLabel, normalizeCustomStyleLabel, normalizeLlmParallelRequests, TARGET_LANGUAGES, TRANSLATION_STYLES, WEB_FONT_PRESETS } from "../shared/defaults.js";
 import { getProviderGuide } from "../shared/provider-guides.js";
 import { getConfiguredKeyProviders, validateConfiguredProviderKeys } from "../shared/provider-key-validation.js";
 import { selectRecommendedModel } from "../shared/model-recommendations.js";
@@ -37,10 +37,12 @@ const MESSAGE_SUBSTITUTION_NAMES = {
 const customStylePromptConfigs = {
   custom: {
     settingKey: "customSystemPrompt",
+    labelSettingKey: "customStyleLabel",
     buildDefaultPrompt: buildDefaultCustomStyleSystemPrompt
   },
   custom2: {
     settingKey: "custom2SystemPrompt",
+    labelSettingKey: "custom2StyleLabel",
     buildDefaultPrompt: buildDefaultCustom2StyleSystemPrompt
   }
 };
@@ -135,6 +137,7 @@ const activeProviderSelect = document.getElementById("activeProvider");
 const targetLanguageSelect = document.getElementById("targetLanguage");
 const translationStyleSelect = document.getElementById("translationStyle");
 const systemPromptTextarea = document.getElementById("systemPrompt");
+const customStyleLabelInput = document.getElementById("customStyleLabel");
 const maxChunkDurationMinutesInput = document.getElementById("maxChunkDurationMinutes");
 const llmParallelRequestsInput = document.getElementById("llmParallelRequests");
 const maxChunkDurationValue = document.getElementById("maxChunkDurationValue");
@@ -797,6 +800,7 @@ function readGeneralSettings() {
   if (customStyleConfig) {
     settings[customStyleConfig.settingKey] = extractStyleSystemPrompt(systemPromptTextarea.value)
       || customStyleConfig.buildDefaultPrompt(settings.targetLanguage || getBrowserTargetLanguage());
+    settings[customStyleConfig.labelSettingKey] = normalizeCustomStyleLabel(customStyleLabelInput.value);
   }
   settings.maxChunkDurationSeconds = getChunkDurationMinutes() * 60;
   settings.llmParallelRequests = normalizeLlmParallelRequests(llmParallelRequestsInput.value);
@@ -921,6 +925,9 @@ function updateSystemPromptTextarea() {
 
   systemPromptTextarea.readOnly = !isCustom;
   systemPromptTextarea.classList.toggle("readonly", !isCustom);
+  // The label only belongs to Custom 1/2; for the other styles the box stays visible but off and empty.
+  customStyleLabelInput.disabled = !isCustom;
+  customStyleLabelInput.value = isCustom ? normalizeCustomStyleLabel(settings[customStyleConfig.labelSettingKey]) : "";
 
   if (isCustom) {
     if (!settings[customStyleConfig.settingKey]) {
@@ -1618,6 +1625,8 @@ async function resetGeneralSettingsSection() {
     translationStyle: DEFAULT_SETTINGS.translationStyle,
     customSystemPrompt: buildDefaultCustomStyleSystemPrompt(getBrowserTargetLanguage()),
     custom2SystemPrompt: DEFAULT_SETTINGS.custom2SystemPrompt,
+    customStyleLabel: DEFAULT_SETTINGS.customStyleLabel,
+    custom2StyleLabel: DEFAULT_SETTINGS.custom2StyleLabel,
     maxChunkDurationSeconds: DEFAULT_SETTINGS.maxChunkDurationSeconds,
     llmParallelRequests: DEFAULT_SETTINGS.llmParallelRequests,
     cacheTranslations: DEFAULT_SETTINGS.cacheTranslations,
@@ -1771,6 +1780,15 @@ async function init() {
   }
   fallbackProviderSelect.addEventListener("change", () => {
     scheduleAutomaticSave({ immediate: true });
+  });
+  customStyleLabelInput.addEventListener("input", (event) => {
+    if (!event.isComposing) scheduleAutomaticSave();
+  });
+  customStyleLabelInput.addEventListener("compositionend", () => {
+    scheduleAutomaticSave();
+  });
+  customStyleLabelInput.addEventListener("blur", () => {
+    flushAutomaticSave();
   });
   systemPromptTextarea.addEventListener("input", (event) => {
     if (!event.isComposing) scheduleAutomaticSave();

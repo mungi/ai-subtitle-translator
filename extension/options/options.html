@@ -148,10 +148,16 @@
           </label>
           <p id="llmParallelRequestsGuide" class="llm-parallel-guide active-provider-guide" data-i18n="llmParallelRequestsGuide"></p>
           <p class="wide active-provider-guide" data-i18n="activeProviderGuide"></p>
-          <label class="wide">
-            <span data-i18n="translationStyle"></span>
-            <select id="translationStyle"></select>
-          </label>
+          <div class="wide translation-style-row">
+            <label>
+              <span data-i18n="translationStyle"></span>
+              <select id="translationStyle"></select>
+            </label>
+            <label>
+              <span data-i18n="customStyleLabel"></span>
+              <input id="customStyleLabel" type="text" maxlength="24" autocomplete="off" spellcheck="false" disabled data-i18n-placeholder="customStyleLabelPlaceholder">
+            </label>
+          </div>
           <label class="wide system-prompt-field">
             <textarea id="systemPrompt" class="system-prompt-textarea" rows="8" spellcheck="false" readonly data-i18n-aria-label="systemPromptAriaLabel"></textarea>
           </label>

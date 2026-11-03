@@ -301,6 +301,18 @@ button.ghost {
   grid-column: 1 / -1;
 }
 
+/* The style select takes half the row; the Custom 1/2 label box fills the other half. */
+.translation-style-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.translation-style-row input:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .form-grid .llm-parallel-guide {
   grid-column: span 2;
   align-self: end;
@@ -882,6 +894,10 @@ textarea:focus {
 
   .form-grid .llm-parallel-guide {
     grid-column: auto;
+  }
+
+  .translation-style-row {
+    grid-template-columns: 1fr;
   }
 
   .supported-sites-toggles {

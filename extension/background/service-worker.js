@@ -435,6 +435,18 @@ export function setPreferYoutubeProvidedTranslation(enabled) {
   });
 }
 
+export function setWordProgressHighlight(enabled) {
+  if (typeof enabled !== "boolean") {
+    return Promise.reject(new Error("enabled must be a boolean."));
+  }
+  return enqueueSettingsMutation(async () => {
+    const settings = await getSettings();
+    settings.wordProgressHighlight = enabled;
+    await saveSettings(settings);
+    return { enabled };
+  });
+}
+
 export function setSourceCaptionLanguage(platform, languageCode) {
   return enqueueSettingsMutation(async () => {
     const settings = await getSettings();
@@ -564,6 +576,13 @@ export function dispatchBackgroundMessage(message, sender, sendResponse) {
 
   if (message?.type === "settings.setPreferYoutubeProvidedTranslation") {
     setPreferYoutubeProvidedTranslation(message.enabled)
+      .then((result) => sendResponse({ ok: true, result }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.type === "settings.setWordProgressHighlight") {
+    setWordProgressHighlight(message.enabled)
       .then((result) => sendResponse({ ok: true, result }))
       .catch((error) => sendResponse({ ok: false, error: error.message }));
     return true;

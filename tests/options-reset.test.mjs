@@ -83,7 +83,7 @@ for (const [action, messageKey] of resetCases) {
     if (action === "resetAllSettings") {
       Object.assign(expected, structuredClone(baseline));
     } else if (action === "resetGeneralSettingsSection") {
-      for (const key of ["activeProvider", "targetLanguage", "translationStyle", "custom2SystemPrompt", "maxChunkDurationSeconds", "llmParallelRequests", "cacheTranslations"]) {
+      for (const key of ["activeProvider", "targetLanguage", "translationStyle", "custom2SystemPrompt", "customStyleLabel", "custom2StyleLabel", "maxChunkDurationSeconds", "llmParallelRequests", "cacheTranslations"]) {
         expected[key] = baseline[key];
       }
       expected.customSystemPrompt = defaults.buildDefaultCustomStyleSystemPrompt("ko");

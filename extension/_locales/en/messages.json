@@ -851,6 +851,18 @@
   "contentTranslationPositionTop": {
     "message": "Top"
   },
+  "customStyleLabel": {
+    "message": "Custom style label"
+  },
+  "customStyleLabelPlaceholder": {
+    "message": "e.g. Star Instructor"
+  },
+  "contentStyleYoutubeProvided": {
+    "message": "YouTube auto-translation"
+  },
+  "contentWordHighlight": {
+    "message": "Word Highlight"
+  },
   "contentTranslationPositionBottom": {
     "message": "Bottom"
   },
