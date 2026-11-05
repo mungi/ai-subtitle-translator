@@ -458,11 +458,16 @@ function createYoutubeHarness(options = {}) {
     },
     URL,
     URLSearchParams,
-    fetch: options.fetch
+    fetch: options.fetch,
+    addEventListener: (type, listener) => {
+      (windowListeners[type] ||= []).push(listener);
+    }
   };
+  const windowListeners = {};
 
   return {
     context,
+    windowListeners,
     controls,
     moviePlayer,
     video,
@@ -2714,6 +2719,9 @@ async function loadYoutubeOverlay(options = {}) {
     width: 200,
     height: 80
   });
+  // The fake box starts at a default size larger than the player; lay it out again at its real
+  // size, as a page resize would.
+  for (const listener of harness.windowListeners.resize || []) listener();
 
   return { ...harness, overlay };
 }
@@ -2740,12 +2748,12 @@ test("subtitle visual size scales relative to the current player size", async ()
   });
 
   assert.equal(large.overlay.style.fontSize, "45px");
-  assert.equal(large.overlay.style.width, "1536px");
+  assert.equal(large.overlay.style.maxWidth, "1536px");
   assert.equal(large.overlay.style.padding, "12px 21px");
   assert.equal(large.overlay.style.webkitTextStroke, "3px #000000");
   assert.equal(large.overlay.style.paintOrder, "stroke fill");
   assert.equal(small.overlay.style.fontSize, "15px");
-  assert.equal(small.overlay.style.width, "512px");
+  assert.equal(small.overlay.style.maxWidth, "512px");
   assert.equal(small.overlay.style.padding, "4px 7px");
   assert.equal(small.overlay.style.webkitTextStroke, "1px #000000");
   assert.equal(small.overlay.style.paintOrder, "stroke fill");
@@ -2785,9 +2793,10 @@ test("subtitle overlay keeps user relative width but auto-fits height inside the
     });
   }
 
-  assert.equal(overlay.style.width, "250px");
+  assert.equal(overlay.style.maxWidth, "250px");
   assert.equal(overlay.style.height, "auto");
-  assert.equal(overlay.style.maxHeight, "196px");
+  // Up to the player height minus the 12px margins; the position moves in rather than the box shrinking.
+  assert.equal(overlay.style.maxHeight, "476px");
   assert.equal(overlay.style.overflowY, "auto");
   assert.equal(overlay.style.overflowX, "hidden");
 });
@@ -3758,6 +3767,9 @@ test("subtitle resize blocks the release click even when the pointer ends outsid
 
 test("subtitle overlay resizes from the full right edge without dragging", async () => {
   const { overlay } = await loadYoutubeOverlay();
+  // The set width is wider, but the visible box is 200px for a short line; resizing starts from
+  // what the viewer sees so the edge stays under the pointer.
+  assert.ok(Number(overlay.dataset.maxWidth) > 200);
 
   overlay.dispatchEvent({
     type: "pointerdown",
@@ -3786,8 +3798,11 @@ test("subtitle overlay resizes from the full right edge without dragging", async
     stopImmediatePropagation: () => {}
   });
 
-  assert.equal(overlay.style.width, "280px");
-  assert.equal(overlay.style.left, "54%");
+  // Dragging the right edge 80px out moves the left edge 80px too: the 200px box becomes 360px
+  // and keeps its center. Afterwards it fits its text again within that width.
+  assert.ok(Math.abs(parseFloat(overlay.style.maxWidth) - 360) <= 1, overlay.style.maxWidth);
+  assert.equal(overlay.style.width, "max-content");
+  assert.equal(overlay.style.left, "50%");
   assert.equal(overlay.style.top, "78%");
 });
 
@@ -3813,6 +3828,70 @@ test("subtitle drag preserves the grab point instead of moving the center under 
 
   assert.equal(overlay.style.left, "60%");
   assert.equal(overlay.style.top, "76%");
+});
+
+test("subtitle drag reaches the player edge using the box's visible width", async () => {
+  const { overlay } = await loadYoutubeOverlay();
+  // The set width is wider than the 200px the short line shows; the edge limit follows what is seen.
+  assert.ok(Number(overlay.dataset.maxWidth) > 200);
+
+  overlay.dispatchEvent({
+    type: "pointerdown",
+    button: 0,
+    pointerId: 1,
+    clientX: 420,
+    clientY: 320,
+    preventDefault: () => {},
+    stopPropagation: () => {}
+  });
+  overlay.dispatchEvent({
+    type: "pointermove",
+    pointerId: 1,
+    clientX: 1400,
+    clientY: 320,
+    preventDefault: () => {}
+  });
+
+  // Half the visible width (100px) plus the 12px margin on a 1000px player leaves 11.2% per side.
+  assert.ok(Math.abs(parseFloat(overlay.style.left) - 88.8) < 0.05, overlay.style.left);
+});
+
+test("subtitle drag stops at the top and bottom edges instead of shrinking into a scrollbar", async () => {
+  const { overlay } = await loadYoutubeOverlay();
+  const fullMaxHeight = overlay.style.maxHeight;
+
+  overlay.dispatchEvent({
+    type: "pointerdown",
+    button: 0,
+    pointerId: 1,
+    clientX: 420,
+    clientY: 320,
+    preventDefault: () => {},
+    stopPropagation: () => {}
+  });
+  overlay.dispatchEvent({
+    type: "pointermove",
+    pointerId: 1,
+    clientX: 420,
+    clientY: 5000,
+    preventDefault: () => {}
+  });
+  const bottom = parseFloat(overlay.style.top);
+  overlay.dispatchEvent({
+    type: "pointermove",
+    pointerId: 1,
+    clientX: 420,
+    clientY: -5000,
+    preventDefault: () => {}
+  });
+  const top = parseFloat(overlay.style.top);
+
+  // The 80px box stays 40px + 12px margin away from each edge, and keeps its full height limit.
+  assert.ok(bottom < 100 && top > 0, `${top} ${bottom}`);
+  assert.ok(Math.abs((100 - bottom) - top) < 0.05, `${top} ${bottom}`);
+  assert.equal(overlay.style.maxHeight, fullMaxHeight);
+  // The stored position is the clamped one, so dragging back moves the box at once.
+  assert.equal(overlay.style.top, `${top}%`);
 });
 
 test("subtitle drag stops when pointer capture is lost", async () => {
@@ -4036,19 +4115,22 @@ test("subtitle resize reaches the player width minus 12px margins and survives s
   overlay.dispatchEvent(event("pointermove", 5000));
   overlay.dispatchEvent(event("pointerup", 5000));
   await flushPromises();
-  assert.equal(overlay.style.width, "3416px");
+  assert.equal(overlay.style.maxWidth, "3416px");
   assert.equal(overlay.style.left, "50%");
   const save = sentMessages.filter((message) => message.type === "settings.updateSubtitleStyle").at(-1);
   assert.equal(save.patch.width, 3416);
   vm.runInNewContext('applyOverlayStyle(document.getElementById("ast-subtitle-overlay"))', context);
-  assert.equal(overlay.style.width, "3416px");
+  assert.equal(overlay.style.maxWidth, "3416px");
   assert.equal(overlay.style.maxWidth, "3416px");
 });
 
 test("saved wide subtitles fit a smaller player while keeping side margins", async () => {
-  const { overlay } = await loadYoutubeOverlay({ playerRect: { width: 640, height: 360 },
+  const { overlay, windowListeners } = await loadYoutubeOverlay({ playerRect: { width: 640, height: 360 },
     settings: { subtitleStyle: { width: 3416, positionX: 80 } } });
-  assert.equal(overlay.style.width, "616px");
+  // A long line fills the whole capped width, leaving no room to sit off-center.
+  overlay.setRect({ left: 12, top: 240, width: 616, height: 80 });
+  for (const listener of windowListeners.resize || []) listener();
+  assert.equal(overlay.style.width, "max-content");
   assert.equal(overlay.style.maxWidth, "616px");
   assert.equal(overlay.style.left, "50%");
 });
@@ -5113,4 +5195,40 @@ test("YouTube's auto-translation is judged by time coverage, so merged lines are
   assert.equal(check(merged.map((item) => ({ ...item, start: item.start + 60, end: item.end + 60 }))), false);
   // Lines that are still in the source language mean the translation did not apply.
   assert.equal(check(source.map((item) => ({ ...item }))), false);
+});
+
+test("a short pause between lines keeps the previous line up instead of flashing the box off", () => {
+  const harness = createYoutubeHarness();
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
+  harness.context.testCues = [
+    { id: "a", start: 0, end: 2, text: "first" },
+    { id: "b", start: 2.6, end: 4, text: "second" },
+    { id: "c", start: 7, end: 9, text: "after a long pause" }
+  ];
+  const at = (time) => vm.runInNewContext(`findActiveCue(testCues, ${time})?.id ?? null`, harness.context);
+
+  assert.equal(at(1), "a");
+  // 0.6s gap: the first line stays until the second starts.
+  assert.equal(at(2.3), "a");
+  assert.equal(at(2.6), "b");
+  // 3s pause: the box clears.
+  assert.equal(at(5), null);
+  assert.equal(at(7.5), "c");
+  // Before the first line and after the last one nothing is shown.
+  assert.equal(at(9.5), null);
+});
+
+test("a click on the subtitle edge without dragging keeps the set width even when the line is short", async () => {
+  const { overlay, context } = await loadYoutubeOverlay();
+  const setWidth = overlay.style.maxWidth;
+  const savedWidth = vm.runInNewContext("subtitleState.subtitleStyle?.width", context);
+  const event = (type) => ({ type, button: 0, pointerId: 1, clientX: 596, clientY: 312,
+    preventDefault: () => {}, stopPropagation: () => {}, stopImmediatePropagation: () => {} });
+
+  overlay.dispatchEvent(event("pointerdown"));
+  overlay.dispatchEvent(event("pointerup"));
+
+  assert.equal(overlay.style.width, "max-content");
+  assert.equal(overlay.style.maxWidth, setWidth);
+  assert.equal(vm.runInNewContext("subtitleState.subtitleStyle?.width", context), savedWidth);
 });

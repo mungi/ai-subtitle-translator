@@ -1898,6 +1898,10 @@ function getUdemyCourseId() {
   return match?.[1] || null;
 }
 
+// A short pause between two lines would hide the box for a moment and flash the video behind it,
+// so a line stays up until the next one when the next starts within this many seconds.
+const SUBTITLE_GAP_BRIDGE_SECONDS = 1;
+
 function findActiveCue(cues, currentTime) {
   if (!Array.isArray(cues)) return null;
   // YouTube rolling captions can overlap: prefer the most recently started cue.
@@ -1905,6 +1909,15 @@ function findActiveCue(cues, currentTime) {
     const cue = cues[index];
     if (currentTime >= cue.start && currentTime < cue.end) return cue;
   }
+  // In a gap: keep the line that just ended if the next one follows closely. A longer pause
+  // (a scene change, silence) still clears the box.
+  let previous = null;
+  let next = null;
+  for (const cue of cues) {
+    if (cue.end <= currentTime && (!previous || cue.end > previous.end)) previous = cue;
+    if (cue.start > currentTime && (!next || cue.start < next.start)) next = cue;
+  }
+  if (previous && next && next.start - previous.end <= SUBTITLE_GAP_BRIDGE_SECONDS) return previous;
   return null;
 }
 
@@ -2004,26 +2017,23 @@ function applyWebFontCss(css) {
   }
 }
 
-function calculateOverlayMaxHeight(overlay, yPercent) {
+// The box may be as tall as the player minus its margins wherever it sits; its position is pulled
+// in instead (see positionOverlay), so moving it toward an edge never squeezes it into a scrollbar.
+// Only text taller than the whole player scrolls.
+function calculateOverlayMaxHeight(overlay) {
   const parentRect = overlay.parentElement?.getBoundingClientRect();
   if (!parentRect?.height) {
     return null;
   }
-
-  const centerY = (clampNumber(yPercent, 0, 100, 78) / 100) * parentRect.height;
-  const availableAbove = centerY - OVERLAY_VERTICAL_MARGIN_PX;
-  const availableBelow = parentRect.height - centerY - OVERLAY_VERTICAL_MARGIN_PX;
-  const centeredLimit = Math.floor(Math.min(availableAbove, availableBelow) * 2);
-  const fullLimit = Math.floor(parentRect.height - OVERLAY_VERTICAL_MARGIN_PX * 2);
-  return Math.max(OVERLAY_MIN_HEIGHT_PX, Math.min(centeredLimit, fullLimit));
+  return Math.max(OVERLAY_MIN_HEIGHT_PX, Math.floor(parentRect.height - OVERLAY_VERTICAL_MARGIN_PX * 2));
 }
 
-function fitOverlayHeightToViewport(overlay, yPercent) {
+function fitOverlayHeightToViewport(overlay) {
   overlay.style.height = "auto";
   overlay.style.overflowX = "hidden";
   overlay.style.overflowY = "auto";
 
-  const maxHeight = calculateOverlayMaxHeight(overlay, yPercent);
+  const maxHeight = calculateOverlayMaxHeight(overlay);
   if (maxHeight === null) {
     overlay.style.maxHeight = "";
     return;
@@ -2058,14 +2068,19 @@ function applyOverlayStyle(overlay) {
   const outlineEnabled = style.outlineEnabled ?? true;
   applyWebFontCss([...new Set([style.webFontCss, style.sourceWebFontCss].filter(Boolean))].join("\n"));
 
-  const parentWidth = overlay.parentElement?.getBoundingClientRect().width;
-  const minX = parentWidth ? Math.min(50, (displayWidth / 2 + OVERLAY_HORIZONTAL_MARGIN_PX) / parentWidth * 100) : 0;
-  overlay.style.left = `${clampNumber(x, minX, 100 - minX, 50)}%`;
   overlay.style.top = `${y}%`;
   overlay.style.bottom = "auto";
   overlay.style.transform = "translate(-50%, -50%)";
-  overlay.style.width = formatPx(displayWidth);
-  overlay.style.maxWidth = formatPx(maxWidth);
+  // The width the viewer set is the most the box takes; a short line shrinks it to the text plus
+  // its padding, so a few words do not cover a wide strip of the video. While the viewer drags the
+  // edge, the resize handler owns the width. max-content rather than fit-content: the box is
+  // absolutely positioned at left: X%, so fit-content would also cap it at the space between that
+  // point and the player's right edge and wrap long lines well before the set width.
+  overlay.dataset.maxWidth = String(Math.round(displayWidth));
+  if (!overlay.classList.contains("resizing")) {
+    overlay.style.width = "max-content";
+    overlay.style.maxWidth = formatPx(displayWidth);
+  }
   overlay.style.minWidth = formatPx(Math.min(scalePx(160, scale, 56), maxWidth));
   overlay.style.minHeight = formatPx(scalePx(OVERLAY_MIN_HEIGHT_PX, scale, 20));
   overlay.style.padding = `${formatPx(scalePx(8, scale, 3))} ${formatPx(scalePx(14, scale, 5))}`;
@@ -2080,7 +2095,29 @@ function applyOverlayStyle(overlay) {
   overlay.style.paintOrder = "stroke fill";
   overlay.style.background = `rgba(${hexToRgb(backgroundColor)}, ${backgroundOpacity})`;
   for (const line of overlay.querySelectorAll?.(".ast-subtitle-source-line") || []) applySourceLineStyle(line, overlay);
-  fitOverlayHeightToViewport(overlay, y);
+  fitOverlayHeightToViewport(overlay);
+  positionOverlay(overlay, x, y, displayWidth);
+}
+
+// The center positions (in %) that keep the box inside the player, from the size it actually
+// shows: a short line can move right up to an edge, and a tall one stops before leaving the player.
+function clampOverlayPosition(overlay, x, y, fallbackWidth = 0) {
+  const parentRect = overlay.parentElement?.getBoundingClientRect();
+  const rect = overlay.getBoundingClientRect?.();
+  const visibleWidth = rect?.width || fallbackWidth;
+  const visibleHeight = rect?.height || 0;
+  const minX = parentRect?.width ? Math.min(50, (visibleWidth / 2 + OVERLAY_HORIZONTAL_MARGIN_PX) / parentRect.width * 100) : 0;
+  const minY = parentRect?.height ? Math.min(50, (visibleHeight / 2 + OVERLAY_VERTICAL_MARGIN_PX) / parentRect.height * 100) : 0;
+  return {
+    x: clampNumber(x, minX, 100 - minX, 50),
+    y: clampNumber(y, minY, 100 - minY, 78)
+  };
+}
+
+function positionOverlay(overlay, x, y, fallbackWidth) {
+  const position = clampOverlayPosition(overlay, x, y, fallbackWidth);
+  overlay.style.left = `${position.x}%`;
+  overlay.style.top = `${position.y}%`;
 }
 
 async function saveSubtitleStyle(stylePatch) {
@@ -2140,8 +2177,12 @@ function installOverlayDrag(overlay) {
     const minWidth = Math.min(scalePx(160, scale, 56), resizeMaxWidth);
     resizeCurrentWidth = clampNumber(width, minWidth, resizeMaxWidth, resizeStartWidth || scalePx(1024, scale, 358));
     overlay.style.width = formatPx(resizeCurrentWidth);
+    overlay.style.maxWidth = formatPx(resizeCurrentWidth);
     if (resizeParentRect?.width) {
-      const left = clampNumber(resizeStartLeft - resizeParentRect.left,
+      // The box keeps its center, so both edges move with the drag; near a player edge it stops at
+      // the margin and grows toward the other side instead.
+      const startCenter = resizeStartLeft - resizeParentRect.left + resizeStartWidth / 2;
+      const left = clampNumber(startCenter - resizeCurrentWidth / 2,
         OVERLAY_HORIZONTAL_MARGIN_PX,
         resizeParentRect.width - resizeCurrentWidth - OVERLAY_HORIZONTAL_MARGIN_PX,
         OVERLAY_HORIZONTAL_MARGIN_PX);
@@ -2166,7 +2207,10 @@ function installOverlayDrag(overlay) {
   const saveResizedWidth = () => {
     const measuredWidth = Math.round(overlay.getBoundingClientRect().width);
     const scale = getOverlayScale(overlay);
-    const actualWidth = resizeMoved ? resizeCurrentWidth : measuredWidth;
+    // A click on the edge without dragging keeps the set width; the box may only look narrower
+    // because its text is short.
+    if (!resizeMoved) return;
+    const actualWidth = resizeCurrentWidth || measuredWidth;
     const nextWidth = clampNumber(Math.round(actualWidth / scale), 160, OVERLAY_MAX_STYLE_WIDTH, 1024);
     const positionXChanged = Math.abs(resizeCurrentPositionX - resizeStartPositionX) >= 0.1;
     const widthChanged = Math.abs(nextWidth - resizeStartStyleWidth) >= 2;
@@ -2198,6 +2242,8 @@ function installOverlayDrag(overlay) {
     activePointerId = null;
     resizeMoved = false;
     resizeParentRect = null;
+    // Back to fitting the text, within the width just set.
+    applyOverlayStyle(overlay);
     return true;
   };
 
@@ -2233,8 +2279,9 @@ function installOverlayDrag(overlay) {
       resizing = true;
       resizeMoved = false;
       resizeStartX = event.clientX;
-      resizeStartLeft = resizeRect.left;
+      // Resizing starts from the box as it looks now, so the edge stays under the pointer.
       resizeStartWidth = Math.round(resizeRect.width);
+      resizeStartLeft = resizeRect.left;
       resizeStartStyleWidth = Math.round(resizeStartWidth / getOverlayScale(overlay));
       resizeStartPositionX = clampNumber(subtitleState.subtitleStyle?.positionX, 0, 100, 50);
       if (resizeParentRect?.width) {
@@ -2266,7 +2313,8 @@ function installOverlayDrag(overlay) {
   overlay.addEventListener("pointermove", (event) => {
     if (resizing && event.pointerId === activePointerId) {
       resizeMoved = true;
-      applyResizeWidth(resizeStartWidth + event.clientX - resizeStartX);
+      // The right edge follows the pointer and the left edge mirrors it.
+      applyResizeWidth(resizeStartWidth + (event.clientX - resizeStartX) * 2);
       consumeOverlayEvent(event);
       return;
     }
@@ -2274,8 +2322,12 @@ function installOverlayDrag(overlay) {
     if (!dragging || event.pointerId !== activePointerId || !parentRect?.width || !parentRect?.height) return;
     const centerX = event.clientX - parentRect.left - dragOffsetX;
     const centerY = event.clientY - parentRect.top - dragOffsetY;
-    const positionX = clampNumber((centerX / parentRect.width) * 100, 0, 100, 50);
-    const positionY = clampNumber((centerY / parentRect.height) * 100, 0, 100, 86);
+    // Store the position the box can actually take, so dragging past an edge and back responds at
+    // once instead of first working off the overshoot.
+    const { x: positionX, y: positionY } = clampOverlayPosition(overlay,
+      (centerX / parentRect.width) * 100,
+      (centerY / parentRect.height) * 100,
+      Number(overlay.dataset.maxWidth) || 0);
     subtitleState.subtitleStyle = {
       ...(subtitleState.subtitleStyle || {}),
       positionX,
@@ -3215,6 +3267,13 @@ function renderCurrentOverlayCue(video, frameTime) {
   }
   updateSubtitleWordProgress(overlay, currentTime);
   overlay.hidden = !subtitleState.enabled || overlay.dataset.disabled === "true" || !activeCue;
+  // A longer line may widen or heighten a box that sat near an edge; pull it back inside the player.
+  if (!overlay.hidden && !overlay.classList.contains("resizing")) {
+    positionOverlay(overlay,
+      clampNumber(subtitleState.subtitleStyle?.positionX, 0, 100, 50),
+      clampNumber(subtitleState.subtitleStyle?.positionY, 0, 100, 78),
+      Number(overlay.dataset.maxWidth) || 0);
+  }
   refreshCurrentCueTranslationPhase(targetVideo, activeCue);
 }
 
