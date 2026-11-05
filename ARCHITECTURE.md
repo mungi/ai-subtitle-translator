@@ -1,4 +1,4 @@
-# Design.md
+# Architecture
 
 현재 Chrome 확장 구현 구조와 주요 설계 결정입니다.
 

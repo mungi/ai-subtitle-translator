@@ -128,3 +128,36 @@ test("introduction site static HTML defaults to English", () => {
   assert.match(siteHtml, /<html lang="en">/);
   assert.match(siteHtml, /<option value="en">English<\/option>/);
 });
+
+test("introduction site demo opens on French to English for English browsers, own language for Korean and Japanese, Spanish otherwise", () => {
+  const cases = [[["en-US"], "fr-en"], [["en-GB", "ko"], "fr-en"], [["ko-KR"], "ko"], [["ja"], "ja"], [["fr-FR"], "es"], [["de"], "es"], [["zh-CN", "en"], "es"]];
+  for (const [browserLanguages, expected] of cases) {
+    const context = vm.createContext({
+      document: { documentElement: { lang: "" }, querySelector: (selector) => selector === "#language-select" ? { addEventListener() {} } : selector === 'meta[name="description"]' ? {} : null, querySelectorAll: () => [] },
+      navigator: { languages: browserLanguages, language: browserLanguages[0] },
+      location: { search: "" },
+      URLSearchParams,
+      localStorage: { getItem: () => null, setItem() {} }
+    });
+    vm.runInContext(siteScript, context);
+    assert.equal(vm.runInContext("getDefaultDemoPair()", context), expected, browserLanguages.join(","));
+  }
+});
+
+test("introduction site demo pairs every cue with French, English, Korean, Japanese, and Spanish lines", () => {
+  const context = vm.createContext({
+    document: { documentElement: { lang: "" }, querySelector: (selector) => selector === "#language-select" ? { addEventListener() {} } : selector === 'meta[name="description"]' ? {} : null, querySelectorAll: () => [] },
+    navigator: { languages: ["en"], language: "en" },
+    location: { search: "" },
+    URLSearchParams,
+    localStorage: { getItem: () => null, setItem() {} }
+  });
+  vm.runInContext(siteScript, context);
+  const cues = vm.runInContext("demoCues", context);
+  const pairs = vm.runInContext("demoPairs", context);
+  for (const pair of Object.values(pairs)) {
+    for (const cue of cues) {
+      assert.ok(cue[pair.source] && cue[pair.translation], `cue ${cue.no} ${pair.source}->${pair.translation}`);
+    }
+  }
+});

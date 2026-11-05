@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-06T00:00:00Z",
+  "title": "Design System: AST - AI Subtitle Translator (intro site)",
+  "extensions": {
+    "colorMeta": {
+      "cobalt": { "role": "primary", "displayName": "Translation Cobalt", "canonical": "#1f3fd1", "tonalRamp": ["#0b1450", "#111f7a", "#1631ad", "#1f3fd1", "#4a63e0", "#7f91ea", "#b8c3f5", "#edf0ff"] },
+      "cobalt-deep": { "role": "primary", "displayName": "Deep Cobalt", "canonical": "#1631ad", "tonalRamp": ["#0a1245", "#0f1a6c", "#1631ad", "#2a47c4", "#5a73d9", "#8f9fe6", "#c2cbf3", "#eef1fd"] },
+      "cobalt-tint": { "role": "primary", "displayName": "Cobalt Wash", "canonical": "#edf0ff", "tonalRamp": ["#1631ad", "#4a63e0", "#7f91ea", "#a9b6f2", "#c9d1f8", "#dde3fc", "#edf0ff", "#f7f8ff"] },
+      "paper": { "role": "neutral", "displayName": "Page White", "canonical": "#ffffff", "tonalRamp": ["#1a1b1e", "#3a3e44", "#5a5f67", "#8a9099", "#b5bac2", "#d8dbe0", "#f5f6f8", "#ffffff"] },
+      "paper-2": { "role": "neutral", "displayName": "Proof Grey", "canonical": "#f5f6f8", "tonalRamp": ["#1a1b1e", "#3a3e44", "#5a5f67", "#8a9099", "#b5bac2", "#d8dbe0", "#f5f6f8", "#ffffff"] },
+      "ink": { "role": "neutral", "displayName": "Source Ink", "canonical": "#111214", "tonalRamp": ["#111214", "#22252a", "#33373d", "#4a4f56", "#5a5f67", "#8a9099", "#d8dbe0", "#f5f6f8"] },
+      "ink-2": { "role": "neutral", "displayName": "Second Ink", "canonical": "#33373d", "tonalRamp": ["#111214", "#22252a", "#33373d", "#4a4f56", "#5a5f67", "#8a9099", "#d8dbe0", "#f5f6f8"] },
+      "muted": { "role": "neutral", "displayName": "Margin Grey", "canonical": "#5a5f67", "tonalRamp": ["#111214", "#22252a", "#33373d", "#4a4f56", "#5a5f67", "#8a9099", "#d8dbe0", "#f5f6f8"] },
+      "rule": { "role": "neutral", "displayName": "Hairline", "canonical": "#d8dbe0", "tonalRamp": ["#111214", "#33373d", "#5a5f67", "#8a9099", "#b5bac2", "#d8dbe0", "#eceef1", "#f5f6f8"] },
+      "rule-strong": { "role": "neutral", "displayName": "Opening Rule", "canonical": "#111214" },
+      "on-cobalt": { "role": "neutral", "displayName": "On-Cobalt White", "canonical": "#ffffff" },
+      "on-cobalt-2": { "role": "neutral", "displayName": "On-Cobalt Pale", "canonical": "#d9e0ff" },
+      "on-cobalt-rule": { "role": "neutral", "displayName": "On-Cobalt Rule", "canonical": "rgba(255, 255, 255, .3)" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Hero headline only (Source Serif 4, opsz 32); 40px fixed under 720px." },
+      "headline": { "displayName": "Headline", "purpose": "Section h2 headings, always followed by a gloss." },
+      "title": { "displayName": "Title", "purpose": "Column, guide, and feature index h3." },
+      "gloss": { "displayName": "Gloss", "purpose": "Cobalt serif line beneath h1/h2 in another script; Gowun Batang (ko), Shippori Mincho (ja), Source Serif 4 italic 500 (en)." },
+      "translation-line": { "displayName": "Translation Line", "purpose": "Cobalt serif translation under each source cue in the passage." },
+      "body": { "displayName": "Body", "purpose": "Running text; 16px under 720px; measures 40-64ch." },
+      "label": { "displayName": "Label", "purpose": "Nav, captions, chips, picker, table heads." },
+      "mono": { "displayName": "Mono", "purpose": "Cue numbers, timecodes, cost figures, code; always tabular figures." }
+    },
+    "shadows": [
+      { "name": "dot-ring", "value": "0 0 0 1px rgba(17, 18, 20, .22)", "purpose": "Ring around icon-state dots so the white dot reads on white. The only shadow in the system." },
+      { "name": "header-glass", "value": "background: rgba(255, 255, 255, .94); backdrop-filter: saturate(1.4) blur(8px)", "purpose": "Sticky header over scrolling content." }
+    ],
+    "motion": [
+      { "name": "ease-out", "value": "cubic-bezier(.16, 1, .3, 1)", "purpose": "The single easing for every transition." },
+      { "name": "typeset-wipe", "value": "clip-path: inset(-0.2em 100% -0.2em 0) to inset(-0.2em 0 -0.2em 0), 1s-1.2s", "purpose": "Translation lines and glosses set left to right; the only entrance verb for translated text." },
+      { "name": "reveal-rise", "value": "opacity 0 to 1, translateY(18px) to none, .9s", "purpose": "Quiet section entrance." },
+      { "name": "cost-bar-grow", "value": "scaleX(0) to scaleX(1), 1.2s, 80ms stagger per row", "purpose": "Cost bars grow on entry." },
+      { "name": "hover", "value": ".2s-.45s", "purpose": "Color, border, and underline-offset hover transitions." },
+      { "name": "reduced-motion", "value": "all transitions and animations 0s; finished states shown", "purpose": "prefers-reduced-motion: reduce." }
+    ],
+    "breakpoints": [
+      { "name": "tablet", "value": "980px" },
+      { "name": "mobile", "value": "720px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Install action; ink fill turning cobalt on hover.",
+      "html": "<a class=\"ds-btn-primary\" href=\"#\">Install from Chrome Web Store</a>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;justify-content:center;min-height:50px;padding:12px 22px;border-radius:2px;color:#fff;background:#111214;font-family:\"Pretendard Variable\",-apple-system,\"Segoe UI\",sans-serif;font-size:15px;font-weight:700;letter-spacing:.005em;text-decoration:none;transition:background-color .25s cubic-bezier(.16,1,.3,1),transform .25s cubic-bezier(.16,1,.3,1)}.ds-btn-primary:hover{background:#1f3fd1}.ds-btn-primary:active{transform:translateY(1px)}.ds-btn-primary:focus-visible{outline:2px solid #1f3fd1;outline-offset:3px}"
+    },
+    {
+      "name": "Quiet Button",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "Secondary action (GitHub) with a 1px ink border.",
+      "html": "<a class=\"ds-btn-quiet\" href=\"#\">View on GitHub</a>",
+      "css": ".ds-btn-quiet{display:inline-flex;align-items:center;justify-content:center;min-height:50px;padding:12px 22px;border-radius:2px;color:#111214;border:1px solid #111214;background:transparent;font-family:\"Pretendard Variable\",-apple-system,\"Segoe UI\",sans-serif;font-size:15px;font-weight:700;text-decoration:none;transition:color .25s,border-color .25s}.ds-btn-quiet:hover{color:#1f3fd1;border-color:#1f3fd1}.ds-btn-quiet:active{transform:translateY(1px)}.ds-btn-quiet:focus-visible{outline:2px solid #1f3fd1;outline-offset:3px}"
+    },
+    {
+      "name": "Invert Button",
+      "kind": "button",
+      "refersTo": "button-invert",
+      "description": "Install action inside a cobalt field only.",
+      "html": "<div style=\"background:#1f3fd1;padding:24px\"><a class=\"ds-btn-invert\" href=\"#\">Install from Chrome Web Store</a></div>",
+      "css": ".ds-btn-invert{display:inline-flex;align-items:center;min-height:50px;padding:12px 22px;border-radius:2px;color:#1631ad;background:#fff;font-family:\"Pretendard Variable\",-apple-system,\"Segoe UI\",sans-serif;font-size:15px;font-weight:700;text-decoration:none;transition:background-color .25s,color .25s}.ds-btn-invert:hover{color:#111214;background:#d9e0ff}.ds-btn-invert:focus-visible{outline:2px solid #fff;outline-offset:3px}"
+    },
+    {
+      "name": "Text Link",
+      "kind": "custom",
+      "refersTo": "text-link",
+      "description": "Cobalt underlined link whose underline drops on hover.",
+      "html": "<a class=\"ds-text-link\" href=\"#\">Compare costs</a>",
+      "css": ".ds-text-link{color:#1f3fd1;font-family:\"Pretendard Variable\",-apple-system,\"Segoe UI\",sans-serif;font-weight:700;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:5px;transition:text-underline-offset .25s cubic-bezier(.16,1,.3,1)}.ds-text-link:hover{text-underline-offset:8px}.ds-text-link:focus-visible{outline:2px solid #1f3fd1;outline-offset:3px}"
+    },
+    {
+      "name": "Target Language Chips",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Target-language toggles for the passage; selected gets cobalt border and wash.",
+      "html": "<div class=\"ds-chips\"><button class=\"ds-chip\" aria-pressed=\"true\">한국어</button><button class=\"ds-chip\" aria-pressed=\"false\">日本語</button><button class=\"ds-chip\" aria-pressed=\"false\">Español</button></div>",
+      "css": ".ds-chips{display:flex;gap:4px}.ds-chip{min-height:32px;padding:3px 11px;color:#33373d;border:1px solid transparent;border-radius:2px;background:none;font-family:\"Pretendard Variable\",-apple-system,\"Segoe UI\",sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:color .2s,border-color .2s,background-color .2s}.ds-chip:hover{color:#1f3fd1}.ds-chip[aria-pressed=\"true\"]{color:#1f3fd1;border-color:#1f3fd1;background:#edf0ff}.ds-chip:focus-visible{outline:2px solid #1f3fd1;outline-offset:3px}"
+    },
+    {
+      "name": "Language Picker",
+      "kind": "input",
+      "refersTo": "select",
+      "description": "Native select, hairline border, inline chevron.",
+      "html": "<select class=\"ds-select\" aria-label=\"Language\"><option>English</option><option>한국어</option><option>日本語</option></select>",
+      "css": ".ds-select{appearance:none;min-height:34px;padding:4px 30px 4px 12px;color:#111214;border:1px solid #d8dbe0;border-radius:2px;background:#fff url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23111214' stroke-width='1.4'/%3E%3C/svg%3E\") no-repeat right 11px center;font-family:\"Pretendard Variable\",-apple-system,\"Segoe UI\",sans-serif;font-size:13px;font-weight:600;cursor:pointer}.ds-select:hover{border-color:#111214}.ds-select:focus-visible{outline:2px solid #1f3fd1;outline-offset:3px}"
+    },
+    {
+      "name": "Header Navigation",
+      "kind": "nav",
+      "refersTo": "nav",
+      "description": "Sticky ruled header; links draw a cobalt underline left to right.",
+      "html": "<header class=\"ds-header\"><span class=\"ds-brand\">AST</span><nav class=\"ds-nav\"><a href=\"#\">Cost</a><a href=\"#\">Custom LLM</a><a href=\"#\">Features</a><a href=\"#\">Privacy</a></nav></header>",
+      "css": ".ds-header{display:flex;align-items:center;gap:28px;min-height:64px;padding:0 24px;background:rgba(255,255,255,.94);border-bottom:1px solid #d8dbe0}.ds-brand{font-family:\"Source Serif 4\",serif;font-size:22px;font-weight:700;color:#111214}.ds-nav{display:flex;gap:26px;margin-left:auto;font-family:\"Pretendard Variable\",-apple-system,\"Segoe UI\",sans-serif;font-size:14px;font-weight:600}.ds-nav a{position:relative;padding:4px 0;color:#33373d;text-decoration:none}.ds-nav a::after{content:\"\";position:absolute;left:0;right:0;bottom:-2px;height:1px;background:#1f3fd1;transform:scaleX(0);transform-origin:left;transition:transform .45s cubic-bezier(.16,1,.3,1)}.ds-nav a:hover{color:#1f3fd1}.ds-nav a:hover::after{transform:scaleX(1)}.ds-nav a:focus-visible{outline:2px solid #1f3fd1;outline-offset:3px}"
+    },
+    {
+      "name": "Heading with Gloss",
+      "kind": "custom",
+      "refersTo": "headline",
+      "description": "Section heading set over its cobalt serif gloss in another script.",
+      "html": "<h2 class=\"ds-h2\">No subscription. Just your own API key.<span class=\"ds-gloss\" lang=\"ko\">구독 없이, 내 API 키로</span></h2>",
+      "css": ".ds-h2{margin:0;font-family:\"Source Serif 4\",\"Gowun Batang\",serif;font-size:44px;font-weight:600;line-height:1.2;letter-spacing:-.01em;color:#111214;text-wrap:balance}.ds-gloss{display:block;margin-top:.4em;color:#1f3fd1;font-family:\"Gowun Batang\",serif;font-size:max(.44em,18px);font-weight:700;line-height:1.35;letter-spacing:0;word-break:keep-all}"
+    },
+    {
+      "name": "Interlinear Cue",
+      "kind": "custom",
+      "refersTo": "translation-line",
+      "description": "Signature passage row: mono margin with square marker, source line, cobalt translation, marginal note.",
+      "html": "<div class=\"ds-cue\"><div class=\"ds-cue-meta\"><span class=\"ds-cue-no\">003</span><span class=\"ds-cue-time\">00:12:34.500</span></div><div><p class=\"ds-cue-src\">At each step, it measures the slope beneath it.</p><p class=\"ds-cue-tr\" lang=\"ko\">모델은 매 단계마다 발밑의 경사를 재고</p></div><aside class=\"ds-cue-note\"><strong>Context</strong>\"it\" resolved to \"the model\" from cue 001.</aside></div>",
+      "css": ".ds-cue{display:grid;grid-template-columns:120px minmax(0,1fr) 200px;gap:0 24px;padding:16px 0 18px;border-top:2px solid #111214;border-bottom:1px solid #d8dbe0;font-family:\"Pretendard Variable\",-apple-system,\"Segoe UI\",sans-serif}.ds-cue-meta{display:flex;flex-direction:column;gap:2px;font-family:\"JetBrains Mono\",ui-monospace,monospace;font-variant-numeric:tabular-nums}.ds-cue-no{position:relative;padding-left:16px;color:#1f3fd1;font-size:13px;font-weight:700}.ds-cue-no::before{content:\"\";position:absolute;left:0;top:50%;width:8px;height:8px;margin-top:-4px;background:#1f3fd1;transform:scale(1.25)}.ds-cue-time{padding-left:16px;color:#5a5f67;font-size:12px}.ds-cue-src{margin:0;color:#111214;font-size:18px;line-height:1.5}.ds-cue-tr{margin:6px 0 0;color:#1f3fd1;font-family:\"Gowun Batang\",serif;font-size:22px;line-height:1.45;font-weight:700}.ds-cue-note{padding:2px 0 0 18px;border-left:1px solid #1f3fd1;color:#33373d;font-size:13.5px;line-height:1.55}.ds-cue-note strong{display:block;color:#1f3fd1;font-family:\"Source Serif 4\",serif;font-size:15px;font-style:italic;font-weight:600}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Parallel-Text Edition",
+    "overview": "The site reads like a bilingual edition of a lecture: every important line is set twice, source over translation, the way the product's dual subtitles read over a player. Black ink carries the source; one cobalt second ink carries every translation line, every heading gloss, and every marginal note. Where the argument is about the translation side itself (cost, the closing call to install), cobalt stops being an ink and becomes the whole field.\n\nStructure comes from typesetting, not containers. Hairline rules, a heavier 2px rule opening each block, ruled margins holding cue numbers and timecodes in tabular mono figures, and narrow marginal notes do the work cards would do elsewhere. Display type is a sturdy transitional serif (Source Serif 4) for Latin, with batang (Korean) and mincho (Japanese) serifs carrying glosses and translation lines; running text is a neutral sans. The page is white, open, and sparse, with large section spacing and a 1240px measure.\n\nMotion is one grammar: a left-to-right typesetting wipe (clip-path) that sets a translation line or gloss as if it were being printed. The hero passage runs it on a single playhead timeline; section glosses use it as they enter. Reduced motion shows everything finished and still.",
+    "keyCharacteristics": [
+      "Two inks only: black source, cobalt translation; cobalt fields for the \"translation side\".",
+      "Every section heading carries a cobalt gloss beneath it in the other script.",
+      "Rules, margins, and columns instead of cards, panels, or shadows.",
+      "Sturdy transitional serif display, batang/mincho glosses, sans running text, mono for numbers and code.",
+      "Near-square corners (2px) everywhere a box is unavoidable.",
+      "One motion verb: the typesetting wipe."
+    ],
+    "rules": [
+      { "name": "The Second Ink Rule", "body": "Cobalt means translation, gloss, or action. Never use it as decoration on a source line, and never introduce a second accent hue.", "section": "colors" },
+      { "name": "The Translation Side Rule", "body": "A section may invert to a full cobalt field only when its subject is the translation side itself (cost of translating, the install call). Inside it, text steps through on-cobalt, on-cobalt-2, and on-cobalt-rule; no greys.", "section": "colors" },
+      { "name": "The Gloss Rule", "body": "Every section heading is a pair: the page-language line, then its gloss in cobalt serif beneath. The gloss script is chosen by language (batang for Korean, mincho for Japanese, italic serif for English) and is hidden when empty.", "section": "typography" },
+      { "name": "The Keep-All Rule", "body": "Korean text uses `word-break: keep-all` with `overflow-wrap: break-word` so words never split mid-syllable-block.", "section": "typography" },
+      { "name": "The Tabular Margin Rule", "body": "Cue numbers, timecodes, cost figures, and policy section numbers are mono with tabular figures, set in the margin, never in the measure.", "section": "typography" },
+      { "name": "The Ruled Page Rule", "body": "Separate content with rules and margins. If something seems to need a card, give it a 2px top rule and column space instead.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do set every section heading with a cobalt serif gloss beneath it in another script.",
+      "Do keep cobalt for translation, gloss, link, focus, and the translation-side fields; keep source text in ink.",
+      "Do open content blocks with a 2px ink rule and divide rows with 1px hairlines.",
+      "Do put numbers, timecodes, and code in JetBrains Mono with tabular figures, in a margin column where possible.",
+      "Do use 2px corners on every bordered control.",
+      "Do use the left-to-right typesetting wipe as the only entrance verb for translated text, and show finished states under reduced motion.",
+      "Do keep Korean text on keep-all line breaking."
+    ],
+    "donts": [
+      "Don't use cards, tiles, or shadowed panels; use rules, margins, and columns.",
+      "Don't add a second accent hue; the extension's status-dot colors appear only as data in the icon state guide.",
+      "Don't put small uppercase labels or eyebrows above headings; the gloss beneath is the heading's companion.",
+      "Don't round controls beyond 2px or use pill shapes.",
+      "Don't set running text in the display serif or translation lines in the sans."
+    ]
+  }
+}

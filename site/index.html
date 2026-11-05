@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="A Chrome extension that translates subtitles from Udemy, YouTube, TED, NVIDIA Academy, and Vimeo into your language and displays them over video." data-i18n-content="metaDescription">
+    <meta name="theme-color" content="#ffffff">
     <title>AST - AI Subtitle Translator</title>
     <link rel="canonical" href="https://mungi.github.io/ai-subtitle-translator/">
     <link rel="alternate" hreflang="en" href="https://mungi.github.io/ai-subtitle-translator/?lang=en">
@@ -11,270 +12,302 @@
     <link rel="alternate" hreflang="ja" href="https://mungi.github.io/ai-subtitle-translator/?lang=ja">
     <link rel="alternate" hreflang="x-default" href="https://mungi.github.io/ai-subtitle-translator/">
     <link rel="icon" href="assets/ast-icon.png?v=2" type="image/png">
-    <link rel="stylesheet" href="styles.css?v=6">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400..700&family=Gowun+Batang:wght@400;700&family=Shippori+Mincho:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+    <link rel="stylesheet" href="styles.css?v=12">
+    <script>document.documentElement.classList.add("js");</script>
   </head>
   <body>
     <header class="site-header">
-      <a class="brand" href="#top" aria-label="AST - AI Subtitle Translator home" data-i18n-aria-label="brandHome">
-        <img class="brand-mark" src="assets/ast-icon.png?v=2" alt="">
-        <span>AST - AI Subtitle Translator</span>
-      </a>
-      <div class="header-actions">
-        <nav aria-label="Main navigation" data-i18n-aria-label="mainNavigation">
+      <div class="wrap header-row">
+        <a class="brand" href="#top" aria-label="AST - AI Subtitle Translator home" data-i18n-aria-label="brandHome">
+          <img class="brand-mark" src="assets/ast-icon.png?v=2" alt="" width="26" height="26">
+          <span class="brand-name">AST</span>
+          <span class="brand-full">AI Subtitle Translator</span>
+        </a>
+        <nav class="site-nav" aria-label="Main navigation" data-i18n-aria-label="mainNavigation">
           <a href="#cost" data-i18n="navCost">Cost</a>
           <a href="#custom-llm" data-i18n="navCustomLlm">Custom LLM</a>
           <a href="#features" data-i18n="navFeatures">Features</a>
           <a href="#privacy" data-i18n="navPrivacy">Privacy</a>
         </nav>
-        <label class="language-picker">
-          <span class="sr-only" data-i18n="languageLabel">Select language</span>
-          <select id="language-select" aria-label="Select language" data-i18n-aria-label="languageLabel">
-            <option value="en">English</option>
-            <option value="ko">한국어</option>
-            <option value="ja">日本語</option>
-          </select>
-        </label>
-        <a class="github-link" href="https://github.com/mungi/ai-subtitle-translator" target="_blank" rel="noreferrer" aria-label="GitHub repository" data-i18n-aria-label="githubLabel" title="GitHub">
-          <svg viewBox="0 0 16 16" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-        </a>
+        <div class="header-tools">
+          <label class="language-picker">
+            <span class="sr-only" data-i18n="languageLabel">Select language</span>
+            <select id="language-select" aria-label="Select language" data-i18n-aria-label="languageLabel">
+              <option value="en">English</option>
+              <option value="ko">한국어</option>
+              <option value="ja">日本語</option>
+            </select>
+          </label>
+          <a class="github-link" href="https://github.com/mungi/ai-subtitle-translator" target="_blank" rel="noreferrer" aria-label="GitHub repository" data-i18n-aria-label="githubLabel" title="GitHub">
+            <svg viewBox="0 0 16 16" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          </a>
+        </div>
       </div>
     </header>
 
     <main id="top">
       <section class="hero" aria-labelledby="hero-title">
-        <img class="hero-image" src="assets/subtitle-video-hero.png" alt="A laptop showing Korean and English subtitles over a course video" data-i18n-alt="heroImageAlt">
-        <div class="hero-content">
-          <p class="eyebrow" data-i18n="heroEyebrow">FOR UDEMY, YOUTUBE, TED, NVIDIA ACADEMY &amp; VIMEO</p>
-          <h1 id="hero-title">AST - AI Subtitle Translator</h1>
-          <p class="hero-copy" data-i18n="heroCopy">Skip the monthly translation subscription. Bring your own API key and pay only for what you translate, with context-aware LLM translation from OpenAI, Anthropic, Google AI, OpenRouter, or a model running on your own laptop.</p>
-          <div class="hero-actions">
-            <a class="button install-button" href="https://chromewebstore.google.com/detail/ccejdofkiceeaaamfcbbmddoeahmnodi" target="_blank" rel="noreferrer" data-i18n="install">Install from Chrome Web Store</a>
-            <a class="button secondary" href="#cost" data-i18n="viewCost">Compare costs</a>
-            <a class="button secondary github-button" href="https://github.com/mungi/ai-subtitle-translator" target="_blank" rel="noreferrer">
-              <svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-              <span data-i18n="viewOnGithub">View on GitHub</span>
-            </a>
+        <div class="wrap">
+          <div class="hero-head">
+            <h1 id="hero-title"><span class="title-line">AST <span class="title-dash">—</span> AI Subtitle Translator</span><span class="gloss gloss-hero" data-gloss-name="heroGloss"></span></h1>
+            <div class="hero-intro">
+            <p class="hero-copy" data-i18n="heroCopy">Skip the monthly translation subscription. Bring your own API key and pay only for what you translate, with context-aware LLM translation from OpenAI, Anthropic, Google AI, OpenRouter, or a model running on your own laptop.</p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="https://chromewebstore.google.com/detail/ccejdofkiceeaaamfcbbmddoeahmnodi" target="_blank" rel="noreferrer" data-i18n="install">Install from Chrome Web Store</a>
+              <a class="button button-quiet" href="https://github.com/mungi/ai-subtitle-translator" target="_blank" rel="noreferrer">
+                <svg viewBox="0 0 16 16" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                <span data-i18n="viewOnGithub">View on GitHub</span>
+              </a>
+              <a class="text-link" href="#cost" data-i18n="viewCost">Compare costs</a>
+            </div>
+            <p class="open-source-note" data-i18n="openSourceNote">Open source under the MIT License</p>
+            </div>
           </div>
-          <p class="open-source-note" data-i18n="openSourceNote">Open source under the MIT License</p>
-        </div>
-      </section>
 
-      <section class="cost-section" id="cost" aria-labelledby="cost-title">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow" data-i18n="costEyebrow">PAY ONLY FOR WHAT YOU USE</p>
-            <h2 id="cost-title" data-i18n="costTitle">No subscription. Just your own API key.</h2>
-          </div>
-          <p class="section-summary" data-i18n="costSummary">Sign up directly with an AI provider, enter your key, and pay that provider only for the tokens you actually use.</p>
-        </div>
-        <div class="cost-grid">
-          <div class="cost-copy">
-            <p data-i18n="costCopyOne">A monthly translation plan charges the same whether you watch one video or fifty. With AST you create an API key at OpenAI, Anthropic, Google AI, or OpenRouter, and each request is billed by that provider at its own token price, with no markup and nothing in between.</p>
-            <p data-i18n="costCopyTwo">Subtitles are short, clear text, so small fast models translate them well. That keeps the bill tiny: 100,000 subtitle sentences cost about $1.60 to $5.80 with these models, and nothing at all on Gemini's free tier (within its daily limits) or with a model on your own computer.</p>
-          </div>
-          <figure class="cost-table-wrap">
-            <figcaption data-i18n="costTableTitle">Estimated cost to translate 100,000 subtitle sentences</figcaption>
-            <table class="cost-table">
-              <thead>
-                <tr>
-                  <th scope="col" data-i18n="costColModel">Model</th>
-                  <th scope="col" data-i18n="costColPrice">Price per 1M tokens (input / output)</th>
-                  <th scope="col" data-i18n="costColTotal">100,000 sentences</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <th scope="row">DeepSeek V4 Flash<span>OpenRouter</span></th>
-                  <td>$0.14 / $0.28</td>
-                  <td><span class="cost-bar" style="--cost: 1.6"></span><strong>≈ $1.60</strong></td>
-                </tr>
-                <tr>
-                  <th scope="row">GPT-6 Luna<span>OpenAI</span></th>
-                  <td>$0.10 / $0.50</td>
-                  <td><span class="cost-bar" style="--cost: 2.0"></span><strong>≈ $2.00</strong></td>
-                </tr>
-                <tr>
-                  <th scope="row">Claude Haiku 5.5<span>Anthropic</span></th>
-                  <td>$0.10 / $0.50</td>
-                  <td><span class="cost-bar" style="--cost: 3.5"></span><strong>≈ $3.50</strong></td>
-                </tr>
-                <tr>
-                  <th scope="row">Gemini 3.1 Flash Lite<span>Google AI</span></th>
-                  <td><span data-i18n="costFreeTier">Free tier</span> · $0.25 / $1.50</td>
-                  <td><span class="cost-bar" style="--cost: 5.8"></span><strong><span data-i18n="costFreeShort">$0 free</span> · ≈ $5.80</strong></td>
-                </tr>
-                <tr class="cost-row-local">
-                  <th scope="row"><span data-i18n="costLocalModel">Your own model</span><span>Custom LLM</span></th>
-                  <td data-i18n="costLocalPrice">Runs on your computer</td>
-                  <td><span class="cost-bar" style="--cost: 0"></span><strong>$0</strong></td>
-                </tr>
-              </tbody>
-            </table>
-            <p class="cost-note" data-i18n="costNote">Estimates for translating English subtitles into Korean. GPT-6 Luna and Claude Haiku 5.5 are measured from real AST translations; the other models apply list prices to the same token usage (about 5.4M input and 3.0M output tokens). List prices as of November 6, 2026. Actual cost varies by language, model, and provider.</p>
+          <figure class="passage" id="passage" aria-labelledby="passage-caption">
+            <div class="passage-bar">
+              <figcaption id="passage-caption" data-i18n="demoCaption">Sample essay on everyday AI, translated in context (demo)</figcaption>
+              <div class="passage-controls">
+                <span class="passage-label" id="target-label" data-i18n="demoTarget">Translate into</span>
+                <div class="target-chips" role="group" aria-labelledby="target-label">
+                  <button type="button" class="chip" data-target="fr-en" lang="en">English</button>
+                  <button type="button" class="chip" data-target="ko" lang="ko">한국어</button>
+                  <button type="button" class="chip" data-target="ja" lang="ja">日本語</button>
+                  <button type="button" class="chip" data-target="es" lang="es">Español</button>
+                </div>
+                <button type="button" class="play-toggle" id="play-toggle" aria-pressed="false">
+                  <svg class="icon-pause" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><rect x="3" y="2" width="3.2" height="12" fill="currentColor"/><rect x="9.8" y="2" width="3.2" height="12" fill="currentColor"/></svg>
+                  <svg class="icon-play" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M4 2l10 6-10 6z" fill="currentColor"/></svg>
+                  <span class="sr-only" data-i18n="demoPause">Pause</span>
+                </button>
+              </div>
+              <span class="passage-progress" aria-hidden="true"><span></span></span>
+            </div>
+            <ol class="cues" id="cues"></ol>
           </figure>
         </div>
       </section>
 
-      <section class="custom-llm-section" id="custom-llm" aria-labelledby="custom-llm-title">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow" data-i18n="customEyebrow">CUSTOM LLM</p>
-            <h2 id="custom-llm-title" data-i18n="customTitle">Run a model on your laptop, or connect any LLM service</h2>
+      <section class="cost-section" id="cost" aria-labelledby="cost-title">
+        <div class="wrap">
+          <header class="section-head">
+            <h2 id="cost-title"><span data-i18n="costTitle">No subscription. Just your own API key.</span><span class="gloss" data-gloss="costTitle"></span></h2>
+            <p class="section-summary" data-i18n="costSummary">Sign up directly with an AI provider, enter your key, and pay that provider only for the tokens you actually use.</p>
+          </header>
+          <div class="cost-grid">
+            <div class="cost-copy">
+              <p data-i18n="costCopyOne">A monthly translation plan charges the same whether you watch one video or fifty. With AST you create an API key at OpenAI, Anthropic, Google AI, or OpenRouter, and each request is billed by that provider at its own token price, with no markup and nothing in between.</p>
+              <p data-i18n="costCopyTwo">Subtitles are short, clear text, so small fast models translate them well. That keeps the bill tiny: 100,000 subtitle sentences cost about $1.60 to $5.80 with these models, and nothing at all on Gemini's free tier (within its daily limits) or with a model on your own computer.</p>
+            </div>
+            <figure class="cost-table-wrap">
+              <figcaption data-i18n="costTableTitle">Estimated cost to translate 100,000 subtitle sentences</figcaption>
+              <table class="cost-table">
+                <thead>
+                  <tr>
+                    <th scope="col" data-i18n="costColModel">Model</th>
+                    <th scope="col" data-i18n="costColPrice">Price per 1M tokens (input / output)</th>
+                    <th scope="col" data-i18n="costColTotal">100,000 sentences</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row">DeepSeek V4 Flash<span>OpenRouter</span></th>
+                    <td>$0.14 / $0.28</td>
+                    <td><span class="cost-bar" style="--cost: 1.6"></span><strong>≈ $1.60</strong></td>
+                  </tr>
+                  <tr>
+                    <th scope="row">GPT-6 Luna<span>OpenAI</span></th>
+                    <td>$0.10 / $0.50</td>
+                    <td><span class="cost-bar" style="--cost: 2.0"></span><strong>≈ $2.00</strong></td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Claude Haiku 5.5<span>Anthropic</span></th>
+                    <td>$0.10 / $0.50</td>
+                    <td><span class="cost-bar" style="--cost: 3.5"></span><strong>≈ $3.50</strong></td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Gemini 3.1 Flash Lite<span>Google AI</span></th>
+                    <td><span data-i18n="costFreeTier">Free tier</span> · $0.25 / $1.50</td>
+                    <td><span class="cost-bar" style="--cost: 5.8"></span><strong><span data-i18n="costFreeShort">$0 free</span> · <span class="nowrap">≈ $5.80</span></strong></td>
+                  </tr>
+                  <tr class="cost-row-local">
+                    <th scope="row"><span data-i18n="costLocalModel">Your own model</span><span>Custom LLM</span></th>
+                    <td data-i18n="costLocalPrice">Runs on your computer</td>
+                    <td><span class="cost-bar" style="--cost: 0"></span><strong>$0</strong></td>
+                  </tr>
+                </tbody>
+              </table>
+              <p class="cost-note" data-i18n="costNote">Estimates for translating English subtitles into Korean. GPT-6 Luna and Claude Haiku 5.5 are measured from real AST translations; the other models apply list prices to the same token usage (about 5.4M input and 3.0M output tokens). List prices as of November 6, 2026. Actual cost varies by language, model, and provider.</p>
+            </figure>
           </div>
-          <p class="section-summary" data-i18n="customSummary">Custom LLM works with any OpenAI-compatible chat/completions API, so you are never locked into one provider.</p>
         </div>
-        <div class="custom-grid">
-          <article>
-            <span class="feature-number">01</span>
-            <h3 data-i18n="customLocalTitle">On your own laptop</h3>
-            <p data-i18n="customLocalCopy">Run an open model with a tool such as LM Studio or Ollama and translate at no cost. localhost and 127.0.0.1 can use plain HTTP, and subtitle text stays on your computer.</p>
-          </article>
-          <article>
-            <span class="feature-number">02</span>
-            <h3 data-i18n="customAnyTitle">Any LLM service</h3>
-            <p data-i18n="customAnyCopy">Connect any provider or self-hosted server that offers an OpenAI-compatible API over HTTPS. Enter its Base URL, API key, and model name, and AST does the rest.</p>
-          </article>
-          <article>
-            <span class="feature-number">03</span>
-            <h3 data-i18n="customDirectTitle">Straight to your server</h3>
-            <p data-i18n="customDirectCopy">Subtitle text, and your API key if you set one, go directly from your browser to the server you chose. Nothing passes through a developer server.</p>
-          </article>
-        </div>
-        <div class="custom-example">
-          <p class="guide-label" data-i18n="customExampleLabel">EXAMPLE</p>
-          <pre><code>Base URL:    http://localhost:1234/v1
-Request URL: http://localhost:1234/v1/chat/completions</code></pre>
+      </section>
+
+      <section class="custom-llm-section" id="custom-llm" aria-labelledby="custom-llm-title">
+        <div class="wrap">
+          <header class="section-head">
+            <h2 id="custom-llm-title"><span data-i18n="customTitle">Run a model on your laptop, or connect any LLM service</span><span class="gloss" data-gloss="customTitle"></span></h2>
+            <p class="section-summary" data-i18n="customSummary">Custom LLM works with any OpenAI-compatible chat/completions API, so you are never locked into one provider.</p>
+          </header>
+          <div class="columns">
+            <article>
+              <h3 data-i18n="customLocalTitle">On your own laptop</h3>
+              <p data-i18n="customLocalCopy">Run an open model with a tool such as LM Studio or Ollama and translate at no cost. localhost and 127.0.0.1 can use plain HTTP, and subtitle text stays on your computer.</p>
+            </article>
+            <article>
+              <h3 data-i18n="customAnyTitle">Any LLM service</h3>
+              <p data-i18n="customAnyCopy">Connect any provider or self-hosted server that offers an OpenAI-compatible API over HTTPS. Enter its Base URL, API key, and model name, and AST does the rest.</p>
+            </article>
+            <article>
+              <h3 data-i18n="customDirectTitle">Straight to your server</h3>
+              <p data-i18n="customDirectCopy">Subtitle text, and your API key if you set one, go directly from your browser to the server you chose. Nothing passes through a developer server.</p>
+            </article>
+          </div>
+          <figure class="excerpt">
+            <figcaption data-i18n="customExampleLabel">EXAMPLE</figcaption>
+            <pre><code><span class="key">Base URL</span>     http://localhost:1234/v1
+<span class="key">Request URL</span>  http://localhost:1234/v1/chat/completions</code></pre>
+          </figure>
         </div>
       </section>
 
       <section class="feature-section" id="features" aria-labelledby="features-title">
-        <div class="section-heading">
-          <p class="eyebrow" data-i18n="featuresEyebrow">WHAT IT DOES</p>
-          <h2 id="features-title" data-i18n="featuresTitle">A better way to follow subtitles</h2>
-        </div>
-        <div class="feature-grid">
-          <article>
-            <span class="feature-number">01</span>
-            <h3 data-i18n="featureOneTitle">Right on the video</h3>
-            <p data-i18n="featureOneCopy">Show translated subtitles, source subtitles, or both together over Udemy, YouTube, TED, NVIDIA Academy, and Vimeo players. Use the AST menu to turn subtitles on or off and choose a source subtitle language or translation style.</p>
-          </article>
-          <article>
-            <span class="feature-number">02</span>
-            <h3 data-i18n="featureTwoTitle">Translation that understands the full video</h3>
-            <p data-i18n="featureTwoCopy">When you choose an AI provider, the LLM considers surrounding subtitles and the video flow to create natural, connected translations.</p>
-          </article>
-          <article>
-            <span class="feature-number">03</span>
-            <h3 data-i18n="featureThreeTitle">In the voice you want</h3>
-            <p data-i18n="featureThreeCopy">Use a custom prompt to set the translation tone and wording, from an instructional or friendly voice to the style of technical documentation or the lively delivery of a top instructor.</p>
-          </article>
-        </div>
-        <aside class="icon-state-guide" aria-labelledby="icon-state-title">
-          <div>
-            <p class="eyebrow" data-i18n="iconStateEyebrow">ICON STATUS</p>
-            <h3 id="icon-state-title" data-i18n="iconStateTitle">AST icon status</h3>
-            <p data-i18n="iconStateCopy">Use the icon color to see the translation state at a glance. It gently pulses in its current color while subtitle or translation requests are being prepared.</p>
+        <div class="wrap">
+          <header class="section-head">
+            <h2 id="features-title"><span data-i18n="featuresTitle">A better way to follow subtitles</span><span class="gloss" data-gloss="featuresTitle"></span></h2>
+          </header>
+          <div class="feature-list">
+            <article>
+              <h3 data-i18n="featureOneTitle">Right on the video</h3>
+              <p data-i18n="featureOneCopy">Show translated subtitles, source subtitles, or both together over Udemy, YouTube, TED, NVIDIA Academy, and Vimeo players. Use the AST menu to turn subtitles on or off and choose a source subtitle language or translation style.</p>
+            </article>
+            <article>
+              <h3 data-i18n="featureTwoTitle">Translation that understands the full video</h3>
+              <p data-i18n="featureTwoCopy">When you choose an AI provider, the LLM considers surrounding subtitles and the video flow to create natural, connected translations.</p>
+            </article>
+            <article>
+              <h3 data-i18n="featureThreeTitle">In the voice you want</h3>
+              <p data-i18n="featureThreeCopy">Use a custom prompt to set the translation tone and wording, from an instructional or friendly voice to the style of technical documentation or the lively delivery of a top instructor.</p>
+            </article>
           </div>
-          <ul class="icon-state-list">
-            <li><span class="icon-state-dot off" aria-hidden="true"></span><strong data-i18n="iconStateOff">White · Default</strong><span data-i18n="iconStateOffCopy">AST is off or original subtitles are shown</span></li>
-            <li><span class="icon-state-dot active" aria-hidden="true"></span><strong data-i18n="iconStateActive">Blue · Active</strong><span data-i18n="iconStateActiveCopy">The default active state while translated subtitles are prepared or shown</span></li>
-            <li><span class="icon-state-dot temporary" aria-hidden="true"></span><strong data-i18n="iconStateTemporary">Yellow · Temporary</strong><span data-i18n="iconStateTemporaryCopy">Temporary translation is shown while final LLM translation is pending</span></li>
-            <li><span class="icon-state-dot current" aria-hidden="true"></span><strong data-i18n="iconStateCurrent">Green · Current cue ready</strong><span data-i18n="iconStateCurrentCopy">Final translation is ready for the currently playing cue</span></li>
-            <li><span class="icon-state-dot complete" aria-hidden="true"></span><strong data-i18n="iconStateComplete">Purple · Complete</strong><span data-i18n="iconStateCompleteCopy">Final translation is complete for the full subtitle track</span></li>
-            <li><span class="icon-state-dot fallback" aria-hidden="true"></span><strong data-i18n="iconStateFallback">Pink · Fallback</strong><span data-i18n="iconStateFallbackCopy">Google Translate fallback is in use, such as after a quota limit is reached</span></li>
-            <li><span class="icon-state-dot youtube-auto" aria-hidden="true"></span><strong data-i18n="iconStateYoutubeAuto">Orange · YouTube auto-translation</strong><span data-i18n="iconStateYoutubeAutoCopy">YouTube's auto-translated subtitles are shown instead of a translation</span></li>
-          </ul>
-        </aside>
+          <aside class="icon-state-guide" aria-labelledby="icon-state-title">
+            <div class="icon-state-intro">
+              <h3 id="icon-state-title" data-i18n="iconStateTitle">AST icon status</h3>
+              <p data-i18n="iconStateCopy">Use the icon color to see the translation state at a glance. It gently pulses in its current color while subtitle or translation requests are being prepared.</p>
+            </div>
+            <ul class="icon-state-list">
+              <li><span class="icon-state-dot off" aria-hidden="true"></span><strong data-i18n="iconStateOff">White · Default</strong><span data-i18n="iconStateOffCopy">AST is off or original subtitles are shown</span></li>
+              <li><span class="icon-state-dot active" aria-hidden="true"></span><strong data-i18n="iconStateActive">Blue · Active</strong><span data-i18n="iconStateActiveCopy">The default active state while translated subtitles are prepared or shown</span></li>
+              <li><span class="icon-state-dot temporary" aria-hidden="true"></span><strong data-i18n="iconStateTemporary">Yellow · Temporary</strong><span data-i18n="iconStateTemporaryCopy">Temporary translation is shown while final LLM translation is pending</span></li>
+              <li><span class="icon-state-dot current" aria-hidden="true"></span><strong data-i18n="iconStateCurrent">Green · Current cue ready</strong><span data-i18n="iconStateCurrentCopy">Final translation is ready for the currently playing cue</span></li>
+              <li><span class="icon-state-dot complete" aria-hidden="true"></span><strong data-i18n="iconStateComplete">Purple · Complete</strong><span data-i18n="iconStateCompleteCopy">Final translation is complete for the full subtitle track</span></li>
+              <li><span class="icon-state-dot fallback" aria-hidden="true"></span><strong data-i18n="iconStateFallback">Pink · Fallback</strong><span data-i18n="iconStateFallbackCopy">Google Translate fallback is in use, such as after a quota limit is reached</span></li>
+              <li><span class="icon-state-dot youtube-auto" aria-hidden="true"></span><strong data-i18n="iconStateYoutubeAuto">Orange · YouTube auto-translation</strong><span data-i18n="iconStateYoutubeAutoCopy">YouTube's auto-translated subtitles are shown instead of a translation</span></li>
+            </ul>
+          </aside>
+        </div>
       </section>
 
       <section class="workflow" id="how-it-works" aria-labelledby="workflow-title">
-        <div class="section-heading">
-          <p class="eyebrow" data-i18n="workflowEyebrow">GET STARTED</p>
-          <h2 id="workflow-title" data-i18n="workflowTitle">Get started in four steps</h2>
+        <div class="wrap">
+          <header class="section-head">
+            <h2 id="workflow-title"><span data-i18n="workflowTitle">Get started in four steps</span><span class="gloss" data-gloss="workflowTitle"></span></h2>
+          </header>
+          <ol class="steps">
+            <li><span class="step-number" aria-hidden="true">1</span><span data-i18n="stepOne">Install the extension.</span></li>
+            <li><span class="step-number" aria-hidden="true">2</span><span data-i18n="stepTwo">Set your target language and translation provider in Options.</span></li>
+            <li><span class="step-number" aria-hidden="true">3</span><span data-i18n="stepThree">Open a Udemy course, YouTube video, TED video, NVIDIA Academy course, or Vimeo video.</span></li>
+            <li><span class="step-number" aria-hidden="true">4</span><span data-i18n="stepFour">Click the subtitle translation icon in the video controls.</span></li>
+          </ol>
         </div>
-        <ol class="steps">
-          <li><strong>1</strong><span data-i18n="stepOne">Install the extension.</span></li>
-          <li><strong>2</strong><span data-i18n="stepTwo">Set your target language and translation provider in Options.</span></li>
-          <li><strong>3</strong><span data-i18n="stepThree">Open a Udemy course, YouTube video, TED video, NVIDIA Academy course, or Vimeo video.</span></li>
-          <li><strong>4</strong><span data-i18n="stepFour">Click the subtitle translation icon in the video controls.</span></li>
-        </ol>
       </section>
 
       <section class="starter-guide" id="llm-selection-guide" aria-labelledby="starter-title">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow" data-i18n="starterEyebrow">RECOMMENDED SETUP</p>
-            <h2 id="starter-title" data-i18n="starterTitle">LLM selection guide for first-time users</h2>
+        <div class="wrap">
+          <header class="section-head">
+            <h2 id="starter-title"><span data-i18n="starterTitle">LLM selection guide for first-time users</span><span class="gloss" data-gloss="starterTitle"></span></h2>
+            <p class="section-summary" data-i18n="starterSummary">Start with a free option, then move to a paid provider when you need more translations.</p>
+          </header>
+          <div class="guide-grid">
+            <article>
+              <h3>Google AI + Gemini 3.1 Flash Lite</h3>
+              <p class="guide-label" data-i18n="freeStart">FREE START</p>
+              <p data-i18n="freeCopy">A responsive, cost-efficient starting model for translation. Daily free-tier request limits usually reset at 4 PM Korea time (5 PM during US Pacific Standard Time).</p>
+              <a class="text-link" href="https://aistudio.google.com/api-keys" target="_blank" rel="noreferrer"><span data-i18n="getApiKey">Get API key</span></a>
+            </article>
+            <article>
+              <h3 data-i18n="modelTitle">Start small and fast</h3>
+              <p class="guide-label" data-i18n="modelSelection">MODEL SELECTION</p>
+              <p data-i18n="modelCopy">Subtitle translation is usually a clear input-output task, so you often do not need the largest frontier model. Start with small, fast models such as Gemini 3.1 Flash Lite, GPT-6 Luna, or Claude Haiku 5.5.</p>
+              <h3 class="guide-follow">OpenRouter + DeepSeek V4 Flash</h3>
+              <p class="guide-label" data-i18n="paidRecommendation">PAID RECOMMENDATION</p>
+              <p data-i18n="paidCopy">A cost-effective starting point for paid translation. Select the OpenRouter provider in Options and enter the deepseek/deepseek-v4-flash model.</p>
+              <a class="text-link" href="https://openrouter.ai/deepseek/deepseek-v4-flash/api" target="_blank" rel="noreferrer"><span data-i18n="modelInfo">View model details</span></a>
+            </article>
           </div>
-          <p class="section-summary" data-i18n="starterSummary">Start with a free option, then move to a paid provider when you need more translations.</p>
-        </div>
-        <div class="guide-grid">
-          <article>
-            <p class="guide-label" data-i18n="freeStart">FREE START</p>
-            <h3>Google AI + Gemini 3.1 Flash Lite</h3>
-            <p data-i18n="freeCopy">A responsive, cost-efficient starting model for translation. Daily free-tier request limits usually reset at 4 PM Korea time (5 PM during US Pacific Standard Time).</p>
-            <a class="text-link" href="https://aistudio.google.com/api-keys" target="_blank" rel="noreferrer"><span data-i18n="getApiKey">Get API key</span> <span aria-hidden="true">&rarr;</span></a>
-          </article>
-          <article>
-            <p class="guide-label" data-i18n="modelSelection">MODEL SELECTION</p>
-            <h3 data-i18n="modelTitle">Start small and fast</h3>
-            <p data-i18n="modelCopy">Subtitle translation is usually a clear input-output task, so you often do not need the largest frontier model. Start with small, fast models such as Gemini 3.1 Flash Lite, GPT-6 Luna, or Claude Haiku 5.5.</p>
-            <p class="guide-label secondary-guide-label" data-i18n="paidRecommendation">PAID RECOMMENDATION</p>
-            <h3>OpenRouter + DeepSeek V4 Flash</h3>
-            <p data-i18n="paidCopy">A cost-effective starting point for paid translation. Select the OpenRouter provider in Options and enter the deepseek/deepseek-v4-flash model.</p>
-            <a class="text-link" href="https://openrouter.ai/deepseek/deepseek-v4-flash/api" target="_blank" rel="noreferrer"><span data-i18n="modelInfo">View model details</span> <span aria-hidden="true">&rarr;</span></a>
-          </article>
         </div>
       </section>
 
       <section class="support" id="support" aria-labelledby="support-title">
-        <div>
-          <p class="eyebrow" data-i18n="supportEyebrow">SUPPORTED</p>
-          <h2 id="support-title" data-i18n="supportTitle">Stay focused on learning</h2>
-          <p data-i18n="supportCopy">Supports Udemy course players, YouTube video pages, TED video pages, NVIDIA Academy courses, and Vimeo videos. Videos need manually created or automatically generated captions.</p>
-        </div>
-        <div class="provider-list" aria-label="Supported translation providers" data-i18n-aria-label="providerList">
-          <span>Google Translate</span>
-          <span>DeepL</span>
-          <span>OpenAI</span>
-          <span>Anthropic</span>
-          <span>Google AI</span>
-          <span>OpenRouter</span>
-          <span>NVIDIA NIM</span>
-          <span>Custom LLM</span>
+        <div class="wrap support-grid">
+          <div>
+            <h2 id="support-title"><span data-i18n="supportTitle">Stay focused on learning</span><span class="gloss" data-gloss="supportTitle"></span></h2>
+            <p data-i18n="supportCopy">Supports Udemy course players, YouTube video pages, TED video pages, NVIDIA Academy courses, and Vimeo videos. Videos need manually created or automatically generated captions.</p>
+          </div>
+          <ul class="provider-list" aria-label="Supported translation providers" data-i18n-aria-label="providerList">
+            <li>Google Translate</li>
+            <li>DeepL</li>
+            <li>OpenAI</li>
+            <li>Anthropic</li>
+            <li>Google AI</li>
+            <li>OpenRouter</li>
+            <li>NVIDIA NIM</li>
+            <li>Custom LLM</li>
+          </ul>
         </div>
       </section>
 
       <section class="privacy-section" id="privacy" aria-labelledby="privacy-title">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow" data-i18n="privacyEyebrow">PRIVACY &amp; SECURITY</p>
-            <h2 id="privacy-title" data-i18n="privacyTitle">We use only the data needed for translation</h2>
+        <div class="wrap">
+          <header class="section-head">
+            <h2 id="privacy-title"><span data-i18n="privacyTitle">We use only the data needed for translation</span><span class="gloss" data-gloss="privacyTitle"></span></h2>
+            <p class="section-summary" data-i18n="privacySummary">We do not operate developer servers for advertising, tracking, or analytics.</p>
+          </header>
+          <div class="privacy-grid">
+            <div class="privacy-copy">
+              <p data-i18n="privacyCopyOne">Subtitle text and translation settings may be sent to the translation provider you choose. API keys, settings, and translation cache are stored in your browser and are not sent to developer servers.</p>
+              <p data-i18n="privacyCopyTwo">API keys are encrypted at rest and content scripts cannot read them directly. The information needed for automatic decryption remains in the same browser profile, so this is not equivalent to secure OS storage.</p>
+            </div>
+            <div class="privacy-links" aria-label="Choose a privacy policy language" data-i18n-aria-label="privacyLinksLabel">
+              <a href="privacy-en.html" hreflang="en"><span>English</span><strong>Privacy Policy</strong></a>
+              <a href="privacy.html" hreflang="ko"><span>한국어</span><strong lang="ko">개인정보 처리방침</strong></a>
+              <a href="privacy-ja.html" hreflang="ja"><span>日本語</span><strong lang="ja">プライバシーポリシー</strong></a>
+            </div>
           </div>
-          <p class="section-summary" data-i18n="privacySummary">We do not operate developer servers for advertising, tracking, or analytics.</p>
         </div>
-        <div class="privacy-grid">
-          <div class="privacy-copy">
-            <p data-i18n="privacyCopyOne">Subtitle text and translation settings may be sent to the translation provider you choose. API keys, settings, and translation cache are stored in your browser and are not sent to developer servers.</p>
-            <p data-i18n="privacyCopyTwo">API keys are encrypted at rest and content scripts cannot read them directly. The information needed for automatic decryption remains in the same browser profile, so this is not equivalent to secure OS storage.</p>
-          </div>
-          <div class="privacy-links" aria-label="Choose a privacy policy language" data-i18n-aria-label="privacyLinksLabel">
-            <a href="privacy-en.html" hreflang="en"><span>English</span><strong>Privacy Policy</strong></a>
-            <a href="privacy.html" hreflang="ko"><span>한국어</span><strong>개인정보 처리방침</strong></a>
-            <a href="privacy-ja.html" hreflang="ja"><span>日本語</span><strong>プライバシーポリシー</strong></a>
-          </div>
+      </section>
+
+      <section class="closing" aria-labelledby="closing-title">
+        <div class="wrap closing-row">
+          <p class="closing-title" id="closing-title"><span data-i18n="footerCopy">Udemy, YouTube, TED, NVIDIA Academy, and Vimeo subtitles in your language</span><span class="gloss" data-gloss="footerCopy"></span></p>
+          <a class="button button-invert" href="https://chromewebstore.google.com/detail/ccejdofkiceeaaamfcbbmddoeahmnodi" target="_blank" rel="noreferrer" data-i18n="install">Install from Chrome Web Store</a>
         </div>
       </section>
     </main>
 
-    <footer>
-      <span>AST - AI Subtitle Translator</span>
-      <div class="footer-links">
-        <a href="https://github.com/mungi/ai-subtitle-translator" target="_blank" rel="noreferrer">GitHub</a>
-        <a href="privacy-en.html" data-i18n="footerPrivacy" data-i18n-href="privacyHref">Privacy Policy</a>
-        <span data-i18n="footerCopy">Udemy, YouTube, TED, NVIDIA Academy, and Vimeo subtitles in your language</span>
+    <footer class="site-footer">
+      <div class="wrap footer-row">
+        <span>AST - AI Subtitle Translator · MIT</span>
+        <div class="footer-links">
+          <a href="https://github.com/mungi/ai-subtitle-translator" target="_blank" rel="noreferrer">GitHub</a>
+          <a href="privacy-en.html" data-i18n="footerPrivacy" data-i18n-href="privacyHref">Privacy Policy</a>
+        </div>
       </div>
     </footer>
-    <script src="script.js?v=4"></script>
+    <script src="script.js?v=8"></script>
   </body>
 </html>

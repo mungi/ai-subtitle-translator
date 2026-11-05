@@ -30,3 +30,10 @@ extension/*.crx
 # Local test output and agent tool state
 .test-results.txt
 .omc/
+
+# Impeccable runtime files (shared config, design.json, and surfaces/ are committed)
+.impeccable/config.local.json
+.impeccable/hook.cache.json
+.impeccable/mocks/
+.impeccable/questions/
+.impeccable/review/

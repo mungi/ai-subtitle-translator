@@ -79,6 +79,84 @@ const translations = {
   }
 };
 
+// Labels for the hero passage demo.
+Object.assign(translations.ko, {
+  heroGloss: "AI 자막 번역기",
+  demoCaption: "AI와 일상에 관한 샘플 에세이를 맥락까지 반영해 번역한 예시 (데모)", demoTarget: "번역 언어", demoPause: "일시정지", demoPlay: "재생",
+  contextNoteFr: "143번 자막의 ‘Il’은 ‘그’로도 읽히지만, 142번 자막을 보고 ‘The assistant’로 번역했습니다.",
+  contextLabel: "맥락", contextNote: "143번 자막의 ‘It’이 가리키는 대상을 142번 자막에서 찾아 ‘이 비서’로 번역했습니다."
+});
+Object.assign(translations.en, {
+  heroGloss: "AI Subtitle Translator",
+  demoCaption: "Sample essay on everyday AI, translated in context (demo)", demoTarget: "Translate into", demoPause: "Pause", demoPlay: "Play",
+  contextNoteFr: "“Il” in cue 143 could mean “he”; read with cue 142, it becomes “the assistant”.",
+  contextLabel: "Context", contextNote: "“It” in cue 143 is translated as “the assistant”, carried over from cue 142."
+});
+Object.assign(translations.ja, {
+  heroGloss: "AI 字幕翻訳",
+  demoCaption: "日常のAIについてのサンプルエッセイを文脈ごと翻訳した例（デモ）", demoTarget: "翻訳先", demoPause: "一時停止", demoPlay: "再生",
+  contextNoteFr: "字幕 143 の「Il」は「彼」とも読めますが、字幕 142 を踏まえて「The assistant」と訳しました。",
+  contextLabel: "文脈", contextNote: "字幕 143 の「It」が指すものを字幕 142 から引き継ぎ、「このアシスタント」と訳しました。"
+});
+
+// Synthetic demo passage: a short English essay about everyday AI with its translations. Marked words show
+// a pronoun resolved from the previous cue.
+const demoCues = [
+  { no: 141, time: "00:12:36,100",
+    en: "A year ago, I used AI only to fix my emails.",
+    fr: "Il y a un an, je n’utilisais l’IA que pour corriger mes e-mails.",
+    frEn: "A year ago, I used AI only to fix my emails.",
+    ko: "1년 전만 해도 저는 AI를 이메일 고칠 때만 썼습니다.",
+    ja: "一年前、私はメールを直すときにしかAIを使っていませんでした。",
+    es: "Hace un año, solo usaba la IA para corregir mis correos." },
+  { no: 142, time: "00:12:39,800",
+    en: "Now my AI assistant drafts reports, plans trips, and explains code.",
+    fr: "Aujourd’hui, mon assistant IA rédige des rapports, planifie mes voyages et explique du code.",
+    frEn: "Now my AI assistant drafts reports, plans my trips, and explains code.",
+    ko: "이제 제 AI 비서는 보고서 초안을 쓰고, 여행 계획을 짜고, 코드도 설명해 줍니다.",
+    ja: "今ではAIアシスタントが報告書の下書きを作り、旅行の計画を立て、コードまで説明してくれます。",
+    es: "Ahora mi asistente de IA redacta informes, planifica viajes y explica código." },
+  { no: 143, time: "00:12:43,200",
+    en: "[It] still makes mistakes, so I always check its work.",
+    fr: "[Il] fait encore des erreurs, alors je vérifie toujours son travail.",
+    frEn: "[The assistant] still makes mistakes, so I always check its work.",
+    ko: "[이 비서도] 여전히 실수를 하기 때문에, 결과는 꼭 확인합니다.",
+    ja: "[このアシスタントも]まだ間違えることがあるので、結果は必ず確認します。",
+    es: "[El asistente] todavía comete errores, así que siempre reviso su trabajo.",
+    note: true },
+  { no: 144, time: "00:12:46,900",
+    en: "But the hours it saves me every week are real.",
+    fr: "Mais les heures qu’il me fait gagner chaque semaine sont bien réelles.",
+    frEn: "But the hours it saves me every week are real.",
+    ko: "그래도 덕분에 매주 아끼는 시간은 확실합니다.",
+    ja: "それでも、毎週節約できる時間は確かです。",
+    es: "Pero las horas que me ahorra cada semana son reales." },
+  { no: 145, time: "00:12:50,400",
+    en: "The real skill now is knowing what to ask.",
+    fr: "Le vrai talent, désormais, c’est de savoir quoi demander.",
+    frEn: "The real skill now is knowing what to ask.",
+    ko: "이제 진짜 실력은 무엇을 물어볼지 아는 것입니다.",
+    ja: "これからの本当のスキルは、何を尋ねるかを知ることです。",
+    es: "La verdadera habilidad ahora es saber qué preguntar." }
+];
+
+// Each demo tab: which line is the source, which is the translation, and which note explains the context.
+const demoPairs = {
+  "fr-en": { source: "fr", sourceLang: "fr", translation: "frEn", translationLang: "en", note: "contextNoteFr" },
+  ko: { source: "en", sourceLang: "en", translation: "ko", translationLang: "ko", note: "contextNote" },
+  ja: { source: "en", sourceLang: "en", translation: "ja", translationLang: "ja", note: "contextNote" },
+  es: { source: "en", sourceLang: "en", translation: "es", translationLang: "es", note: "contextNote" }
+};
+
+// Headings carry a gloss in a second language, the way a parallel-text edition sets them.
+const glossLanguageFor = { en: "ko", ko: "en", ja: "en" };
+function getDefaultDemoPair() {
+  const primary = (navigator.languages?.[0] || navigator.language || "").toLowerCase().split("-")[0];
+  if (primary === "en") return "fr-en";
+  if (primary === "ko" || primary === "ja") return primary;
+  return "es";
+}
+
 const supportedLanguages = Object.keys(translations);
 const languageSelect = document.querySelector("#language-select");
 // Only a language the visitor picked is remembered; the browser language is read fresh each visit.
@@ -115,6 +193,9 @@ function getInitialLanguage() {
   return getBrowserLanguage();
 }
 
+const prefersReducedMotion = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+const demo = createPassageDemo();
+
 function setLanguage(language) {
   const selectedLanguage = supportedLanguages.includes(language) ? language : "en";
   const copy = translations[selectedLanguage];
@@ -134,11 +215,189 @@ function setLanguage(language) {
   document.querySelectorAll("[data-i18n-href]").forEach((element) => {
     element.setAttribute("href", copy[element.dataset.i18nHref]);
   });
+  const glossLanguage = glossLanguageFor[selectedLanguage];
+  document.querySelectorAll("[data-gloss]").forEach((element) => {
+    element.textContent = translations[glossLanguage][element.dataset.gloss] || "";
+    element.setAttribute("lang", glossLanguage);
+  });
+
+  // The product name is English; its gloss is the name in the reader's language (Korean on the English page).
+  const nameLanguage = selectedLanguage === "en" ? "ko" : selectedLanguage;
+  document.querySelectorAll("[data-gloss-name]").forEach((element) => {
+    element.textContent = translations[nameLanguage][element.dataset.glossName] || "";
+    element.setAttribute("lang", nameLanguage);
+  });
 
   languageSelect.value = selectedLanguage;
+  demo?.onLanguage(selectedLanguage);
+}
+
+// One timeline sets the passage's translation lines one cue at a time.
+function createPassageDemo() {
+  const passage = document.querySelector("#passage");
+  const list = document.querySelector("#cues");
+  if (!passage || !list) return null;
+  const toggle = document.querySelector("#play-toggle");
+  const progress = passage.querySelector(".passage-progress span");
+  const chips = [...passage.querySelectorAll(".chip")];
+  const CUE_MS = 2300;
+  const HOLD_MS = 4200;
+  let target = null;
+  let rows = [];
+  let step = 0;
+  let timer = null;
+  let paused = prefersReducedMotion;
+  let pageLanguage = "en";
+  let userPickedTarget = false;
+  let visible = true;
+
+  const markup = (text) => {
+    const fragment = document.createDocumentFragment();
+    text.split(/(\[[^\]]+\])/).forEach((part) => {
+      if (!part) return;
+      if (part.startsWith("[")) {
+        const mark = document.createElement("mark");
+        mark.textContent = part.slice(1, -1);
+        fragment.append(mark);
+      } else {
+        fragment.append(document.createTextNode(part));
+      }
+    });
+    return fragment;
+  };
+
+  function render() {
+    const copy = translations[pageLanguage];
+    list.replaceChildren();
+    rows = demoCues.map((cue) => {
+      const row = document.createElement("li");
+      row.className = "cue";
+      const meta = document.createElement("div");
+      meta.className = "cue-meta";
+      const no = document.createElement("span");
+      no.className = "cue-no";
+      no.textContent = String(cue.no);
+      const time = document.createElement("span");
+      time.className = "cue-time";
+      time.textContent = cue.time;
+      meta.append(no, time);
+      const body = document.createElement("div");
+      const src = document.createElement("p");
+      src.className = "cue-src";
+      const pair = demoPairs[target];
+      src.lang = pair.sourceLang;
+      src.append(markup(cue[pair.source]));
+      const tr = document.createElement("p");
+      tr.className = "cue-tr";
+      tr.lang = pair.translationLang;
+      tr.append(markup(cue[pair.translation]));
+      body.append(src, tr);
+      row.append(meta, body);
+      if (cue.note) {
+        const note = document.createElement("p");
+        note.className = "cue-note";
+        const label = document.createElement("strong");
+        label.textContent = copy.contextLabel;
+        note.append(label, document.createTextNode(copy[demoPairs[target].note]));
+        row.append(note);
+      }
+      list.append(row);
+      return row;
+    });
+    chips.forEach((chip) => chip.setAttribute("aria-pressed", String(chip.dataset.target === target)));
+  }
+
+  function paint() {
+    rows.forEach((row, index) => {
+      row.classList.toggle("is-set", index < step);
+      row.classList.toggle("is-active", index === step - 1);
+    });
+    if (progress) progress.style.setProperty("--p", String(step / rows.length));
+  }
+
+  function schedule() {
+    clearTimeout(timer);
+    if (paused || !visible) return;
+    timer = setTimeout(() => {
+      step = step >= rows.length ? 0 : step + 1;
+      paint();
+      schedule();
+    }, step >= rows.length ? HOLD_MS : step === 0 ? 500 : CUE_MS);
+  }
+
+  function restart() {
+    render();
+    if (paused) {
+      step = rows.length;
+      paint();
+      return;
+    }
+    step = 0;
+    paint();
+    schedule();
+  }
+
+  function setPaused(value) {
+    paused = value;
+    if (toggle) {
+      toggle.setAttribute("aria-pressed", String(paused));
+      const label = toggle.querySelector(".sr-only");
+      if (label) label.textContent = translations[pageLanguage][paused ? "demoPlay" : "demoPause"];
+    }
+    if (paused) {
+      clearTimeout(timer);
+      step = Math.max(step, 1);
+      paint();
+    } else {
+      schedule();
+    }
+  }
+
+  chips.forEach((chip) => chip.addEventListener("click", () => {
+    userPickedTarget = true;
+    target = chip.dataset.target;
+    restart();
+  }));
+  toggle?.addEventListener("click", () => setPaused(!paused));
+
+  if (!prefersReducedMotion) passage.classList.add("is-animated");
+  if (typeof IntersectionObserver === "function") {
+    new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      schedule();
+    }, { threshold: 0.2 }).observe(passage);
+  }
+
+  return {
+    onLanguage(language) {
+      pageLanguage = language;
+      if (!userPickedTarget && !target) target = getDefaultDemoPair();
+      restart();
+      setPaused(paused);
+    }
+  };
+}
+
+// Sections rise in once as they enter; content stays visible when scripts or motion are off.
+function setUpReveals() {
+  if (prefersReducedMotion || typeof IntersectionObserver !== "function") return;
+  const targets = document.querySelectorAll("main > section:not(.hero) .wrap > *, .cost-table-wrap");
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add("in");
+      observer.unobserve(entry.target);
+    });
+  }, { rootMargin: "0px 0px -8% 0px", threshold: 0.12 });
+  targets.forEach((element, index) => {
+    if (!element.classList.contains("cost-table-wrap")) element.classList.add("reveal");
+    element.style.setProperty("--d", `${(index % 3) * 0.08}s`);
+    observer.observe(element);
+  });
 }
 
 setLanguage(getInitialLanguage());
+setUpReveals();
 languageSelect.addEventListener("change", (event) => {
   storeLanguage(event.target.value);
   setLanguage(event.target.value);

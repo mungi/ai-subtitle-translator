@@ -80,7 +80,7 @@ npm run check
 
 `npm run check` は Unix の `find` と `xargs` を使用するため、Windows では Git Bash または WSL で実行してください。
 
-設計と実装の詳細は、[Design.md](Design.md)、[コード分析](docs/code-analysis.md)、[TASKS.md](TASKS.md)をご覧ください。
+設計と実装の詳細は、[ARCHITECTURE.md](ARCHITECTURE.md)、[コード分析](docs/code-analysis.md)、[TASKS.md](TASKS.md)をご覧ください。
 
 ## リリースパッケージ
 
