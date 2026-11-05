@@ -310,7 +310,7 @@ test("model discovery rejects non-provider origins before fetch", async () => {
 });
 
 test("privacy policies exist in Korean, English, and Japanese and are linked", async () => {
-  const files = ["PRIVACY.md", "PRIVACY_en.md", "PRIVACY_ja.md"];
+  const files = ["PRIVACY.md", "PRIVACY_ko.md", "PRIVACY_ja.md"];
   for (const file of files) {
     const policy = await readFile(new URL(`../${file}`, import.meta.url), "utf8");
     assert.match(policy, /Google|Google API/);
@@ -318,10 +318,10 @@ test("privacy policies exist in Korean, English, and Japanese and are linked", a
     assert.match(policy, /API (?:key|키|キー)/i);
   }
 
-  for (const file of ["README.md", "README_en.md", "README_ja.md"]) {
+  for (const file of ["README.md", "README_ko.md", "README_ja.md"]) {
     const readme = await readFile(new URL(`../${file}`, import.meta.url), "utf8");
     assert.match(readme, /PRIVACY\.md/);
-    assert.match(readme, /PRIVACY_en\.md/);
+    assert.match(readme, /PRIVACY_ko\.md/);
     assert.match(readme, /PRIVACY_ja\.md/);
   }
 });

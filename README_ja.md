@@ -1,6 +1,6 @@
 # AST - AI Subtitle Translator
 
-[한국어](README.md) · [English](README_en.md) · [日本語](README_ja.md)
+[English](README.md) · [한국어](README_ko.md) · [日本語](README_ja.md)
 
 Udemy、YouTube、TED、NVIDIA Academy、Vimeo の字幕を翻訳し、動画上に表示する Chrome Manifest V3 拡張機能です。すぐに Google Translate を使用することも、LLM プロバイダーを接続して文脈を反映した翻訳を利用することもできます。
 
@@ -69,7 +69,7 @@ Request URL: http://localhost:1234/v1/chat/completions
 - API キーはローカルストレージに暗号化して保存し、content script には渡しません。マスターパスワードを要求しない利便性重視の設計のため、専用のシークレット管理ツールと同等のセキュリティは提供しません。
 - API キーを画面共有や公開文書に載せないでください。漏えいが疑われる場合は、プロバイダーのコンソールで直ちにキーを無効化し、新しいキーを作成してください。
 
-詳細は、プライバシーポリシーの[韓国語](PRIVACY.md)、[英語](PRIVACY_en.md)、[日本語](PRIVACY_ja.md)をご覧ください。
+詳細は、プライバシーポリシーの[韓国語](PRIVACY_ko.md)、[英語](PRIVACY.md)、[日本語](PRIVACY_ja.md)をご覧ください。
 
 ## 開発と検証
 

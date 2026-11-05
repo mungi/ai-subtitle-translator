@@ -1,97 +1,97 @@
 # AST - AI Subtitle Translator
 
-[한국어](README.md) · [English](README_en.md) · [日本語](README_ja.md)
+[English](README.md) · [한국어](README_ko.md) · [日本語](README_ja.md)
 
-Udemy, YouTube, TED, NVIDIA Academy, Vimeo의 자막을 번역하여 영상 위에 표시하는 Chrome Manifest V3 확장 프로그램입니다. Google Translate를 바로 사용하거나, 원하는 LLM 제공업체를 연결해 문맥을 반영한 번역을 이용할 수 있습니다.
+A Chrome Manifest V3 extension that translates subtitles from Udemy, YouTube, TED, NVIDIA Academy, and Vimeo and displays them over the video. Use Google Translate right away, or connect an LLM provider for context-aware translations.
 
-소개 웹사이트: <https://mungi.github.io/ai-subtitle-translator/>
+Product page: <https://mungi.github.io/ai-subtitle-translator/>
 
-Chrome 102 이상이 필요합니다.
+Chrome 102 or later is required.
 
-## 주요 기능
+## Key features
 
-- Udemy, YouTube, TED, NVIDIA Academy, Vimeo의 자막을 수집하여 원문 또는 번역 자막으로 표시합니다.
-- AST 메뉴에서 영상이 제공하는 원문 자막 언어와 번역 스타일을 바로 선택할 수 있습니다.
-- YouTube에서는 실제 플레이어의 자막 응답을 우선 활용하고, 발화 진행에 따라 원문 글자색이 어두운 회색에서 설정한 색으로 바뀝니다. 단어 시간이 없으면 자막 시간으로 진행을 추정하며, 번역문은 문장 단위로 표시합니다. 광고 중에는 AST 자막을 숨깁니다.
-- Google Translate, DeepL, OpenAI, Anthropic, Google AI, OpenRouter, NVIDIA NIM, Custom LLM을 지원합니다.
-- LLM 번역 시 자막 전체 문맥과 재생 위치를 고려하며, 긴 영상은 나누어 처리합니다.
-- Natural, Lecture, Technical, 사용자 정의 번역 스타일을 제공합니다.
-- YouTube에 목표 언어로 된 사람 자막이 있으면 그 자막을, 없으면 YouTube 자동 번역을 번역 대신 보여 줍니다. 플레이어 메뉴의 번역 스타일 또는 설정에서 "YouTube 제공 자막 우선"을 끄면 선택한 스타일로 번역합니다.
-- 짧게 끊기는 자동 생성 자막과 문장 중간에서 나뉜 자막을 구문 단위로 다시 묶어 보여 줍니다. 자동 생성 자막은 단어별 원래 시간을 유지해 단어 진행 강조 표시가 말하는 속도를 따라갑니다. 구문 단위 재구성, YouTube 사람 업로드 자막 제외, 단어 진행 강조 표시(YouTube 한정)는 설정에서 켜고 끌 수 있습니다.
-- 자막 위치, 크기, 글꼴, 색상, 그림자, 외곽선, 배경을 조정할 수 있습니다.
-- 번역 결과를 캐시하고, LLM의 쿼터가 초과되면 Google Translate로 대체 번역합니다.
-- 제공업체 연결 테스트, 모델 목록 조회, 설정 백업 및 복원을 제공합니다.
+- Collects subtitles from Udemy, YouTube, TED, NVIDIA Academy, and Vimeo and displays the original or translated subtitles.
+- Lets you choose a source subtitle language and translation style directly from the AST menu.
+- On YouTube, prioritizes native player caption responses and changes source words from dark gray to the configured text color as speech progresses. When word timing is unavailable, progress is estimated from cue timing. Translations use cue-level display, and AST subtitles are hidden during ads.
+- Supports Google Translate, DeepL, OpenAI, Anthropic, Google AI, OpenRouter, NVIDIA NIM, and Custom LLM.
+- Uses the full subtitle context and current playback position for LLM translation, splitting long videos into manageable parts.
+- Provides Natural, Lecture, Technical, and custom translation styles.
+- Instead of translating, shows YouTube's human-made subtitles in the target language, or YouTube's auto-translation when there are none. Turn off "Prefer YouTube-provided subtitles" under Translation style in the player menu or in settings to translate with your selected style.
+- Regroups choppy auto-generated captions and subtitles split mid-sentence into phrases. Auto-generated captions keep each word's original time, so word progress highlighting follows the speech. Restructuring into phrases, the exception for subtitles uploaded by people on YouTube, and word progress highlighting (YouTube only) can each be turned on or off in settings.
+- Lets you adjust subtitle position, size, font, color, shadow, outline, and background.
+- Caches translations and falls back to Google Translate when an LLM quota is exceeded.
+- Provides provider connection tests, model discovery, and settings backup and restore.
 
-## 설치 방법
+## Installation
 
-1. Chrome에서 `chrome://extensions`를 엽니다.
-2. 오른쪽 위의 **개발자 모드**를 켭니다.
-3. **압축해제된 확장 프로그램을 로드합니다**를 선택합니다.
-4. 이 저장소의 `extension/` 폴더를 선택합니다.
-5. 확장 프로그램 옵션에서 번역 제공업체와 대상 언어를 설정합니다.
+1. Open `chrome://extensions` in Chrome.
+2. Turn on **Developer mode**.
+3. Select **Load unpacked**.
+4. Choose this repository's `extension/` folder.
+5. Set a translation provider and target language in the extension options.
 
-YouTube 자막 수집기를 적용하려면 확장 프로그램을 다시 로드한 뒤 열려 있던 YouTube 페이지도 새로고침하세요. `scripting` 권한은 YouTube 페이지 시작 시 플레이어의 자막 응답을 수집하는 용도로 사용합니다.
+After reloading the extension, also refresh any open YouTube pages to activate caption capture. The `scripting` permission lets the extension observe the native player's caption responses from the start of the YouTube page.
 
-## 빠르게 시작하기
+## Quick start
 
-1. 옵션 화면을 열면 `간단 설정`이 기본으로 표시됩니다.
-2. API 키를 입력하지 않아도 Google Translate로 자막을 바로 번역할 수 있습니다.
-3. Google Gemini를 사용하려면 [Google AI Studio API Keys](https://aistudio.google.com/api-keys)에서 키를 만든 뒤 `Google AI API 키`에 붙여 넣고 `API 키 확인`을 누릅니다. 확인에 성공하면 Gemini 3.1 Flash Lite가 자동 설정됩니다.
-4. 다른 번역 제공업체, 자막 모양, 백업·복원은 `고급 설정`에서 조정합니다.
+1. Open the extension options. **Simple Settings** is shown by default.
+2. You can translate subtitles with Google Translate without entering an API key.
+3. To use Google Gemini, create a key in [Google AI Studio API Keys](https://aistudio.google.com/api-keys), paste it into **Google AI API key**, and select **Check API key**. On success, Gemini 3.1 Flash Lite is configured automatically.
+4. Use **Advanced Settings** for other translation providers, subtitle appearance, and backup or restore.
 
-## 사용 방법
+## Usage
 
-1. 자막이 있는 Udemy 강의, YouTube 영상, TED 영상, NVIDIA Academy 강의 또는 Vimeo 영상을 엽니다.
-2. 영상 도구 모음의 AST 아이콘을 눌러 메뉴를 엽니다.
-3. 메뉴에서 원문 자막 언어, 번역 제공업체, 번역 스타일을 선택하거나 설정 화면을 엽니다.
-4. `자막 표시` 하위 메뉴에서 `이중 자막`, `원문 자막`, `번역 자막`을 선택합니다. 기본값은 `번역 자막`이며, `원문 자막`은 선택한 원본 언어로, `이중 자막`은 원문을 위에, 번역을 아래에 표시합니다. 번역 대기 또는 실패 시에는 원문을 유지합니다. 표시 모드는 사이트 간 공유되고 다음 사용에도 유지됩니다.
+1. Open a Udemy course, YouTube video, TED video, NVIDIA Academy course, or Vimeo video with subtitles.
+2. Select the AST icon in the video toolbar to open the menu.
+3. Choose a source subtitle language, translation provider, and translation style from the menu, or open the settings page.
+4. Under **Subtitle display**, choose **Dual subtitles**, **Source subtitles**, or **Translated subtitles**. **Translated subtitles** is the default. **Source subtitles** shows the selected source language, and **Dual subtitles** shows the source above its translation. The source remains visible while translation is pending or if it fails. The display mode is shared across supported sites and saved for future use.
 
-페르시아어와 아랍어 자막은 오른쪽에서 왼쪽으로 표시합니다. 이중 자막은 원문과 번역의 글 방향을 각각 처리하며 영상 위에서는 가운데 정렬을 유지합니다. Udemy 대본의 번역은 해당 언어의 시작 방향에 맞춰 정렬합니다.
+Persian and Arabic subtitles use right-to-left text direction. Dual subtitles handle the source and translation directions independently while remaining centered over the video. Translations in the Udemy transcript align to the start of their language's text direction.
 
-LLM 제공업체를 선택하면 현재 재생 위치 부근의 자막을 우선 번역한 뒤 나머지 자막을 처리합니다. 번역 중에도 원문 또는 임시 번역 자막을 계속 볼 수 있습니다.
+When you select an LLM provider, the extension translates subtitles near the current playback position first, then processes the remainder. You can continue viewing the original or temporary translated subtitles while translation is in progress.
 
-번역 품질 시험은 [Chrome 내장 번역과 Google Translate 비교](docs/translation-comparison.md)를 참고하세요. Chrome 내장 Translator API는 현재 확장 프로그램에 통합되어 있지 않습니다.
+See [Chrome built-in translation and Google Translate comparison](docs/translation-comparison-en.md) for the translation quality trial. The Chrome Translator API is not currently integrated into the extension.
 
-## Custom LLM 설정
+## Custom LLM setup
 
-Custom LLM은 로컬 LLM과 사용자가 운영하는 OpenAI 호환 `chat/completions` 서버를 함께 지원합니다. 최종 요청 주소에서 `/chat/completions` 앞부분까지만 Base URL에 입력합니다. `localhost`와 `127.0.0.1`은 HTTP 또는 HTTPS를 사용할 수 있고, 외부 사용자 지정 서버는 HTTPS만 허용합니다. 자막 텍스트와 API 키(입력한 경우)는 이 서버로 직접 전송됩니다.
+Custom LLM supports both local LLMs and user-operated OpenAI-compatible `chat/completions` servers. Enter only the part of the final request URL before `/chat/completions` as the Base URL. `localhost` and `127.0.0.1` can use HTTP or HTTPS; external custom servers must use HTTPS. Subtitle text and the API key, if entered, are sent directly to that server.
 
 ```text
 Base URL: http://localhost:1234/v1
 Request URL: http://localhost:1234/v1/chat/completions
 ```
 
-## 개인정보 및 제한 사항
+## Privacy and limitations
 
-- Google Translate는 API 키가 필요 없는 비공식 웹 번역 연동입니다. 공식 Google Cloud Translation API와 다르며, 요청 제한이나 서비스 변경으로 실패할 수 있습니다.
-- 자막 텍스트는 선택한 번역 제공업체로 전송될 수 있습니다. 각 제공업체의 이용 약관과 요금 정책을 확인해 주세요.
-- Udemy 자막 조회는 로그인 상태와 수강 권한에 따라 달라질 수 있습니다.
-- API 키는 로컬 저장소에 암호화하여 저장하고 콘텐츠 스크립트에 전달하지 않습니다. 다만 마스터 비밀번호를 요구하지 않는 편의성 중심 설계이므로, 전용 비밀 관리 도구와 같은 수준의 보안을 제공하지는 않습니다.
-- API 키를 화면 공유·공개 문서에 넣지 마세요. 노출이 의심되면 해당 제공업체 콘솔에서 키를 즉시 폐기하고 새 키를 만드세요.
+- Google Translate uses an unofficial web translation endpoint without an API key. It differs from the official Google Cloud Translation API and may fail due to request limits or service changes.
+- Subtitle text may be sent to the translation provider you choose. Please review each provider's terms and pricing.
+- Access to Udemy subtitles depends on your signed-in state and course enrollment.
+- API keys are encrypted in local storage and are not sent to content scripts. This is a convenience-focused design that does not require a master password, so it does not provide the same security as a dedicated secret manager.
+- Never put an API key in screen shares or public documents. If you suspect exposure, revoke the key in the provider console immediately and create a replacement.
 
-자세한 내용은 개인정보 처리방침 [한국어](PRIVACY.md), [English](PRIVACY_en.md), [日本語](PRIVACY_ja.md)를 참고해 주세요.
+For details, see the privacy policy in [English](PRIVACY.md), [Korean](PRIVACY_ko.md), or [Japanese](PRIVACY_ja.md).
 
-## 개발 및 검증
+## Development and verification
 
 ```text
 npm test
 npm run check
 ```
 
-`npm run check`는 Unix `find`·`xargs`를 사용하므로 Windows에서는 Git Bash 또는 WSL에서 실행합니다.
+`npm run check` uses Unix `find` and `xargs`; on Windows, run it in Git Bash or WSL.
 
-추가 설계와 구현 정보는 [Design.md](Design.md), [코드 분석](docs/code-analysis.md), [TASKS.md](TASKS.md)에서 확인할 수 있습니다.
+For design and implementation details, see [Design.md](Design.md), [code analysis](docs/code-analysis.md), and [TASKS.md](TASKS.md).
 
-## 릴리스 패키지
+## Release package
 
-Chrome Web Store에 올릴 ZIP 패키지는 릴리스 태그가 현재 커밋을 가리키는 상태에서 생성합니다. 스크립트는 ZIP을 만들고 GitHub Release를 생성하거나 갱신한 뒤 ZIP을 첨부합니다.
+Create the Chrome Web Store ZIP package while the release tag points at the current commit. The script creates the ZIP, creates or updates the GitHub Release, and attaches the ZIP.
 
 ```text
 ./release.sh
 ```
 
-생성된 파일은 `release/ai-subtitle-translator-v<태그>.zip`이며, GitHub Release asset과 Chrome Web Store 패키지로 사용합니다.
+The generated `release/ai-subtitle-translator-v<tag>.zip` file is used as the GitHub Release asset and Chrome Web Store package.
 
-## 라이선스
+## License
 
-이 프로젝트는 [MIT License](LICENSE)를 따릅니다.
+This project is licensed under the [MIT License](LICENSE).

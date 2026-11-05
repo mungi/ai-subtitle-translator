@@ -1,6 +1,6 @@
 # AST - AI Subtitle Translator プライバシーポリシー
 
-[한국어](PRIVACY.md) · [English](PRIVACY_en.md) · [日本語](PRIVACY_ja.md)
+[English](PRIVACY.md) · [한국어](PRIVACY_ko.md) · [日本語](PRIVACY_ja.md)
 
 施行日: 2026年7月21日
 

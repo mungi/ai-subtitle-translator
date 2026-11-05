@@ -18,7 +18,7 @@ test("GitHub Pages deploys only the site subtree", () => {
 test("privacy policies direct users to the integrated repository", () => {
   const policyFiles = [
     "PRIVACY.md",
-    "PRIVACY_en.md",
+    "PRIVACY_ko.md",
     "PRIVACY_ja.md",
     "site/privacy.html",
     "site/privacy-en.html",

@@ -1,52 +1,52 @@
-# AST - AI Subtitle Translator 개인정보 처리방침
+# AST - AI Subtitle Translator Privacy Policy
 
-[한국어](PRIVACY.md) · [English](PRIVACY_en.md) · [日本語](PRIVACY_ja.md)
+[English](PRIVACY.md) · [한국어](PRIVACY_ko.md) · [日本語](PRIVACY_ja.md)
 
-시행일: 2026년 7월 21일
+Effective date: July 21, 2026
 
-AST - AI Subtitle Translator는 Udemy, YouTube, TED, NVIDIA Academy, Vimeo의 자막을 사용자가 선택한 번역 서비스로 번역해 표시하는 Chrome 확장 프로그램입니다. 개발자는 별도의 서버를 운영하지 않으며, 광고·추적·분석 목적으로 사용자 데이터를 수집하지 않습니다.
+AST - AI Subtitle Translator is a Chrome extension that translates subtitles from Udemy, YouTube, TED, NVIDIA Academy, and Vimeo through a translation service selected by the user. The developer does not operate a separate backend server and does not collect user data for advertising, tracking, or analytics.
 
-## 처리하는 데이터
+## Data handled
 
-- Udemy, YouTube, TED, NVIDIA Academy, Vimeo의 자막 텍스트와 자막 구간의 시간 정보
-- 현재 영상·강의를 식별하는 URL, 영상 ID, 강좌 ID, 강의 ID 및 자막 언어 정보
-- 사용자가 입력한 번역 제공업체의 API 키, 엔드포인트, 모델, 번역·자막 설정
-- 번역 결과 캐시와 사용자가 직접 생성하는 암호화 설정 백업 파일
+- Subtitle text and cue timing from Udemy, YouTube, TED, NVIDIA Academy, and Vimeo
+- URLs, video IDs, course IDs, lecture IDs, and subtitle language information needed to identify the current video or lecture
+- Translation provider API keys, endpoints, models, translation settings, and subtitle settings entered by the user
+- Cached translation results and encrypted settings backup files created by the user
 
-## 이용 목적
+## Purpose
 
-이 데이터는 자막 조회, 번역 요청, 번역 결과 표시, 사용자 설정 유지, 설정 백업·복구 기능을 제공하는 데만 사용됩니다. 개인 맞춤 광고, 사용자 프로파일링, 데이터 판매에 사용하지 않습니다.
+This data is used only to retrieve subtitles, request translations, display translated results, retain user settings, and provide settings backup and restore. It is not used for personalized advertising, user profiling, or data sales.
 
-## 저장과 보유
+## Storage and retention
 
-- 설정, 번역 캐시, API 키는 사용자의 브라우저 `chrome.storage.local`에 저장됩니다.
-- API 키는 제공업체별 AES-GCM 암호문으로 저장되며 일반 설정에는 평문으로 남기지 않습니다. 복호화에 필요한 조각도 같은 브라우저 프로필에 있으므로, 브라우저 프로필 저장소 자체가 탈취되면 독립적으로 보호할 수 없으며 OS 보안 저장소나 사용자의 마스터 비밀번호로 보호하는 비밀 저장소와 동일한 보호 수준은 아닙니다.
-- 저장소는 신뢰된 확장 프로그램 컨텍스트로 제한되며 콘텐츠 스크립트는 API 키 또는 복호화 조각에 직접 접근하지 않습니다.
-- 설정 백업은 사용자가 입력한 비밀번호로 AES-GCM 암호화하며, 비밀번호는 저장하지 않습니다.
-- 번역 캐시는 설정에서 삭제할 수 있고, 전체 설정은 초기화할 수 있습니다. 확장 프로그램을 제거하면 Chrome이 해당 로컬 저장소를 삭제합니다. 사용자가 내려받은 `.astbackup` 파일은 사용자가 직접 삭제해야 합니다.
+- Settings, translation cache entries, and API keys are stored in the user's browser through `chrome.storage.local`.
+- API keys are stored as provider-specific AES-GCM ciphertext and are not stored in plaintext in general settings. Because the decryption fragments are also present in the same browser profile, this does not independently protect keys if that browser profile storage is compromised and is not equivalent to a secure operating system store or a vault protected by a user-supplied master password.
+- Storage access is restricted to trusted extension contexts. Content scripts cannot directly access API keys or their decryption fragments.
+- Settings backups are encrypted with AES-GCM using a password supplied by the user. The password is not stored.
+- Users can clear the translation cache or reset all settings. Chrome removes extension-local storage when the extension is uninstalled. Downloaded `.astbackup` files must be deleted by the user.
 
-## 외부 전송
+## External transmission
 
-- 자막 텍스트와 번역 설정은 사용자가 선택한 Google Translate, DeepL, OpenAI, Anthropic, Google AI, OpenRouter, NVIDIA NIM 또는 Custom LLM 엔드포인트로 전송될 수 있습니다.
-- API 키는 인증이 필요한 요청에서 선택한 제공업체로 직접 전송됩니다. 개발자 서버로 전송되지 않습니다.
-- 지원 사이트의 자막을 조회하기 위해 영상·강의 식별자와 사용자의 로그인 쿠키가 포함된 요청이 전송될 수 있습니다. 확장 프로그램은 쿠키 값을 별도로 저장하지 않습니다.
-- 기본 또는 사용자 지정 웹폰트를 사용하면 Google Fonts, jsDelivr 또는 사용자가 CSS에 지정한 폰트 서버로 폰트 요청이 전송될 수 있습니다.
-- 각 외부 서비스의 데이터 처리는 해당 서비스의 개인정보 처리방침과 이용약관을 따릅니다.
+- Subtitle text and translation settings may be sent to the user-selected Google Translate, DeepL, OpenAI, Anthropic, Google AI, OpenRouter, NVIDIA NIM, or Custom LLM endpoint.
+- API keys are sent directly to the selected provider when authentication is required. They are not sent to a developer-operated server.
+- Requests to retrieve subtitles from supported sites may include video or lecture identifiers and the user's login cookies. The extension does not separately store cookie values.
+- When a default or custom web font is used, font requests may be sent to Google Fonts, jsDelivr, or a font host specified in user-provided CSS.
+- Data handled by each external service is governed by that service's privacy policy and terms.
 
-## 권한
+## Permissions
 
-- `storage`: 설정, 암호화된 API 키와 번역 캐시를 로컬에 저장합니다.
-- `scripting`: YouTube 페이지 시작 시 플레이어의 자막 응답을 수집하는 스크립트를 실행합니다. 수집된 자막에서 쿠키·인증 헤더·서명 URL을 제외한 텍스트와 언어·시간 정보만 확장 프로그램에 전달합니다.
-- 호스트 권한: 모든 사이트(`<all_urls>`) 접근 권한을 사이트마다 나열하지 않고 한 번에 요청하며, 실제 동작 범위는 코드에서 제한합니다. 자막 스크립트는 Udemy·YouTube·TED·NVIDIA Academy·Vimeo 페이지에만 주입하고, 네트워크 요청은 이 사이트들의 자막 조회와 사용자가 선택한 번역 제공업체(공식 HTTPS 주소 또는 사용자가 입력한 Custom LLM 주소)로만 보냅니다. 다른 사이트의 페이지 내용은 읽거나 전송하지 않습니다.
+- `storage`: Stores settings, encrypted API keys, and translation cache entries locally.
+- `scripting`: Runs a script from the start of YouTube pages to capture the player's caption responses. Only subtitle text, language, and timing data are passed to the extension, excluding cookies, authentication headers, and signed URLs.
+- Host permissions: The extension requests access to all sites (`<all_urls>`) once instead of listing each site, and the code limits what it actually does. The subtitle script is injected only into Udemy, YouTube, TED, NVIDIA Academy, and Vimeo pages, and network requests go only to those sites to retrieve subtitles and to the translation provider the user selects (its official HTTPS address or the Custom LLM address the user entered). The extension does not read or send page content from other sites.
 
 ## Google API Limited Use
 
-Google API로부터 수신한 정보의 사용은 Limited Use 요구사항을 포함한 [Chrome Web Store User Data Policy](https://developer.chrome.com/docs/webstore/program-policies/limited-use)를 준수합니다.
+The use of information received from Google APIs will adhere to the [Chrome Web Store User Data Policy](https://developer.chrome.com/docs/webstore/program-policies/limited-use), including the Limited Use requirements.
 
-## 보안
+## Security
 
-모든 원격 제공업체 요청은 HTTPS를 사용합니다. Custom LLM은 사용자의 컴퓨터에서 실행하는 로컬 LLM과 사용자 지정 서버를 함께 지원합니다. 로컬 LLM은 `localhost` 또는 `127.0.0.1`의 HTTP 엔드포인트를 사용할 수 있고, 사용자 지정 서버는 HTTPS와 사용자의 실행 시 도메인 접근 승인이 필요합니다. 공식 제공업체의 Base URL은 해당 제공업체의 공식 HTTPS 오리진으로 제한하고 리디렉션 응답을 자동으로 추적하지 않습니다.
+All remote provider requests use HTTPS. Custom LLM supports both a local LLM and a user-operated custom server. A local LLM running on the user's own computer may use an HTTP endpoint on `localhost` or `127.0.0.1`; a custom server requires HTTPS and the user's runtime approval for its domain. Base URLs for hosted providers are restricted to each provider's official HTTPS origin, and redirect responses are not followed automatically.
 
-## 문의와 변경
+## Contact and changes
 
-개인정보 관련 문의와 보안 제보는 [GitHub Issues](https://github.com/mungi/ai-subtitle-translator/issues)를 이용해 주세요. 이 방침이 변경되면 이 문서의 시행일과 저장소 변경 이력에 반영합니다.
+Use [GitHub Issues](https://github.com/mungi/ai-subtitle-translator/issues) for privacy questions and security reports. Material changes will be reflected in the effective date above and in the repository history.

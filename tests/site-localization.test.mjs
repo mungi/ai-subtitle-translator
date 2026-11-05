@@ -8,7 +8,7 @@ const [siteHtml, siteScript] = await Promise.all([
   readFile(new URL("../site/script.js", import.meta.url), "utf8")
 ]);
 
-function createSiteContext(savedLanguage) {
+function createSiteContext(savedLanguage, { browserLanguages = ["en-US"], search = "" } = {}) {
   const i18nElements = [...siteHtml.matchAll(/data-i18n="([^"]+)"/g)].map((match) => ({
     dataset: { i18n: match[1] },
     textContent: ""
@@ -23,6 +23,12 @@ function createSiteContext(savedLanguage) {
       this[name] = value;
     }
   }));
+  const hrefElements = [...siteHtml.matchAll(/data-i18n-href="([^"]+)"/g)].map((match) => ({
+    dataset: { i18nHref: match[1] },
+    setAttribute(name, value) {
+      this[name] = value;
+    }
+  }));
   const languageSelect = {
     value: "",
     listener: null,
@@ -31,7 +37,7 @@ function createSiteContext(savedLanguage) {
     }
   };
   const meta = { content: "" };
-  const storage = new Map([["ast-site-language", savedLanguage]]);
+  const storage = new Map(savedLanguage ? [["ast-site-language-choice", savedLanguage]] : []);
   const document = {
     documentElement: { lang: "" },
     title: "",
@@ -44,20 +50,23 @@ function createSiteContext(savedLanguage) {
       if (selector === "[data-i18n]") return i18nElements;
       if (selector === "[data-i18n-alt]") return altElements;
       if (selector === "[data-i18n-aria-label]") return ariaElements;
+      if (selector === "[data-i18n-href]") return hrefElements;
       return [];
     }
   };
 
   const context = vm.createContext({
     document,
-    navigator: { language: "en-US" },
+    navigator: { languages: browserLanguages, language: browserLanguages[0] },
+    location: { search },
+    URLSearchParams,
     localStorage: {
       getItem: (key) => storage.get(key) || null,
       setItem: (key, value) => storage.set(key, value)
     }
   });
   vm.runInContext(siteScript, context);
-  return { document, languageSelect, meta, storage, i18nElements };
+  return { document, languageSelect, meta, storage, i18nElements, hrefElements };
 }
 
 test("introduction site renders TED support in Korean, English, and Japanese", () => {
@@ -93,6 +102,29 @@ test("introduction site language selector switches and persists the selected lan
   site.languageSelect.listener({ target: { value: "ja" } });
   assert.equal(site.document.documentElement.lang, "ja");
   assert.equal(site.languageSelect.value, "ja");
-  assert.equal(site.storage.get("ast-site-language"), "ja");
+  assert.equal(site.storage.get("ast-site-language-choice"), "ja");
   assert.match(site.meta.content, /TED/);
+});
+
+test("introduction site follows a Korean or Japanese browser and shows English otherwise", () => {
+  const cases = [[["ko-KR", "en"], "ko"], [["ja"], "ja"], [["en-US"], "en"], [["fr-FR", "ko"], "en"], [["zh-CN"], "en"]];
+  for (const [browserLanguages, expected] of cases) {
+    const site = createSiteContext(null, { browserLanguages });
+    assert.equal(site.document.documentElement.lang, expected, browserLanguages.join(","));
+    // A detected language is not remembered, so a later browser language change still applies.
+    assert.equal(site.storage.has("ast-site-language-choice"), false);
+  }
+});
+
+test("introduction site honors ?lang and links the privacy policy in the shown language", () => {
+  const site = createSiteContext("ko", { browserLanguages: ["ja"], search: "?lang=en" });
+  assert.equal(site.document.documentElement.lang, "en");
+  assert.deepEqual(site.hrefElements.map((element) => element.href), ["privacy-en.html"]);
+  site.languageSelect.listener({ target: { value: "ja" } });
+  assert.deepEqual(site.hrefElements.map((element) => element.href), ["privacy-ja.html"]);
+});
+
+test("introduction site static HTML defaults to English", () => {
+  assert.match(siteHtml, /<html lang="en">/);
+  assert.match(siteHtml, /<option value="en">English<\/option>/);
 });
