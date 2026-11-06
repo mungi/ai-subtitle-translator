@@ -695,6 +695,9 @@
   "contentStatusOff": {
     "message": "Subtitles off"
   },
+  "contentStatusNoCaptions": {
+    "message": "This video has no captions"
+  },
   "contentStatusEnabled": {
     "message": "Subtitles on"
   },
@@ -791,9 +794,6 @@
   },
   "contentTranslationPreparing": {
     "message": "Preparing translated subtitles"
-  },
-  "contentCaptionsUnavailable": {
-    "message": "This video does not provide source captions that can be translated."
   },
   "contentQuotaFallback": {
     "message": "The API daily allowance or credit balance is exhausted. Using Google Translate instead. Check your limits or billing status. Automatic retries have stopped."
@@ -1001,6 +1001,9 @@
   },
   "contentStyleYoutubeProvided": {
     "message": "YouTube auto-translation"
+  },
+  "contentStyleYoutubeHuman": {
+    "message": "YouTube captions"
   },
   "contentWordHighlight": {
     "message": "Word Highlight"

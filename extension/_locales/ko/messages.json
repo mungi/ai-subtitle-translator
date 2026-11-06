@@ -695,6 +695,9 @@
   "contentStatusOff": {
     "message": "자막 꺼짐"
   },
+  "contentStatusNoCaptions": {
+    "message": "이 영상에는 자막이 없습니다"
+  },
   "contentStatusEnabled": {
     "message": "자막 표시 중"
   },
@@ -791,9 +794,6 @@
   },
   "contentTranslationPreparing": {
     "message": "번역 자막 준비 중"
-  },
-  "contentCaptionsUnavailable": {
-    "message": "이 영상에는 번역할 수 있는 원문 자막이 제공되지 않습니다."
   },
   "contentQuotaFallback": {
     "message": "API의 일일 사용 한도 또는 잔액이 소진되어 Google Translate로 대체 번역합니다. 한도나 결제 상태를 확인해 주세요. 자동 재시도는 중지합니다."
@@ -1001,6 +1001,9 @@
   },
   "contentStyleYoutubeProvided": {
     "message": "YouTube 자동 번역"
+  },
+  "contentStyleYoutubeHuman": {
+    "message": "YouTube 자막"
   },
   "contentWordHighlight": {
     "message": "단어 강조"

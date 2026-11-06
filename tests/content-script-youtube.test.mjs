@@ -1917,44 +1917,85 @@ test("a blocked translation request keeps source captions visible and reports th
   assert.match(harness.context.document.getElementById("ast-toast").textContent, /번역하지 못했습니다[\s\S]*Network request blocked/);
 });
 
-test("videos without captions turn AST off, hide the preparing overlay, and show a toast", async () => {
-  const { context, controls, moviePlayer } = createYoutubeHarness({
+test("videos without captions keep AST on, say so in the status line only, and do not retry", async () => {
+  const harness = createYoutubeHarness({
+    settings: { subtitleDisplayMode: "source" },
     sendMessage(message) {
       if (message.type === "captions.youtube.fetchTranscript") {
-        return {
-          ok: false,
-          error: "No YouTube captions are available for this video."
-        };
+        if (message.videoId === "zyx987wvu65") {
+          return { ok: true, document: {
+            platform: "youtube", videoId: "zyx987wvu65", sourceLanguage: "en",
+            cues: [{ id: "yt-0", start: 0, end: 2, text: "Next video" }]
+          } };
+        }
+        return { ok: false, error: "No YouTube captions are available for this video." };
       }
       return { ok: true };
     }
   });
-  const source = readFileSync("extension/content/content-script.js", "utf8");
-
-  vm.runInNewContext(source, context, { filename: "extension/content/content-script.js" });
+  const { context, controls, moviePlayer, sentMessages } = harness;
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), context, { filename: "extension/content/content-script.js" });
   await flushPromises();
 
   const button = controls.querySelector("#ast-toolbar-button");
   await clickAstToggle(button);
+  await flushPromises();
 
   const overlay = moviePlayer.querySelector("#ast-subtitle-overlay");
-  const toast = moviePlayer.querySelector("#ast-toast");
-  assert.ok(overlay, "expected the preparing overlay to have been created");
-  assert.equal(overlay.hidden, true);
-  assert.equal(overlay.dataset.disabled, "true");
-  assert.ok(toast, "expected an unavailable-captions toast");
-  assert.equal(toast.textContent, "이 영상에는 번역할 수 있는 원문 자막이 제공되지 않습니다.");
-  assert.equal(button.getAttribute("aria-pressed"), "false");
-  assert.equal(button.classList.values.has("active"), false);
+  assert.equal(overlay.hidden, true, "nothing to show over the video");
+  assert.equal(moviePlayer.querySelector("#ast-toast"), null, "no popup for a video without captions");
+  assert.equal(button.getAttribute("aria-pressed"), "true", "translation stays on");
+  assert.equal(button.classList.values.has("active"), false, "the icon shows its idle (white) look, not the active blue");
   assert.equal(button.classList.values.has("loading"), false);
-  assert.equal(button.classList.values.has("temporary"), false);
-  assert.equal(button.classList.values.has("current"), false);
-  assert.equal(button.classList.values.has("complete"), false);
-  assert.equal(button.classList.values.has("fallback"), false);
-  const menu = moviePlayer.querySelector("#ast-provider-menu");
-  const toggleItem = menu.children.find((item) => item.className.includes("ast-provider-toggle-item"));
-  const toggleControl = toggleItem.children.find((item) => item.className.includes("ast-provider-toggle-control"));
-  assert.equal(toggleControl.getAttribute("aria-checked"), "false");
+  assert.equal(sentMessages.some((message) => message.type === "settings.setSubtitleEnabled" && message.enabled === false), false,
+    "the saved on/off setting is not changed");
+  assert.equal(vm.runInNewContext("getTranslationStatus().text", context), "이 영상에는 자막이 없습니다");
+
+  // The periodic page check must not ask again for the same captionless video.
+  const fetches = () => sentMessages.filter((message) => message.type === "captions.youtube.fetchTranscript").length;
+  const before = fetches();
+  for (let i = 0; i < 3; i += 1) {
+    harness.intervalCallbacks.at(-1)();
+    await flushPromises();
+  }
+  assert.equal(fetches(), before, "no retry for a video without captions");
+
+  // The next video with captions is translated because AST was never turned off.
+  context.location.href = "https://www.youtube.com/watch?v=zyx987wvu65";
+  context.location.search = "?v=zyx987wvu65";
+  harness.intervalCallbacks.at(-1)();
+  await flushPromises();
+  await flushPromises();
+  assert.equal(overlay.hidden, false);
+  assert.equal(overlay.textContent, "Next video");
+  assert.equal(button.classList.values.has("active"), true, "the next video with captions shows AST active again");
+  assert.notEqual(vm.runInNewContext("getTranslationStatus().text", context), "이 영상에는 자막이 없습니다");
+});
+
+test("a caption list that reports no captions ends the load without asking for a transcript", async () => {
+  let playerRequests = 0;
+  const harness = createYoutubeHarness({
+    sendMessage(message) {
+      if (message.type === "captions.youtube.listTracks") {
+        return { ok: false, error: "No YouTube captions are available for this video." };
+      }
+      return { ok: true };
+    }
+  });
+  harness.context.astYoutubeCaptionCapture = {
+    listTracks: async () => [],
+    get: () => null,
+    request: async () => { playerRequests += 1; return null; }
+  };
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
+  await flushPromises();
+  await clickAstToggle(harness.controls.querySelector("#ast-toolbar-button"));
+  await flushPromises();
+
+  assert.equal(playerRequests, 0, "the player is not asked for a track that does not exist");
+  assert.equal(harness.sentMessages.some((message) => message.type === "captions.youtube.fetchTranscript"), false);
+  assert.equal(vm.runInNewContext("getTranslationStatus().text", harness.context), "이 영상에는 자막이 없습니다");
+  assert.equal(harness.moviePlayer.querySelector("#ast-toast"), null);
 });
 
 test("async caption-list unavailable errors also clear the preparing state", async () => {
@@ -1978,11 +2019,7 @@ test("async caption-list unavailable errors also clear the preparing state", asy
 
   assert.equal(loaded, false);
   assert.equal(moviePlayer.querySelector("#ast-subtitle-overlay").hidden, true);
-  assert.equal(
-    moviePlayer.querySelector("#ast-toast").textContent,
-    "이 영상에는 번역할 수 있는 원문 자막이 제공되지 않습니다."
-  );
-  assert.equal(button.getAttribute("aria-pressed"), "false");
+  assert.equal(moviePlayer.querySelector("#ast-toast"), null, "no popup for a video without captions");
   assert.equal(button.classList.values.has("loading"), false);
 });
 
@@ -4482,6 +4519,81 @@ test("YouTube human captions in the target language replace translation requests
   vm.runInNewContext('ensureProviderMenu("youtube"); renderProviderMenu("youtube")', harness.context);
   const toggle = harness.context.document.getElementById("ast-provider-menu").querySelector(".ast-youtube-provided-toggle");
   assert.equal(toggle.children[0].textContent, "YouTube 제공 자막 우선");
+});
+
+test("captions already in the target language are shown as is instead of being sent to the LLM", async () => {
+  const harness = createYoutubeHarness({
+    settings: { targetLanguage: "ko", targetLanguages: [{ code: "ko", label: "한국어" }], subtitleDisplayMode: "dual" },
+    transcriptDocument: {
+      platform: "youtube",
+      videoId: "abc123def45",
+      sourceLanguage: "ko",
+      cues: [
+        { id: "yt-0", start: 0, end: 2, text: "안녕하세요" },
+        { id: "yt-1", start: 2, end: 4, text: "세상" }
+      ]
+    }
+  });
+  const targetRequests = [];
+  harness.context.astYoutubeCaptionCapture = {
+    get: () => null,
+    request: async () => null,
+    requestTarget: async (request) => { targetRequests.push(request); return null; }
+  };
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
+  await flushPromises();
+  await clickAstToggle(harness.controls.querySelector("#ast-toolbar-button"));
+  await flushPromises();
+  await flushPromises();
+
+  const translateRequests = () => harness.sentMessages.filter((message) => message.type === "translation.translateDocument");
+  assert.equal(translateRequests().length, 0, "nothing goes to the LLM while YouTube-provided captions are preferred");
+  assert.equal(targetRequests.length, 0, "the source captions already are the target language");
+  assert.equal(vm.runInNewContext("getTranslationStatus().text", harness.context), "YouTube 한국어 자막 사용 중");
+  assert.equal(vm.runInNewContext("getDisplayedPhase()", harness.context), "youtube-provided");
+  // The same sentence is not shown twice in the dual display.
+  assert.equal(harness.context.document.getElementById("ast-subtitle-overlay").textContent, "안녕하세요");
+
+  // The retranslate button still asks the LLM.
+  await vm.runInNewContext('retranslateCurrentVideo("youtube")', harness.context);
+  await flushPromises();
+  assert.ok(translateRequests().length > 0);
+});
+
+async function renderTranslationStyleLabel(targetCaption) {
+  const { harness } = createHumanCaptionHarness({ targetCaption });
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
+  await flushPromises();
+  await clickAstToggle(harness.controls.querySelector("#ast-toolbar-button"));
+  await flushPromises();
+  await flushPromises();
+  vm.runInNewContext('ensureProviderMenu("youtube"); renderProviderMenu("youtube")', harness.context);
+  const menu = harness.context.document.getElementById("ast-provider-menu");
+  const label = menu.querySelector(".ast-translation-style-toggle").children[0];
+  // The YouTube wording is its own span after the "Translation style: " prefix.
+  const provided = [...label.children].find((child) => child.className === "ast-translation-style-provided");
+  return {
+    label: provided?.textContent ?? label.textContent,
+    provided: Boolean(provided),
+    phase: vm.runInNewContext("getDisplayedPhase()", harness.context),
+    buttonClasses: [...harness.controls.querySelector("#ast-toolbar-button").classList.values].join(" ")
+  };
+}
+
+test("YouTube human captions show YouTube captions instead of a translation style", async () => {
+  // No translation style of ours applies to YouTube's own captions, so the style name must not show.
+  const shown = await renderTranslationStyleLabel(undefined);
+  assert.equal(shown.provided, true, "the style value is replaced by YouTube wording");
+  assert.equal(shown.label, "YouTube 자막");
+  assert.equal(shown.phase, "youtube-provided");
+  assert.match(shown.buttonClasses, /\byoutube-provided\b/);
+});
+
+test("YouTube auto-translation keeps its own translation style wording", async () => {
+  const shown = await renderTranslationStyleLabel(autoTranslation(["안녕", "세상"]));
+  assert.equal(shown.provided, true);
+  assert.equal(shown.label, "YouTube 자동 번역");
+  assert.equal(shown.phase, "youtube-provided");
 });
 
 test("YouTube falls back to normal translation when no human captions exist", async () => {

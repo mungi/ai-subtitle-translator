@@ -83,6 +83,8 @@ const subtitleState = {
   preferYoutubeProvidedTranslation: true,
   youtubeProvidedTranslationLanguage: "",
   youtubeProvidedTranslationSource: "",
+  // { platform, sessionKey } of the video found to have no captions; it is not asked for again.
+  captionsUnavailable: null,
   providerBusy: false,
   translationFailed: false,
   youtubeProvidedTranslationPending: false,
@@ -466,18 +468,19 @@ function renderTargetLanguageMenu(menu, platform) {
   menu.append(submenu);
 }
 
-// "Translation style: <style>". While YouTube's own auto-translation is shown as is, none of our
-// styles applies, so the value reads "YouTube provided" in that state's color.
+// "Translation style: <style>". While YouTube's own captions are shown as is, none of our styles
+// applies, so the value names them (human captions or auto-translation) in that state's color.
 function fillTranslationStyleToggleLabel(label) {
   if (!label) return;
   const prefix = `${contentText("translationStyle")}: `;
-  if (getDisplayedPhase() !== "youtube-auto") {
+  if (getDisplayedPhase() !== "youtube-provided") {
     label.textContent = `${prefix}${getTranslationStyleLabel(subtitleState.translationStyle || "custom")}`;
     return;
   }
   const provided = document.createElement("span");
   provided.className = "ast-translation-style-provided";
-  provided.textContent = contentText("contentStyleYoutubeProvided");
+  provided.textContent = contentText(subtitleState.youtubeProvidedTranslationSource === "auto"
+    ? "contentStyleYoutubeProvided" : "contentStyleYoutubeHuman");
   label.textContent = prefix;
   label.append(provided);
 }
@@ -2632,11 +2635,10 @@ function ensureOverlay(video, platform = subtitleState.currentPlatform || detect
   return overlay;
 }
 
-// The phase that picks the state color. Using YouTube's own auto-translation as is gets its own
-// color instead of "complete", since no translation of ours is involved.
+// The phase that picks the state color. Using YouTube's own captions as is, human or
+// auto-translated, gets its own color instead of "complete", since no translation of ours is involved.
 function getDisplayedPhase(enabled = subtitleState.enabled, loading = subtitleState.loading) {
-  if (enabled && !loading && subtitleState.youtubeProvidedTranslationLanguage
-    && subtitleState.youtubeProvidedTranslationSource === "auto") return "youtube-auto";
+  if (enabled && !loading && subtitleState.youtubeProvidedTranslationLanguage) return "youtube-provided";
   return subtitleState.translationPhase;
 }
 
@@ -2645,13 +2647,17 @@ function setButtonState(enabled, loading = false) {
   if (!button) return;
 
   const phase = getDisplayedPhase(enabled, loading);
-  button.classList.toggle("active", enabled);
+  // AST stays on for a video without captions, but nothing is translated, so the icon looks idle.
+  const unavailable = subtitleState.captionsUnavailable;
+  const idle = !loading && Boolean(unavailable)
+    && isMarkedCaptionsUnavailable(unavailable.platform, getCurrentSessionKey(unavailable.platform));
+  button.classList.toggle("active", enabled && !idle);
   button.classList.toggle("loading", loading);
   button.classList.toggle("temporary", phase === "temporary");
   button.classList.toggle("current", phase === "current");
   button.classList.toggle("complete", phase === "complete");
   button.classList.toggle("fallback", phase === "fallback");
-  button.classList.toggle("youtube-auto", phase === "youtube-auto");
+  button.classList.toggle("youtube-provided", phase === "youtube-provided");
   button.setAttribute("aria-pressed", String(enabled));
   button.title = getTranslationStatus(enabled, loading).text;
   updateOpenProviderMenuPhase();
@@ -2666,6 +2672,10 @@ function getTranslationStatus(enabled = subtitleState.enabled, loading = subtitl
   if (subtitleState.summaryNotice) return { text: subtitleState.summaryNotice.text };
   if (loading) return status("contentStatusLoading");
   if (!enabled) return status("contentStatusOff");
+  const unavailable = subtitleState.captionsUnavailable;
+  if (unavailable && isMarkedCaptionsUnavailable(unavailable.platform, getCurrentSessionKey(unavailable.platform))) {
+    return status("contentStatusNoCaptions");
+  }
   if (subtitleState.youtubeProvidedTranslationLanguage) {
     const language = subtitleState.targetLanguages.find((item) => item.code === subtitleState.targetLanguage)?.label
       || subtitleState.youtubeProvidedTranslationLanguage;
@@ -2810,14 +2820,22 @@ function requireCaptionTrack(track) {
   throw error;
 }
 
-function disableSubtitlesForUnavailableCaptions(video) {
-  subtitleState.enabled = false;
+// A video without captions is not an error: AST stays on so the next video is translated, nothing
+// pops up, and only the status line says so. The video is remembered so it is not asked for again.
+function markCaptionsUnavailable(video, platform, sessionKey) {
   subtitleState.loading = false;
+  subtitleState.captionsUnavailable = sessionKey ? { platform, sessionKey } : null;
   invalidateTranslationRequests();
   setTranslationPhase("off");
-  setOverlayVisible(video, false);
+  // Only hidden, not marked disabled: AST is still on and the next video's lines must show.
+  const overlay = findOverlay(video);
+  if (overlay) overlay.hidden = true;
   removeUdemyTranscriptTranslationElements();
-  showToast(contentText("contentCaptionsUnavailable"), video);
+}
+
+function isMarkedCaptionsUnavailable(platform, sessionKey) {
+  const marked = subtitleState.captionsUnavailable;
+  return Boolean(marked && sessionKey && marked.platform === platform && marked.sessionKey === sessionKey);
 }
 
 function showFallbackToast(detail = {}) {
@@ -3759,10 +3777,21 @@ function startProviderTranslation(document, platform, sessionKey, video, provide
     startFinalTranslation(document, platform, sessionKey, targetVideo, providerId);
     refreshOpenProviderMenu();
   };
+  const prefersYoutube = platform === "youtube" && subtitleState.preferYoutubeProvidedTranslation
+    && !options.skipYoutubeProvidedTranslation && Boolean(subtitleState.targetLanguage);
+  // YouTube's captions are already in the target language, so with YouTube-provided captions
+  // preferred they are shown as they are, as the original line only (no copy as a "translation");
+  // the retranslate button still asks the provider.
+  if (prefersYoutube && isSameBaseLanguage(document.sourceLanguage, subtitleState.targetLanguage)) {
+    subtitleState.youtubeProvidedTranslationPending = false;
+    subtitleState.youtubeProvidedTranslationLanguage = document.sourceLanguage;
+    subtitleState.youtubeProvidedTranslationSource = "human";
+    setTranslationPhase("complete");
+    refreshOpenProviderMenu();
+    return;
+  }
   const requestTarget = globalThis.astYoutubeCaptionCapture?.requestTarget;
-  if (platform !== "youtube" || !subtitleState.preferYoutubeProvidedTranslation || !requestTarget
-    || options.skipYoutubeProvidedTranslation
-    || !subtitleState.targetLanguage || isSameBaseLanguage(document.sourceLanguage, subtitleState.targetLanguage)) {
+  if (!prefersYoutube || !requestTarget) {
     startRequests();
     return;
   }
@@ -4280,8 +4309,13 @@ const platformHandlers = {
 
       // Without a chosen track the request has no language, and the player's last caption
       // (often one YouTube turned on in the viewer's language) would be taken as the source.
+      // A caption list that already says the video has none ends here, so the player and the
+      // background are not asked for a transcript that cannot exist.
       const selectedTrack = getSelectedSourceCaptionTrack(this.platform, videoId)
-        || await refreshSourceCaptionTracks(this.platform).catch(() => null);
+        || await refreshSourceCaptionTracks(this.platform).catch((error) => {
+          if (isCaptionsUnavailableError(error)) throw error;
+          return null;
+        });
       return {
         sessionKey: videoId,
         video,
@@ -4465,7 +4499,7 @@ async function loadPlatformSubtitleOverlay(handler, options = {}) {
   } catch (error) {
     if (!isCurrentLoad()) return false;
     if (isCaptionsUnavailableError(error)) {
-      disableSubtitlesForUnavailableCaptions(handler.findVideo());
+      markCaptionsUnavailable(handler.findVideo(), handler.platform, handler.getSessionKey?.());
       return false;
     }
     throw error;
@@ -4497,7 +4531,7 @@ async function loadPlatformSubtitleOverlay(handler, options = {}) {
   if (!response?.ok) {
     // A video that listed caption tracks has captions, so this is a load failure, not a missing track.
     if (isCaptionsUnavailableError(response) && !getSelectedSourceCaptionTrack(handler.platform, request.sessionKey)) {
-      disableSubtitlesForUnavailableCaptions(request.video);
+      markCaptionsUnavailable(request.video, handler.platform, request.sessionKey);
       return false;
     }
     console.warn(`[AST] Failed to load ${handler.platform} subtitles:`, response?.error || "Unknown error");
@@ -4708,7 +4742,8 @@ async function togglePlatformSubtitles(handler) {
   try {
     const loaded = await loadPlatformSubtitleOverlay(handler);
     if (loadGeneration !== subtitleState.subtitleLoadGeneration) return;
-    if (!loaded) {
+    // A video without captions leaves AST on for the next video.
+    if (!loaded && !isMarkedCaptionsUnavailable(handler.platform, handler.getSessionKey?.())) {
       subtitleState.enabled = false;
       setOverlayVisible(subtitleState.currentVideo, false);
     }
@@ -4730,6 +4765,8 @@ function toggleSubtitles(platform) {
   const handler = platformHandlers[platform];
   if (!handler || subtitleState.disposed || (subtitleState.loading && !subtitleState.enabled)) return Promise.resolve();
   const enabled = !subtitleState.enabled;
+  // Turning AST on by hand checks the current video again.
+  subtitleState.captionsUnavailable = null;
   void sendRuntimeMessage({ type: "settings.setSubtitleEnabled", enabled }).then((response) => {
     if (!response?.ok) console.warn("[AST] Failed to save subtitle toggle:", response?.error || "Unknown error");
   });
@@ -4772,6 +4809,8 @@ function watchPlatformChanges(handler) {
     }
     const sessionKey = handler.getSessionKey();
     if (!sessionKey || (subtitleState.currentPlatform === handler.platform && sessionKey === subtitleState.currentSessionKey)) return;
+    // A video already found to have no captions is not asked for again.
+    if (isMarkedCaptionsUnavailable(handler.platform, sessionKey)) return;
 
     subtitleState.loading = true;
     setButtonState(true, true);

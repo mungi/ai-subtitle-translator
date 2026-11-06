@@ -64,7 +64,7 @@
   opacity: 1;
 }
 
-.ast-toolbar-button.youtube-auto {
+.ast-toolbar-button.youtube-provided {
   --ast-toolbar-icon-bg: #fb923c;
   --ast-toolbar-icon-outline: #ffedd5;
   --ast-toolbar-icon-mark: #431407;
@@ -185,8 +185,8 @@
   --ast-provider-state-color: #fb7185;
 }
 
-/* YouTube's own auto-translation shown as is. */
-.ast-provider-menu[data-phase="youtube-auto"] {
+/* YouTube's own captions (human or auto-translated) shown as is. */
+.ast-provider-menu[data-phase="youtube-provided"] {
   --ast-provider-state-color: #fb923c;
 }
 
@@ -779,8 +779,8 @@
 .ast-provider-status[data-phase="summary-done"] .ast-provider-status-dot { background: #a78bfa; }
 .ast-provider-status[data-phase="summary-failed"] .ast-provider-status-dot { background: #fb7185; }
 .ast-provider-status[data-phase="summary-failed"] .ast-provider-status-text { color: #fb7185; }
-.ast-provider-status[data-phase="youtube-auto"] .ast-provider-status-dot { background: #fb923c; }
-.ast-provider-status[data-phase="youtube-auto"] .ast-provider-status-text { color: #fb923c; }
+.ast-provider-status[data-phase="youtube-provided"] .ast-provider-status-dot { background: #fb923c; }
+.ast-provider-status[data-phase="youtube-provided"] .ast-provider-status-text { color: #fb923c; }
 
 .ast-translation-style-provided {
   color: #fb923c;

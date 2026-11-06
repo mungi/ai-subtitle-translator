@@ -3,12 +3,17 @@
   const MAX_CAPTION_CHARS = 32 * 1024 * 1024;
   const DATA_EVENT = "ast.youtube.captionData";
   const REQUEST_EVENT = "ast.youtube.captionRequest";
+  const UNAVAILABLE_EVENT = "ast.youtube.captionUnavailable";
   const TARGET_REQUEST_EVENT = "ast.youtube.targetCaptionRequest";
   const TARGET_RESULT_EVENT = "ast.youtube.targetCaptionResult";
   const TRACKS_REQUEST_EVENT = "ast.youtube.trackListRequest";
   const TRACKS_EVENT = "ast.youtube.trackList";
   const PLAYER_WAIT_ATTEMPTS = 16;
   const PLAYER_WAIT_MS = 250;
+  // Right after a page load the player has no PO token yet: a caption request then returns an
+  // empty body while the captions button stays on. Waiting for a little playback avoids that.
+  const PLAYBACK_SETTLE_SECONDS = 2;
+  const PLAYBACK_SETTLE_MAX_MS = 3000;
   const cache = new Map();
   // Signed player URLs stay in the page; they are only reused here to ask for another track.
   const playerUrls = new Map();
@@ -118,8 +123,8 @@
     const response = player?.getPlayerResponse?.();
     if (response?.videoDetails?.videoId !== request.videoId) return null;
     const renderer = response.captions?.playerCaptionsTracklistRenderer;
-    const tracks = player.getOption?.("captions", "tracklist")?.length ? player.getOption("captions", "tracklist")
-      : renderer?.captionTracks || [];
+    const nativeTracks = player.getOption?.("captions", "tracklist", { includeAsr: true });
+    const tracks = nativeTracks?.length ? nativeTracks : renderer?.captionTracks || [];
     const preferExact = (items, code) => items.find((item) => item.languageCode.toLowerCase() === code.toLowerCase()) || items[0];
     const humanTrack = preferExact(tracks.filter((track) => track.kind !== "asr" && track.languageCode
       && matchesTargetLanguage(track.languageCode, request.targetLanguage)), request.targetLanguage);
@@ -128,7 +133,9 @@
       const url = new URL(playerUrl);
       url.searchParams.set("lang", humanTrack.languageCode);
       url.searchParams.set("fmt", "json3");
-      for (const name of ["kind", "tlang", "name"]) url.searchParams.delete(name);
+      // "variant" (e.g. timing-optimized) describes the auto-generated track the player last
+      // fetched; kept on a human track it makes YouTube answer with an empty body.
+      for (const name of ["kind", "tlang", "name", "variant"]) url.searchParams.delete(name);
       const text = await fetchCaptionText(url);
       if (text) return { languageCode: humanTrack.languageCode, source: "human", text };
     }
@@ -206,8 +213,22 @@
       window.postMessage({ type: DATA_EVENT, caption: cached }, location.origin);
       return;
     }
-    whenPlayerShows(request.videoId, (player, response) => requestFromPlayer(request, player, response));
+    whenPlayerShows(request.videoId, (player, response) => afterPlaybackSettles(player, request.videoId,
+      () => requestFromPlayer(request, player, response)));
   });
+
+  // A paused video never reaches the threshold, so the wait is capped.
+  function afterPlaybackSettles(player, videoId, callback, waitedMs = 0) {
+    let currentTime;
+    try { currentTime = player.getCurrentTime?.(); } catch { /* The player may be navigating. */ }
+    if (typeof currentTime !== "number" || currentTime >= PLAYBACK_SETTLE_SECONDS || waitedMs >= PLAYBACK_SETTLE_MAX_MS) {
+      let current = null;
+      try { current = player.getPlayerResponse?.()?.videoDetails?.videoId; } catch { /* Navigating. */ }
+      if (current === videoId) callback();
+      return;
+    }
+    setTimeout(() => afterPlaybackSettles(player, videoId, callback, waitedMs + PLAYER_WAIT_MS), PLAYER_WAIT_MS);
+  }
 
   // Ask the current native player to acquire its own authenticated caption
   // response, then restore the user's caption visibility and selected track.
@@ -215,7 +236,8 @@
     if (!player?.getPlayerResponse || !player.setOption || !player.toggleSubtitles) return;
     if (player.classList?.contains("ad-showing") || player.classList?.contains("ad-interrupting")) return;
     try {
-      const nativeTracks = player.getOption?.("captions", "tracklist");
+      // Without includeAsr the player omits auto-generated tracks whenever a manual one exists.
+      const nativeTracks = player.getOption?.("captions", "tracklist", { includeAsr: true });
       const tracks = nativeTracks?.length ? nativeTracks
         : response.captions?.playerCaptionsTracklistRenderer?.captionTracks || [];
       const candidates = tracks.filter((track) => (!request.languageCode || track.languageCode === request.languageCode)
@@ -223,7 +245,11 @@
       const track = candidates.find((item) => /^en(?:-|$)/i.test(item.languageCode) && item.kind !== "asr")
         || candidates.find((item) => /^en(?:-|$)/i.test(item.languageCode))
         || candidates.find((item) => item.kind !== "asr") || candidates[0];
-      if (!track) return;
+      if (!track) {
+        // No response will ever come, so the caller is told now instead of waiting out its timeout.
+        window.postMessage({ type: UNAVAILABLE_EVENT, request }, location.origin);
+        return;
+      }
       restorePlayer?.finish();
       const wasOn = player.querySelector(".ytp-subtitles-button")?.getAttribute("aria-pressed") === "true";
       const previousTrack = player.getOption?.("captions", "track");

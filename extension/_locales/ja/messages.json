@@ -695,6 +695,9 @@
   "contentStatusOff": {
     "message": "字幕オフ"
   },
+  "contentStatusNoCaptions": {
+    "message": "この動画には字幕がありません"
+  },
   "contentStatusEnabled": {
     "message": "字幕オン"
   },
@@ -791,9 +794,6 @@
   },
   "contentTranslationPreparing": {
     "message": "翻訳字幕を準備中"
-  },
-  "contentCaptionsUnavailable": {
-    "message": "この動画には翻訳可能な原文字幕が提供されていません。"
   },
   "contentQuotaFallback": {
     "message": "APIの1日の利用上限またはクレジット残高を使い切ったため、Google Translateで代替翻訳します。利用上限やお支払い状況を確認してください。自動再試行は停止します。"
@@ -1001,6 +1001,9 @@
   },
   "contentStyleYoutubeProvided": {
     "message": "YouTube 自動翻訳"
+  },
+  "contentStyleYoutubeHuman": {
+    "message": "YouTube 字幕"
   },
   "contentWordHighlight": {
     "message": "単語強調"
