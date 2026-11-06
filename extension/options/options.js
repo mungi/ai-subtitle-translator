@@ -1,4 +1,4 @@
-import { buildDefaultCustom2StyleSystemPrompt, buildDefaultCustomStyleSystemPrompt, buildStyleSystemPrompt, DEFAULT_CUSTOM_WEB_FONT_CSS, getDeepLEndpoint, DEFAULT_SETTINGS, extractStyleSystemPrompt, getTargetLanguageLabel, getWebFontPresetLabel, normalizeCustomStyleLabel, normalizeLlmParallelRequests, TARGET_LANGUAGES, TRANSLATION_STYLES, WEB_FONT_PRESETS } from "../shared/defaults.js";
+import { buildDefaultCustom2StyleSystemPrompt, buildDefaultCustomStyleSystemPrompt, buildStyleSystemPrompt, DEFAULT_CUSTOM_WEB_FONT_CSS, getDeepLEndpoint, DEFAULT_SETTINGS, extractStyleSystemPrompt, getTargetLanguageLabel, getWebFontPresetLabel, normalizeCustomStyleLabel, normalizeLlmParallelRequests, normalizeSummarySystemPrompt, DEFAULT_SUMMARY_SYSTEM_PROMPT, TARGET_LANGUAGES, TRANSLATION_STYLES, WEB_FONT_PRESETS } from "../shared/defaults.js";
 import { getProviderGuide } from "../shared/provider-guides.js";
 import { getConfiguredKeyProviders, validateConfiguredProviderKeys } from "../shared/provider-key-validation.js";
 import { selectRecommendedModel } from "../shared/model-recommendations.js";
@@ -54,6 +54,85 @@ function t(key, values = {}) {
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+// The player menu saves these on its own (dragging or resizing the subtitle box, the translation
+// position, provider, language, style and display choices). This page keeps the copy it loaded, so
+// a save here would put the old values back. A value this page did not change is taken from storage.
+const PLAYER_OWNED_SETTING_PATHS = [
+  ["activeProvider"],
+  ["targetLanguage"],
+  ["translationStyle"],
+  ["subtitleDisplayMode"],
+  ["preferYoutubeProvidedTranslation"],
+  ["wordProgressHighlight"],
+  ["sourceCaptionLanguages"],
+  ["subtitleStyle", "positionX"],
+  ["subtitleStyle", "positionY"],
+  ["subtitleStyle", "width"],
+  ["subtitleStyle", "translationOnTop"]
+];
+let lastSavedPlayerOwnedValues = null;
+
+function readSettingPath(source, path) {
+  return path.reduce((value, key) => value?.[key], source);
+}
+
+function writeSettingPath(target, path, value) {
+  const parent = path.slice(0, -1).reduce((node, key) => {
+    if (!node[key] || typeof node[key] !== "object") node[key] = {};
+    return node[key];
+  }, target);
+  parent[path.at(-1)] = value === undefined ? undefined : clone(value);
+}
+
+function rememberPlayerOwnedValues(savedSettings) {
+  lastSavedPlayerOwnedValues = PLAYER_OWNED_SETTING_PATHS.map((path) => JSON.stringify(readSettingPath(savedSettings, path)));
+}
+
+async function adoptPlayerOwnedChanges(next) {
+  if (!lastSavedPlayerOwnedValues) return;
+  let stored;
+  try {
+    stored = await getSettings();
+  } catch {
+    return; // Saving still works; it just cannot keep the player's newer values this time.
+  }
+  const adoptedKeys = new Set();
+  PLAYER_OWNED_SETTING_PATHS.forEach((path, index) => {
+    const lastSaved = lastSavedPlayerOwnedValues[index];
+    const storedValue = readSettingPath(stored, path);
+    if (JSON.stringify(readSettingPath(next, path)) !== lastSaved) return; // changed on this page
+    if (JSON.stringify(storedValue) === lastSaved) return; // not changed elsewhere
+    writeSettingPath(next, path, storedValue);
+    if (next !== settings) writeSettingPath(settings, path, storedValue);
+    adoptedKeys.add(path.at(-1));
+  });
+  // The form must show the adopted values, or the next save would read the old ones back from it.
+  // Only those controls are touched, so text being typed elsewhere on the page is left alone.
+  if (adoptedKeys.has("activeProvider") && [...activeProviderSelect.options].some((option) => option.value === settings.activeProvider)) {
+    activeProviderSelect.value = settings.activeProvider;
+  }
+  if (adoptedKeys.has("targetLanguage")) renderTargetLanguageSelect();
+  if (adoptedKeys.has("translationStyle")) {
+    translationStyleSelect.value = settings.translationStyle;
+    updateSystemPromptTextarea();
+  }
+  if (adoptedKeys.has("preferYoutubeProvidedTranslation")) {
+    preferYoutubeProvidedTranslationInput.checked = settings.preferYoutubeProvidedTranslation !== false;
+  }
+  if (adoptedKeys.has("wordProgressHighlight")) wordProgressHighlightInput.checked = settings.wordProgressHighlight !== false;
+  if (adoptedKeys.has("translationOnTop")) {
+    subtitleStyleInputs.translationOnTop.checked = settings.subtitleStyle?.translationOnTop === true;
+    applySubtitlePreview();
+  }
+}
+
+async function saveOptionsSettings(next) {
+  await adoptPlayerOwnedChanges(next);
+  const savedSettings = await saveSettings(next);
+  rememberPlayerOwnedValues(savedSettings);
+  return savedSettings;
 }
 
 function getDefaultPreviewText() {
@@ -138,6 +217,7 @@ const targetLanguageSelect = document.getElementById("targetLanguage");
 const translationStyleSelect = document.getElementById("translationStyle");
 const systemPromptTextarea = document.getElementById("systemPrompt");
 const customStyleLabelInput = document.getElementById("customStyleLabel");
+const summarySystemPromptTextarea = document.getElementById("summarySystemPrompt");
 const maxChunkDurationMinutesInput = document.getElementById("maxChunkDurationMinutes");
 const llmParallelRequestsInput = document.getElementById("llmParallelRequests");
 const maxChunkDurationValue = document.getElementById("maxChunkDurationValue");
@@ -146,7 +226,6 @@ const preferYoutubeProvidedTranslationInput = document.getElementById("preferYou
 const phraseSegmentationInput = document.getElementById("phraseSegmentation");
 const phraseSegmentationSkipYoutubeManualInput = document.getElementById("phraseSegmentationSkipYoutubeManual");
 const wordProgressHighlightInput = document.getElementById("wordProgressHighlight");
-const fallbackProviderSelect = document.getElementById("fallbackProvider");
 const providerTabs = document.getElementById("providerTabs");
 const providerForm = document.getElementById("providerForm");
 const testProviderButton = document.getElementById("testProvider");
@@ -181,7 +260,7 @@ const simpleGoogleTestLockedControls = [
   document.getElementById("resetSettings"),
   document.getElementById("resetGeneralSettings"),
   document.getElementById("resetProviderSettings"),
-  document.getElementById("resetFallbackSettings"),
+  document.getElementById("resetSummarySettings"),
   document.getElementById("resetSubtitleStyleSettings")
 ];
 const platformToggleInputs = {
@@ -439,10 +518,9 @@ async function testRestoredProviderKeys() {
   });
 
   settings.providerTestStatus = result.providerTestStatus;
-  settings = await saveSettings(settings);
+  settings = await saveOptionsSettings(settings);
   renderGeneralSettings();
   renderProviderTabs();
-  renderFallbackProviderSelect();
   const summary = formatMessage("restoreKeyTestComplete", {
     success: result.successCount,
     total: result.total,
@@ -483,6 +561,7 @@ async function restoreSettingsFromFile(file) {
     if (!globalThis.confirm(t("restoreConfirm"))) return;
     clearPendingSimpleGoogleApiKey();
     settings = await saveSettings(restoredSettings);
+    rememberPlayerOwnedValues(settings);
     selectedProviderId = settings.activeProvider;
     renderAll();
     setBackupStatus(t("restoreComplete"), "success");
@@ -539,29 +618,6 @@ function isActiveProviderAvailable(provider) {
   return provider.apiStyle === "google-translate" || getProviderTestStatus(provider.id) === "success";
 }
 
-function isFallbackProviderAvailable(provider) {
-  return provider.apiStyle === "google-translate"
-    || provider.apiStyle === "deepl" && getProviderTestStatus(provider.id) === "success";
-}
-
-function resolveFallbackProviderId(providerId = settings?.fallback?.providerId) {
-  const provider = settings?.providers?.[providerId];
-  return provider && isFallbackProviderAvailable(provider) ? provider.id : "googleTranslate";
-}
-
-function renderFallbackProviderSelect() {
-  const fallbackProviderId = resolveFallbackProviderId();
-  settings.fallback = {
-    ...(settings.fallback || {}),
-    providerId: fallbackProviderId
-  };
-  fallbackProviderSelect.innerHTML = getOrderedProviders(settings.providers)
-    .filter(isFallbackProviderAvailable)
-    .map((provider) => `<option value="${provider.id}">${provider.label}</option>`)
-    .join("");
-  fallbackProviderSelect.value = fallbackProviderId;
-}
-
 function updateProviderTestStatus(providerId, state = "idle") {
   settings.providerTestStatus = settings.providerTestStatus || {};
   if (state === "success") {
@@ -576,10 +632,9 @@ async function persistProviderTestStatus(providerId, state = "idle", { activate 
   if (activate && state === "success") {
     settings.activeProvider = providerId;
   }
-  settings = await saveSettings(settings);
+  settings = await saveOptionsSettings(settings);
   renderGeneralSettings();
   renderProviderTabs();
-  renderFallbackProviderSelect();
 }
 
 function applyReasoningProfileFromTestResponse(providerId, response) {
@@ -605,7 +660,6 @@ function clearSelectedProviderTestStatus() {
   updateProviderTestStatus(selectedProviderId, "idle");
   renderGeneralSettings();
   renderProviderTabs();
-  renderFallbackProviderSelect();
 }
 
 function hexToRgb(hex) {
@@ -624,13 +678,34 @@ function clampNumber(value, min, max, fallback) {
   return Math.min(max, Math.max(min, number));
 }
 
-function buildPreviewTextShadow(style) {
+function buildPreviewTextShadow(style, outlineShadows = []) {
+  const shadows = [...outlineShadows];
   if (style.shadowEnabled) {
     const distance = clampNumber(style.shadowDistance, 0, 12, 2);
     const blur = clampNumber(style.shadowBlur, 0, 20, 3);
-    return `${distance}px ${distance}px ${blur}px ${style.shadowColor || "#000000"}`;
+    shadows.push(`${distance}px ${distance}px ${blur}px ${style.shadowColor || "#000000"}`);
   }
-  return "none";
+  return shadows.length ? shadows.join(", ") : "none";
+}
+
+// Same rounded outline as the player overlay (content-script.js buildOutlineShadows): a thin stroke
+// plus rings of sharp shadows, so thick outlines do not spike at the corners of V, W and N.
+const OUTLINE_STROKE_MAX_PX = 2;
+
+function buildPreviewOutlineShadows(width, color, fontSize) {
+  const radius = width / 2;
+  const inner = Math.min(width, OUTLINE_STROKE_MAX_PX) / 2;
+  if (!(radius > inner)) return [];
+  const spacing = Math.max(0.75, fontSize * 0.05, radius / 8);
+  const shadows = [];
+  for (let ring = radius; ring > inner; ring -= spacing) {
+    const count = Math.max(8, Math.ceil(2 * Math.PI * ring / spacing));
+    for (let index = 0; index < count; index += 1) {
+      const angle = 2 * Math.PI * index / count;
+      shadows.push(`${(ring * Math.cos(angle)).toFixed(2)}px ${(ring * Math.sin(angle)).toFixed(2)}px 0 ${color}`);
+    }
+  }
+  return shadows;
 }
 
 function extractFontFamilyFromCss(css) {
@@ -809,7 +884,7 @@ function readGeneralSettings() {
   settings.phraseSegmentation = phraseSegmentationInput.checked;
   settings.phraseSegmentationSkipYoutubeManual = phraseSegmentationSkipYoutubeManualInput.checked;
   settings.wordProgressHighlight = wordProgressHighlightInput.checked;
-  settings.fallback.providerId = resolveFallbackProviderId(fallbackProviderSelect.value || "googleTranslate");
+  settings.summarySystemPrompt = normalizeSummarySystemPrompt(summarySystemPromptTextarea.value);
 }
 
 function getChunkDurationMinutes(value = maxChunkDurationMinutesInput.value) {
@@ -865,10 +940,14 @@ function applySubtitlePreview() {
   subtitleStylePreview.style.fontFamily = style.fontFamily || "Arial, sans-serif";
   subtitleStylePreview.style.color = style.textColor || "#e2ffad";
   subtitleStylePreview.style.fontWeight = String(clampNumber(style.fontWeight, 100, 900, 700));
-  subtitleStylePreview.style.textShadow = buildPreviewTextShadow(style);
   const outlineWidth = clampNumber(style.outlineWidth, 0, 16, 2);
-  subtitleStylePreview.style.webkitTextStroke = style.outlineEnabled ?? true
-    ? `${outlineWidth}px ${style.outlineColor || "#000000"}`
+  const outlineEnabled = style.outlineEnabled ?? true;
+  const outlineColor = style.outlineColor || "#000000";
+  subtitleStylePreview.style.textShadow = buildPreviewTextShadow(style, outlineEnabled
+    ? buildPreviewOutlineShadows(outlineWidth, outlineColor, clampNumber(style.fontSize, 10, 64, 30))
+    : []);
+  subtitleStylePreview.style.webkitTextStroke = outlineEnabled
+    ? `${Math.min(outlineWidth, OUTLINE_STROKE_MAX_PX)}px ${outlineColor}`
     : "0 transparent";
   subtitleStylePreview.style.paintOrder = "stroke fill";
   // Both lines share one background box, as in the player overlay.
@@ -915,7 +994,7 @@ function renderGeneralSettings() {
   phraseSegmentationSkipYoutubeManualInput.disabled = !phraseSegmentationInput.checked;
   wordProgressHighlightInput.checked = settings.wordProgressHighlight !== false;
   updateSystemPromptTextarea();
-  renderFallbackProviderSelect();
+  summarySystemPromptTextarea.value = normalizeSummarySystemPrompt(settings.summarySystemPrompt);
 }
 
 function updateSystemPromptTextarea() {
@@ -1260,13 +1339,12 @@ async function fetchModelsForSelectedProvider(button) {
       ? withOpenRouterNitro(recommendedModel.id, provider.nitro !== false)
       : recommendedModel.id;
     updateProviderTestStatus(provider.id, "idle");
-    settings = await saveSettings(settings);
+    settings = await saveOptionsSettings(settings);
 
     if (provider.id === "local") {
       renderGeneralSettings();
       renderProviderTabs();
       renderProviderForm();
-      renderFallbackProviderSelect();
       setStatus(formatMessage("localModelSelected", {
         provider: provider.label,
         model: recommendedModel.label || recommendedModel.id,
@@ -1291,11 +1369,10 @@ async function fetchModelsForSelectedProvider(button) {
     }
     applyReasoningProfileFromTestResponse(provider.id, testResponse);
     updateProviderTestStatus(provider.id, testResponse?.ok ? "success" : "idle");
-    settings = await saveSettings(settings);
+    settings = await saveOptionsSettings(settings);
     renderGeneralSettings();
     renderProviderTabs();
     renderProviderForm();
-    renderFallbackProviderSelect();
 
     if (testResponse?.ok) {
       const status = formatMessage("modelsLoadedAndTested", {
@@ -1497,7 +1574,7 @@ async function testSimpleGoogleApiKey() {
 
     if (!settings.providers.google.apiKey) {
       settings = applySimpleGoogleTestResult(settings, false, activeGoogleBackup);
-      settings = await saveSettings(settings);
+      settings = await saveOptionsSettings(settings);
       if (testRunId !== simpleGoogleTestRunId) return;
       pendingSimpleGoogleApiKey = null;
       pendingSimpleGoogleActiveBackup = null;
@@ -1506,7 +1583,7 @@ async function testSimpleGoogleApiKey() {
       return;
     }
 
-    settings = await saveSettings(settings);
+    settings = await saveOptionsSettings(settings);
     if (testRunId !== simpleGoogleTestRunId) return;
     pendingSimpleGoogleApiKey = null;
     renderSimpleGoogleSettings();
@@ -1524,7 +1601,7 @@ async function testSimpleGoogleApiKey() {
 
     applyReasoningProfileFromTestResponse("google", response);
     settings = applySimpleGoogleTestResult(settings, response?.ok, activeGoogleBackup);
-    settings = await saveSettings(settings);
+    settings = await saveOptionsSettings(settings);
     if (testRunId !== simpleGoogleTestRunId) return;
     pendingSimpleGoogleActiveBackup = null;
     renderAll();
@@ -1557,7 +1634,7 @@ function stageAutomaticSave() {
 function persistStagedSettings({ revision, snapshot }) {
   autoSaveChain = autoSaveChain.then(async () => {
     try {
-      const savedSettings = await saveSettings(snapshot);
+      const savedSettings = await saveOptionsSettings(snapshot);
       if (revision === settingsRevision) settings = savedSettings;
       setStatus(t("saved"), "success");
     } catch (error) {
@@ -1599,7 +1676,7 @@ function flushAutomaticSave() {
 
 async function persistSectionReset() {
   const currentProviderTab = selectedProviderId;
-  settings = await saveSettings(settings);
+  settings = await saveOptionsSettings(settings);
   selectedProviderId = settings.providers[currentProviderTab] ? currentProviderTab : settings.activeProvider;
   renderAll();
   setStatus(t("sectionResetDone"), "success");
@@ -1610,6 +1687,7 @@ async function resetAllSettings() {
   await flushAutomaticSave();
   clearPendingSimpleGoogleApiKey();
   settings = await resetSettings();
+  rememberPlayerOwnedValues(settings);
   selectedProviderId = settings.activeProvider;
   renderAll();
   setStatus(t("resetDone"), "success");
@@ -1648,11 +1726,11 @@ async function resetProviderSettingsSection() {
   await persistSectionReset();
 }
 
-async function resetFallbackSettingsSection() {
-  if (!globalThis.confirm(t("resetFallbackConfirm"))) return;
+async function resetSummarySettingsSection() {
+  if (!globalThis.confirm(t("resetSummaryConfirm"))) return;
   await flushAutomaticSave();
   captureCurrentFormState();
-  settings.fallback = clone(DEFAULT_SETTINGS.fallback);
+  settings.summarySystemPrompt = DEFAULT_SUMMARY_SYSTEM_PROMPT;
   await persistSectionReset();
 }
 
@@ -1713,6 +1791,7 @@ async function init() {
   subtitleStylePreview.textContent = getDefaultPreviewText();
   subtitleSourcePreview.textContent = t("sourcePreviewText");
   settings = await getSettings();
+  rememberPlayerOwnedValues(settings);
   selectedProviderId = settings.activeProvider;
   renderAll();
 
@@ -1778,9 +1857,6 @@ async function init() {
       scheduleAutomaticSave({ immediate: true });
     });
   }
-  fallbackProviderSelect.addEventListener("change", () => {
-    scheduleAutomaticSave({ immediate: true });
-  });
   customStyleLabelInput.addEventListener("input", (event) => {
     if (!event.isComposing) scheduleAutomaticSave();
   });
@@ -1788,6 +1864,15 @@ async function init() {
     scheduleAutomaticSave();
   });
   customStyleLabelInput.addEventListener("blur", () => {
+    flushAutomaticSave();
+  });
+  summarySystemPromptTextarea.addEventListener("input", (event) => {
+    if (!event.isComposing) scheduleAutomaticSave();
+  });
+  summarySystemPromptTextarea.addEventListener("compositionend", () => {
+    scheduleAutomaticSave();
+  });
+  summarySystemPromptTextarea.addEventListener("blur", () => {
     flushAutomaticSave();
   });
   systemPromptTextarea.addEventListener("input", (event) => {
@@ -1885,8 +1970,8 @@ async function init() {
   document.getElementById("resetProviderSettings").addEventListener("click", () => {
     resetProviderSettingsSection().catch((error) => setStatus(`${t("saveFailed")}: ${error.message}`, "error"));
   });
-  document.getElementById("resetFallbackSettings").addEventListener("click", () => {
-    resetFallbackSettingsSection().catch((error) => setStatus(`${t("saveFailed")}: ${error.message}`, "error"));
+  document.getElementById("resetSummarySettings").addEventListener("click", () => {
+    resetSummarySettingsSection().catch((error) => setStatus(`${t("saveFailed")}: ${error.message}`, "error"));
   });
   document.getElementById("resetSubtitleStyleSettings").addEventListener("click", () => {
     resetSubtitleStyleSettingsSection().catch((error) => setStatus(`${t("saveFailed")}: ${error.message}`, "error"));

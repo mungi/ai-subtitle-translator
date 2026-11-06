@@ -1,4 +1,4 @@
-import { buildDefaultCustom2StyleSystemPrompt, buildDefaultCustomStyleSystemPrompt, DEFAULT_SETTINGS, extractStyleSystemPrompt, getTargetLanguageLabel, normalizeCustomStyleLabel, normalizeLlmParallelRequests, PROVIDERS, TARGET_LANGUAGES, WEB_FONT_PRESETS } from "./defaults.js";
+import { buildDefaultCustom2StyleSystemPrompt, buildDefaultCustomStyleSystemPrompt, DEFAULT_SETTINGS, extractStyleSystemPrompt, getTargetLanguageLabel, normalizeCustomStyleLabel, normalizeLlmParallelRequests, normalizeSummarySystemPrompt, PROVIDERS, TARGET_LANGUAGES, WEB_FONT_PRESETS } from "./defaults.js";
 import { clearEncryptedProviderSecrets, readEncryptedProviderSecrets, writeEncryptedProviderSecrets } from "./secret-storage.js";
 
 const SETTINGS_KEY = "llmSettings";
@@ -107,16 +107,12 @@ export function normalizeSettings(settings = {}) {
       providerTestStatus[id] = "success";
     }
   }
+  // Settings no longer offer a choice: temporary translation always uses Google Translate.
   const fallback = {
     ...defaults.fallback,
-    ...settings.fallback
+    ...settings.fallback,
+    providerId: defaults.fallback.providerId
   };
-  const fallbackProvider = providers[fallback.providerId];
-  const fallbackProviderAvailable = fallbackProvider?.apiStyle === "google-translate"
-    || fallbackProvider?.apiStyle === "deepl" && providerTestStatus[fallbackProvider.id] === "success";
-  if (!fallbackProviderAvailable) {
-    fallback.providerId = defaults.fallback.providerId;
-  }
   const requestedActiveProvider = providers[settings.activeProvider];
   const activeProvider = isConfiguredProviderAvailable(requestedActiveProvider, providerTestStatus)
     ? requestedActiveProvider.id
@@ -151,6 +147,7 @@ export function normalizeSettings(settings = {}) {
     wordProgressHighlight: settings.wordProgressHighlight !== false,
     customSystemPrompt: extractStyleSystemPrompt(settings.customSystemPrompt || defaults.customSystemPrompt || buildDefaultCustomStyleSystemPrompt(targetLanguage)),
     custom2SystemPrompt: extractStyleSystemPrompt(settings.custom2SystemPrompt || defaults.custom2SystemPrompt || buildDefaultCustom2StyleSystemPrompt()),
+    summarySystemPrompt: normalizeSummarySystemPrompt(settings.summarySystemPrompt),
     customStyleLabel: normalizeCustomStyleLabel(settings.customStyleLabel, defaults.customStyleLabel),
     custom2StyleLabel: normalizeCustomStyleLabel(settings.custom2StyleLabel, defaults.custom2StyleLabel)
   };

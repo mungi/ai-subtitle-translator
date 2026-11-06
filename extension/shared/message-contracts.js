@@ -30,7 +30,8 @@ const BACKGROUND_MESSAGE_TYPES = new Set([
   "translation.cancelRequest",
   "translation.setPriority",
   "translation.clearCache",
-  "translation.clearVideoCache"
+  "translation.clearVideoCache",
+  "summary.generate"
 ]);
 
 const EXTENSION_PAGE_MESSAGE_TYPES = new Set([
@@ -64,8 +65,11 @@ const CONTENT_SCRIPT_MESSAGE_TYPES = new Set([
   "translation.translateDocument",
   "translation.cancelRequest",
   "translation.setPriority",
-  "translation.clearVideoCache"
+  "translation.clearVideoCache",
+  "summary.generate"
 ]);
+
+const SUMMARY_TEXT_MAX_CHARS = 2000000;
 
 const SUBTITLE_STYLE_PATCH_LIMITS = Object.freeze({
   positionX: [0, 100],
@@ -289,6 +293,12 @@ export function validateBackgroundMessage(message) {
       } else if (!isNonEmptyValue(message.videoId)) {
         error = "videoId is required.";
       }
+      break;
+    case "summary.generate":
+      if (typeof message.text !== "string" || !message.text.trim()) error = "text is required.";
+      else if (message.text.length > SUMMARY_TEXT_MAX_CHARS) error = "text is too long.";
+      else if (!isOptionalString(message.title)) error = "title must be a string.";
+      else if (!isOptionalString(message.requestId)) error = "requestId must be a string.";
       break;
     default:
       break;

@@ -2750,13 +2750,31 @@ test("subtitle visual size scales relative to the current player size", async ()
   assert.equal(large.overlay.style.fontSize, "45px");
   assert.equal(large.overlay.style.maxWidth, "1536px");
   assert.equal(large.overlay.style.padding, "12px 21px");
-  assert.equal(large.overlay.style.webkitTextStroke, "3px #000000");
+  // The outline scales to 3px: a 2px stroke plus round shadow rings for the rest, so corners do not spike.
+  assert.equal(large.overlay.style.webkitTextStroke, "2px #000000");
+  assert.match(large.overlay.style.textShadow, /^1\.50px 0\.00px 0 #000000, /);
   assert.equal(large.overlay.style.paintOrder, "stroke fill");
   assert.equal(small.overlay.style.fontSize, "15px");
   assert.equal(small.overlay.style.maxWidth, "512px");
   assert.equal(small.overlay.style.padding, "4px 7px");
   assert.equal(small.overlay.style.webkitTextStroke, "1px #000000");
   assert.equal(small.overlay.style.paintOrder, "stroke fill");
+});
+
+test("thick subtitle outlines are drawn as round shadow rings instead of a wide mitered stroke", async () => {
+  const { overlay } = await loadYoutubeOverlay({
+    playerRect: { width: 1280, height: 720 },
+    settings: { subtitleStyle: { outlineWidth: 16, outlineColor: "#112233", shadowEnabled: true, shadowDistance: 2, shadowBlur: 3, shadowColor: "#000000" } }
+  });
+  assert.equal(overlay.style.webkitTextStroke, "2px #112233");
+  const shadows = overlay.style.textShadow.split(", ");
+  assert.equal(shadows[0], "8.00px 0.00px 0 #112233");
+  assert.equal(shadows.at(-1), "2px 2px 3px #000000");
+  for (const shadow of shadows.slice(0, -1)) {
+    const [x, y] = shadow.split(" ").map((value) => Number.parseFloat(value));
+    assert.ok(Math.hypot(x, y) <= 8.01, shadow);
+  }
+  assert.ok(shadows.length < 200, `shadow count ${shadows.length}`);
 });
 
 test("subtitle overlay keeps user relative width but auto-fits height inside the player on cue updates", async () => {

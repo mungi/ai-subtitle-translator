@@ -36,6 +36,14 @@ test("word progress highlight messages accept only booleans", () => {
   }
 });
 
+test("summary messages need transcript text and optional string fields", () => {
+  assert.deepEqual(validateBackgroundMessage({ type: "summary.generate", text: "Hello.", title: "T", requestId: "r1" }), { handled: true, ok: true });
+  for (const text of [undefined, "", "  ", 1, "x".repeat(2000001)]) {
+    assert.equal(validateBackgroundMessage({ type: "summary.generate", text }).ok, false);
+  }
+  assert.equal(validateBackgroundMessage({ type: "summary.generate", text: "a", title: 1 }).ok, false);
+});
+
 test("background message validation accepts a valid translation request", () => {
   assert.deepEqual(validateBackgroundMessage({
     type: "translation.translateDocument",

@@ -40,5 +40,5 @@ test("manifest injects into TED talk pages", () => {
 
 test("phrase segmentation loads before the content script that uses it", () => {
   const main = manifest.content_scripts.find((item) => item.js.includes("content/content-script.js"));
-  assert.deepEqual(main.js, ["content/phrase-segmentation.js", "content/content-script.js"]);
+  assert.deepEqual(main.js, ["content/phrase-segmentation.js", "content/subtitle-export.js", "content/content-script.js"]);
 });

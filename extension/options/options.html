@@ -191,16 +191,15 @@
 
       <section class="settings-section">
         <div class="section-title-row">
-          <h2 data-i18n="fallbackTitle"></h2>
+          <h2 data-i18n="summarySettings"></h2>
           <div class="section-actions">
-            <button id="resetFallbackSettings" type="button" class="ghost" data-i18n="reset"></button>
+            <button id="resetSummarySettings" type="button" class="ghost" data-i18n="reset"></button>
           </div>
         </div>
-        <p class="section-description" data-i18n="fallbackDescription"></p>
+        <p class="section-description" data-i18n="summarySettingsDescription"></p>
         <div class="form-grid">
-          <label>
-            <span data-i18n="fallbackProvider"></span>
-            <select id="fallbackProvider"></select>
+          <label class="wide system-prompt-field">
+            <textarea id="summarySystemPrompt" class="system-prompt-textarea" rows="10" spellcheck="false" data-i18n-aria-label="summarySystemPrompt"></textarea>
           </label>
         </div>
       </section>

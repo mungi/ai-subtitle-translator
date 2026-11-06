@@ -408,6 +408,26 @@ export function normalizeLlmParallelRequests(value) {
   return Number.isFinite(count) ? Math.min(8, Math.max(1, Math.trunc(count))) : 3;
 }
 
+// Editable in Settings. The output language and the long-video part/merge instructions are added in code.
+export const DEFAULT_SUMMARY_SYSTEM_PROMPT = [
+  "You write reading-friendly summaries of video transcripts.",
+  "Source text is a video transcript (subtitles). It may contain speech-recognition errors; read through them using context.",
+  "Keep every key point: main ideas, definitions, reasons, examples, numbers, names, warnings, steps, and conclusions. Do not drop important content to make the text shorter.",
+  "Use only what the transcript says. Do not add opinions, evaluations, advice, background knowledge, or comments about the video or the speaker.",
+  "Keep code, commands, file names, product names, and numbers exactly as given.",
+  "Follow the order in which the video presents the content.",
+  "Format as Markdown:",
+  "- First line: `# ` followed by a short title that names the topic.",
+  "- Then a 2-3 sentence overview of the whole video.",
+  "- Then one `## ` section per topic, in order. Inside a section, write short paragraphs.",
+  "- When the content is a procedure or sequence, use a numbered list (1. 2. 3.). Use `-` bullets for parallel items such as options, features, or cautions. Use `###` only when a section has clearly separate sub-parts.",
+  "Output only the summary. No preamble, no closing remarks."
+].join("\n");
+
+export function normalizeSummarySystemPrompt(value) {
+  return String(value ?? "").trim() || DEFAULT_SUMMARY_SYSTEM_PROMPT;
+}
+
 export const DEFAULT_SETTINGS = {
   settingsMode: "simple",
   llmParallelRequests: 3,
@@ -422,6 +442,7 @@ export const DEFAULT_SETTINGS = {
   wordProgressHighlight: true,
   customSystemPrompt: DEFAULT_CUSTOM_STYLE_SYSTEM_PROMPT,
   custom2SystemPrompt: DEFAULT_CUSTOM_2_STYLE_SYSTEM_PROMPT,
+  summarySystemPrompt: DEFAULT_SUMMARY_SYSTEM_PROMPT,
   customStyleLabel: "Star Instructor",
   custom2StyleLabel: "Friendly Teacher",
   maxChunkDurationSeconds: 420,

@@ -159,7 +159,7 @@ test("simple settings use the Google helper, test the key, and retain the curren
   assert.match(optionsJs, /async function resetAllSettings\(\) \{[\s\S]*clearPendingSimpleGoogleApiKey\(\);/);
   assert.match(optionsJs, /document\.getElementById\("resetSettings"\)\.addEventListener\("click", \(\) => \{\s*resetAllSettings\(\)/);
   assert.match(optionsJs, /async function restoreSettingsFromFile\(file\) \{[\s\S]*if \(!globalThis\.confirm\(t\("restoreConfirm"\)\)\) return;\s*clearPendingSimpleGoogleApiKey\(\);/);
-  assert.match(optionsJs, /settings = await getSettings\(\);\s*selectedProviderId = settings\.activeProvider;\s*renderAll\(\);/);
+  assert.match(optionsJs, /settings = await getSettings\(\);\s*rememberPlayerOwnedValues\(settings\);\s*selectedProviderId = settings\.activeProvider;\s*renderAll\(\);/);
   const renderAllBlock = optionsJs.match(/function renderAll\(\) \{([\s\S]*?)\n\}/)?.[1] || "";
   assert.match(renderAllBlock, /setSettingsMode\(settings\.settingsMode\)/);
   assert.match(optionsJs, /SIMPLE_GOOGLE_GUIDE_LINKS/);
@@ -242,7 +242,7 @@ test("each settings section has its own reset button on the title row", () => {
   for (const id of [
     "resetGeneralSettings",
     "resetProviderSettings",
-    "resetFallbackSettings",
+    "resetSummarySettings",
     "resetSubtitleStyleSettings"
   ]) {
     assert.match(
@@ -276,8 +276,6 @@ test("section reset handlers reset only their own settings group", () => {
   assert.match(optionsJs, /async function resetProviderSettingsSection\(\)/);
   assert.match(optionsJs, /settings\.providers = clone\(DEFAULT_SETTINGS\.providers\);/);
   assert.match(optionsJs, /settings\.providerTestStatus = clone\(DEFAULT_SETTINGS\.providerTestStatus\);/);
-  assert.match(optionsJs, /async function resetFallbackSettingsSection\(\)/);
-  assert.match(optionsJs, /settings\.fallback = clone\(DEFAULT_SETTINGS\.fallback\);/);
   assert.match(optionsJs, /async function resetSubtitleStyleSettingsSection\(\)/);
   assert.match(optionsJs, /getSettings, normalizeSettings, resetSettings, saveSettings/);
   assert.match(optionsJs, /settings\.subtitleStyle = clone\(normalizeSettings\(\)\.subtitleStyle\);/);
@@ -359,7 +357,6 @@ test("active provider select only shows providers that pass connection tests", (
   assert.match(optionsJs, /const activeProviders = getOrderedProviders\(settings\.providers\)\.filter\(isActiveProviderAvailable\);/);
   assert.match(optionsJs, /activeProviderSelect\.disabled = activeProviders\.length === 0;/);
   assert.match(optionsJs, /providerTestRequired/);
-  assert.match(optionsJs, /fallbackProviderSelect\.innerHTML = getOrderedProviders\(settings\.providers\)/);
   assert.match(optionsJs, /for \(const provider of getOrderedProviders\(settings\.providers\)\)/);
   assert.match(optionsJs, /function renderProviderTabSeparator\(\)/);
   assert.match(optionsJs, /separator\.className = "provider-tab-separator";/);
@@ -377,18 +374,18 @@ test("active provider guide uses the full row above translation style", () => {
   assert.match(optionsCss, /\.active-provider-guide\s*\{[\s\S]*color: var\(--muted\);/);
 });
 
-test("temporary translation section explains first-pass translation and gates DeepL", () => {
-  assert.match(optionsHtml, /<h2 data-i18n="fallbackTitle"><\/h2>/);
-  assert.match(optionsHtml, /<p class="section-description" data-i18n="fallbackDescription"><\/p>/);
-  assert.equal(message("ko", "fallbackTitle"), "임시 번역");
-  assert.match(message("ko", "fallbackDescription"), /LLM 번역에는 시간이 걸릴 수 있습니다/);
-  assert.equal(message("en", "fallbackTitle"), "Temporary Translation");
-  assert.match(message("en", "fallbackDescription"), /LLM translation can take time/);
-  assert.match(optionsJs, /function isFallbackProviderAvailable\(provider\)/);
-  assert.match(optionsJs, /provider\.apiStyle === "deepl" && getProviderTestStatus\(provider\.id\) === "success"/);
-  assert.match(optionsJs, /\.filter\(isFallbackProviderAvailable\)/);
-  assert.match(optionsCss, /\.section-description\s*\{[\s\S]*color: var\(--muted\);/);
-  assert.match(optionsCss, /\.section-description\s*\{[\s\S]*white-space: pre-line;/);
+test("settings no longer show a temporary translation section", () => {
+  assert.doesNotMatch(optionsHtml, /fallbackTitle|fallbackProvider|resetFallbackSettings/);
+  assert.doesNotMatch(optionsJs, /fallbackProviderSelect|resetFallbackSettingsSection/);
+  assert.equal(message("ko", "fallbackTitle"), undefined);
+});
+
+test("summary section names the LLM requirement and the provider section is about subtitle translation", () => {
+  assert.match(message("ko", "summarySettingsDescription"), /LLM 공급자를 선택한 경우에만 사용할 수 있습니다/);
+  assert.match(message("en", "summarySettingsDescription"), /only when an LLM provider is selected/);
+  assert.match(message("ja", "summarySettingsDescription"), /LLM プロバイダーを選択した場合にのみ/);
+  assert.equal(message("ko", "providerSettings"), "자막 번역 공급자 설정");
+  assert.equal(message("en", "providerSettings"), "Subtitle Translation Provider Settings");
 });
 
 test("settings are saved automatically with delayed text input and immediate selections", () => {
@@ -489,7 +486,7 @@ test("fetching models selects the recommended lightweight model and automaticall
   assert.match(optionsJs, /const recommendedModel = selectRecommendedModel\(provider\.id, provider\.models\);/);
   assert.match(optionsJs, /provider\.model = provider\.id === "openrouter"/);
   assert.match(optionsJs, /withOpenRouterNitro\(recommendedModel\.id, provider\.nitro !== false\)/);
-  assert.match(optionsJs, /settings = await saveSettings\(settings\);/);
+  assert.match(optionsJs, /settings = await saveOptionsSettings\(settings\);/);
   assert.match(optionsJs, /setStatus\(formatMessage\("recommendedModelTesting"/);
   assert.match(optionsJs, /type: "llm\.testActiveProvider",\s*providerId: provider\.id/);
   assert.match(optionsJs, /updateProviderTestStatus\(provider\.id, testResponse\?\.ok \? "success" : "idle"\);/);
@@ -625,7 +622,7 @@ test("settings restore can validate every configured API key and update provider
   assert.match(optionsJs, /validateConfiguredProviderKeys\(settings/);
   assert.match(optionsJs, /type: "llm\.testActiveProvider",\s*providerId/);
   assert.match(optionsJs, /settings\.providerTestStatus = result\.providerTestStatus/);
-  assert.match(optionsJs, /settings = await saveSettings\(settings\);/);
+  assert.match(optionsJs, /settings = await saveOptionsSettings\(settings\);/);
   assert.match(optionsJs, /result\.results\.map\(\(providerResult\)/);
   assert.match(optionsJs, /providerResult\.ok \? "restoreKeyTestSuccessItem" : "restoreKeyTestFailureItem"/);
   assert.match(optionsJs, /\[summary, \.\.\.details\]\.join\("\\n"\)/);

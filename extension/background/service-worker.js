@@ -6,6 +6,7 @@ import { ANTHROPIC_DIRECT_BROWSER_ACCESS_HEADER, buildProviderRequest, createRea
 import { sanitizeProviderErrorMessage } from "../shared/provider-error-sanitizer.js";
 import { assertProviderEndpoint } from "../shared/provider-security.js";
 import { translateSubtitleDocument } from "../shared/translation.js";
+import { isSummaryProvider, summarizeTranscript } from "../shared/summary.js";
 import { benchmarkReasoningModes } from "../shared/reasoning-benchmark.js";
 import { fetchYoutubeCaptionTracks, fetchYoutubeTranscript } from "../platforms/youtube-captions.js";
 import { fetchUdemyCaptionTracks, fetchUdemyTranscript } from "../platforms/udemy-captions.js";
@@ -481,6 +482,31 @@ export function buildYoutubeTranscriptErrorResponse(error) {
   return response;
 }
 
+// Summarizes the transcript the content script sends, in the target language, with the active LLM.
+export async function generateSummary(message, sender, summarize = summarizeTranscript) {
+  const settings = await getSettings();
+  const provider = settings.providers?.[settings.activeProvider];
+  if (!isSummaryProvider(provider)) throw new Error("Summaries need an LLM provider.");
+  const language = TARGET_LANGUAGES.find((item) => item.code === settings.targetLanguage);
+  const tabId = sender?.tab?.id;
+  try {
+    return await summarize({
+      text: message.text,
+      title: message.title || "",
+      systemPrompt: settings.summarySystemPrompt,
+      languageName: language?.labels?.en || settings.targetLanguage || ""
+    }, {
+      provider,
+      onProgress: (progress) => {
+        if (!Number.isInteger(tabId) || tabId < 0) return;
+        chrome.tabs.sendMessage(tabId, { type: "summary.progress", requestId: message.requestId, progress }).catch(() => {});
+      }
+    });
+  } catch (error) {
+    throw new Error(sanitizeProviderErrorMessage(error?.message, provider));
+  }
+}
+
 export function dispatchBackgroundMessage(message, sender, sendResponse) {
   if (message?.type === "fonts.getBundledGowun") {
     fetch(chrome.runtime.getURL("assets/fonts/gowun-batang-regular.woff"))
@@ -759,6 +785,13 @@ export function dispatchBackgroundMessage(message, sender, sendResponse) {
       release();
       sendResponse({ ok: false, error: error.message });
     });
+    return true;
+  }
+
+  if (message?.type === "summary.generate") {
+    generateSummary(message, sender)
+      .then((summary) => sendResponse({ ok: true, summary }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
     return true;
   }
 

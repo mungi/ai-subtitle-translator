@@ -389,6 +389,12 @@
   background: rgba(255, 255, 255, 0.14);
 }
 
+.ast-segmented-option:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: transparent;
+}
+
 .ast-segmented-option.active {
   background: var(--ast-provider-state-color);
   color: #ffffff;
@@ -401,6 +407,7 @@
 
 .ast-source-caption-submenu,
 .ast-subtitle-display-submenu,
+.ast-subtitle-download-submenu,
 .ast-target-language-submenu,
 .ast-translation-style-submenu {
   position: relative;
@@ -409,6 +416,7 @@
 
 .ast-source-caption-list,
 .ast-subtitle-display-list,
+.ast-subtitle-download-list,
 .ast-target-language-list,
 .ast-translation-style-list {
   display: none;
@@ -435,6 +443,8 @@
 .ast-subtitle-display-submenu:hover .ast-subtitle-display-list,
 .ast-subtitle-display-submenu.ast-submenu-open .ast-subtitle-display-list,
 .ast-subtitle-display-submenu:focus-within .ast-subtitle-display-list,
+.ast-subtitle-download-submenu:hover .ast-subtitle-download-list,
+.ast-subtitle-download-submenu:focus-within .ast-subtitle-download-list,
 .ast-target-language-submenu:hover .ast-target-language-list,
 .ast-target-language-submenu:focus-within .ast-target-language-list,
 .ast-translation-style-submenu:hover .ast-translation-style-list {
@@ -443,6 +453,7 @@
 
 .ast-source-caption-item,
 .ast-subtitle-display-item,
+.ast-subtitle-download-toggle,
 .ast-target-language-item,
 .ast-translation-style-item {
   width: 100%;
@@ -764,6 +775,10 @@
 .ast-provider-status[data-phase="current"] .ast-provider-status-dot { background: #34d399; }
 .ast-provider-status[data-phase="complete"] .ast-provider-status-dot { background: #a78bfa; }
 .ast-provider-status[data-phase="fallback"] .ast-provider-status-dot { background: #fb7185; }
+.ast-provider-status[data-phase="summary"] .ast-provider-status-dot { background: #34d399; }
+.ast-provider-status[data-phase="summary-done"] .ast-provider-status-dot { background: #a78bfa; }
+.ast-provider-status[data-phase="summary-failed"] .ast-provider-status-dot { background: #fb7185; }
+.ast-provider-status[data-phase="summary-failed"] .ast-provider-status-text { color: #fb7185; }
 .ast-provider-status[data-phase="youtube-auto"] .ast-provider-status-dot { background: #fb923c; }
 .ast-provider-status[data-phase="youtube-auto"] .ast-provider-status-text { color: #fb923c; }
 

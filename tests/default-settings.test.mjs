@@ -144,7 +144,7 @@ test("provider connection test status keeps only successful known providers", ()
   });
 });
 
-test("DeepL temporary translation provider is kept only after a successful DeepL connection test", () => {
+test("temporary translation always uses Google Translate, even when DeepL was saved and tested", () => {
   const untestedSettings = normalizeSettings({
     fallback: {
       providerId: "deepl"
@@ -160,7 +160,7 @@ test("DeepL temporary translation provider is kept only after a successful DeepL
   });
 
   assert.equal(untestedSettings.fallback.providerId, "googleTranslate");
-  assert.equal(testedSettings.fallback.providerId, "deepl");
+  assert.equal(testedSettings.fallback.providerId, "googleTranslate");
 });
 
 test("DeepL is kept as the active final provider after a successful connection test", () => {
@@ -179,7 +179,7 @@ test("DeepL is kept as the active final provider after a successful connection t
 
   assert.equal(untestedSettings.activeProvider, "googleTranslate");
   assert.equal(testedSettings.activeProvider, "deepl");
-  assert.equal(testedSettings.fallback.providerId, "deepl");
+  assert.equal(testedSettings.fallback.providerId, "googleTranslate");
 });
 
 test("NVIDIA NIM is available as an OpenAI-compatible provider", () => {

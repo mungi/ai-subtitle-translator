@@ -39,6 +39,7 @@
       "all_frames": true,
       "js": [
         "content/phrase-segmentation.js",
+        "content/subtitle-export.js",
         "content/content-script.js"
       ],
       "css": [

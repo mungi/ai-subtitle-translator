@@ -18,6 +18,18 @@
         ],
         "createdAt": "2026-11-05T17:02:30.597Z",
         "reason": "Agent: finish reviewer judged false positive from captures; full-bleed bands inset by .wrap padding-inline clamp(20px,4vw,56px) plus 72-136px section padding"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "fontfamily",
+        "createdAt": "2026-11-06T15:05:31.732Z",
+        "reason": "Claude triage: options.js fontSlots maps settings key names (\"fontFamily\"), not a CSS font"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "sourcefontfamily",
+        "createdAt": "2026-11-06T15:05:32.140Z",
+        "reason": "Claude triage: options.js fontSlots maps settings key names (\"sourceFontFamily\"), not a CSS font"
       }
     ]
   }

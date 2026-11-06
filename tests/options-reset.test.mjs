@@ -12,7 +12,7 @@ const resetCases = [
   ["resetAllSettings", "resetAllConfirm"],
   ["resetGeneralSettingsSection", "resetGeneralConfirm"],
   ["resetProviderSettingsSection", "resetProvidersConfirm"],
-  ["resetFallbackSettingsSection", "resetFallbackConfirm"],
+  ["resetSummarySettingsSection", "resetSummaryConfirm"],
   ["resetSubtitleStyleSettingsSection", "resetSubtitleStyleConfirm"]
 ];
 
@@ -23,6 +23,7 @@ function createHarness(confirmed) {
   initial.settingsMode = "advanced";
   initial.llmParallelRequests = 7;
   initial.customSystemPrompt = "Keep my custom prompt";
+  initial.summarySystemPrompt = "My summary prompt";
   initial.providers.google.apiKey = "saved-api-key";
   initial.providers.google.model = "custom-model";
   initial.providerTestStatus.google = "success";
@@ -90,11 +91,57 @@ for (const [action, messageKey] of resetCases) {
     } else if (action === "resetProviderSettingsSection") {
       expected.providers = structuredClone(baseline.providers);
       expected.providerTestStatus = structuredClone(baseline.providerTestStatus);
-    } else if (action === "resetFallbackSettingsSection") {
-      expected.fallback = structuredClone(baseline.fallback);
+    } else if (action === "resetSummarySettingsSection") {
+      expected.summarySystemPrompt = defaults.DEFAULT_SUMMARY_SYSTEM_PROMPT;
     } else {
       expected.subtitleStyle = structuredClone(baseline.subtitleStyle);
     }
     assert.deepEqual(JSON.parse(vm.runInContext("JSON.stringify(settings)", context)), expected);
   });
 }
+
+test("saving on the settings page keeps the subtitle box and menu choices the player changed meanwhile", async () => {
+  const { context, initial } = createHarness(true);
+  const stored = structuredClone(initial);
+  stored.subtitleStyle.positionX = 31;
+  stored.subtitleStyle.positionY = 64;
+  stored.subtitleStyle.width = 900;
+  stored.targetLanguage = "en";
+  context.storedMock = stored;
+  vm.runInContext(`
+    rememberPlayerOwnedValues(initialSettings);
+    getSettings = async () => JSON.parse(JSON.stringify(storedMock));
+    renderGeneralSettings = () => {};
+    applySubtitlePreview = () => {};
+    subtitleStyleInputs.translationOnTop = {};
+  `, context);
+  // The page changes a style and its own copy of the language; the player moved the box meanwhile.
+  const saved = await vm.runInContext(`
+    const next = JSON.parse(JSON.stringify(settings));
+    next.subtitleStyle.fontSize = 40;
+    next.activeProvider = "deepl";
+    saveOptionsSettings(next);
+  `, context);
+  assert.equal(saved.subtitleStyle.fontSize, 40);
+  assert.equal(saved.subtitleStyle.positionX, 31);
+  assert.equal(saved.subtitleStyle.positionY, 64);
+  assert.equal(saved.subtitleStyle.width, 900);
+  assert.equal(saved.targetLanguage, "en");
+  assert.equal(saved.activeProvider, "deepl");
+  assert.equal(vm.runInContext("settings.subtitleStyle.positionX", context), 31);
+});
+
+test("a settings save still goes through when the latest stored values cannot be read", async () => {
+  const { context, events } = createHarness(true);
+  vm.runInContext(`
+    rememberPlayerOwnedValues(initialSettings);
+    getSettings = async () => { throw new Error("storage unavailable"); };
+  `, context);
+  const saved = await vm.runInContext(`
+    const next = JSON.parse(JSON.stringify(settings));
+    next.subtitleStyle.fontSize = 41;
+    saveOptionsSettings(next);
+  `, context);
+  assert.equal(saved.subtitleStyle.fontSize, 41);
+  assert.deepEqual(events, [["save"]]);
+});

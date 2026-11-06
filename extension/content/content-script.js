@@ -126,6 +126,9 @@ const subtitleState = {
   udemyTranscriptTranslations: new Map(),
   udemyTranscriptObserver: null,
   udemyTranscriptRefreshQueued: false,
+  // The running summary: { requestId, step, total }, or null.
+  summaryJob: null,
+  summaryNotice: null,
   disposed: false
 };
 let crossFrameProviderMenuOpen = false;
@@ -599,6 +602,192 @@ function renderSubtitleDisplayMenu(menu) {
   menu.append(submenu);
 }
 
+// "Download subtitles" submenu: original or translation, as SRT (timed) or TXT (plain text).
+function getDownloadCues() {
+  const video = resolveRenderVideo(subtitleState.currentVideo);
+  return Array.isArray(video?.astSubtitleCues) ? video.astSubtitleCues : [];
+}
+
+function renderSubtitleDownloadMenu(menu) {
+  const exporter = globalThis.astSubtitleExport;
+  if (!exporter) return;
+  const submenu = document.createElement("div");
+  submenu.className = "ast-subtitle-download-submenu";
+  const toggle = createProviderMenuButton("ast-provider-menu-item ast-subtitle-download-toggle", contentText("contentDownloadSubtitles"));
+  toggle.setAttribute("role", "menuitem");
+  toggle.setAttribute("aria-haspopup", "menu");
+  submenu.append(toggle);
+
+  const cues = getDownloadCues();
+  const list = document.createElement("div");
+  list.className = "ast-subtitle-download-list";
+  list.setAttribute("role", "group");
+  list.setAttribute("aria-label", contentText("contentDownloadSubtitles"));
+  const rows = [
+    ["source", "contentDownloadSource", cues.length > 0],
+    ["translation", "contentDownloadTranslation", exporter.hasTranslation(cues)]
+  ];
+  for (const [kind, messageKey, available] of rows) {
+    const row = document.createElement("div");
+    row.className = "ast-provider-menu-item ast-translation-position-row ast-subtitle-download-row";
+    row.dataset.kind = kind;
+    const label = document.createElement("span");
+    label.className = "ast-provider-menu-label";
+    label.textContent = contentText(messageKey);
+    if (!available && kind === "translation") label.title = contentText("contentDownloadNoTranslation");
+    const group = document.createElement("div");
+    group.className = "ast-segmented-control";
+    group.setAttribute("role", "group");
+    for (const format of ["srt", "txt"]) {
+      const option = document.createElement("button");
+      option.type = "button";
+      option.className = "ast-segmented-option";
+      option.textContent = format.toUpperCase();
+      option.dataset.kind = kind;
+      option.dataset.format = format;
+      option.setAttribute("role", "menuitem");
+      option.disabled = !available;
+      option.addEventListener("click", (event) => {
+        event.stopPropagation();
+        try {
+          downloadSubtitleFile(kind, format);
+        } catch (error) {
+          showToast(error.message, subtitleState.currentVideo, true);
+        }
+      });
+      group.append(option);
+    }
+    row.append(label, group);
+    list.append(row);
+  }
+  list.append(renderSummaryDownloadRow(cues.length > 0));
+  submenu.append(list);
+  menu.append(submenu);
+}
+
+// "Summary" row: one button that asks the active LLM for a summary and saves it as Markdown.
+function renderSummaryDownloadRow(hasCues) {
+  const row = document.createElement("div");
+  row.className = "ast-provider-menu-item ast-translation-position-row ast-subtitle-download-row";
+  row.dataset.kind = "summary";
+  const label = document.createElement("span");
+  label.className = "ast-provider-menu-label";
+  label.textContent = contentText("contentDownloadSummary");
+  const group = document.createElement("div");
+  group.className = "ast-segmented-control";
+  group.setAttribute("role", "group");
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "ast-segmented-option ast-summary-download";
+  button.dataset.kind = "summary";
+  button.setAttribute("role", "menuitem");
+  const job = subtitleState.summaryJob;
+  const hasLlm = Boolean(subtitleState.activeProviderId) && !isMachineTranslationProvider(subtitleState.activeProviderId);
+  // Progress shows on the status line at the bottom of the menu.
+  button.textContent = contentText("contentDownloadSummaryAction");
+  button.disabled = Boolean(job) || !hasLlm || !hasCues;
+  if (!hasLlm) label.title = contentText("contentDownloadSummaryNeedsLlm");
+  button.addEventListener("click", (event) => {
+    event.stopPropagation();
+    downloadSummaryFile().catch((error) => setSummaryNotice({ text: contentText("contentSummaryFailed", [error.message]), failed: true }));
+  });
+  group.append(button);
+  row.append(label, group);
+  return row;
+}
+
+function summaryProgressText(job) {
+  return contentText("contentSummaryProgress", [String(Math.min(job.step + 1, job.total)), String(job.total)]);
+}
+
+function updateSummaryProgress(requestId, progress) {
+  const job = subtitleState.summaryJob;
+  if (!job || job.requestId !== requestId) return;
+  if (!Number.isFinite(progress?.step) || !Number.isFinite(progress?.total) || progress.total < 1) return;
+  job.step = progress.step;
+  job.total = progress.total;
+  refreshOpenProviderMenu();
+}
+
+const SUMMARY_SAVED_NOTICE_MS = 8000;
+let summaryNoticeTimeoutId = null;
+
+// The last summary result on the status line; a failure stays until the next summary starts.
+function setSummaryNotice(notice, durationMs = 0) {
+  clearTimeout(summaryNoticeTimeoutId);
+  summaryNoticeTimeoutId = null;
+  subtitleState.summaryNotice = notice;
+  if (notice && durationMs > 0) {
+    summaryNoticeTimeoutId = setTimeout(() => {
+      summaryNoticeTimeoutId = null;
+      subtitleState.summaryNotice = null;
+      updateProviderMenuStatus();
+    }, durationMs);
+  }
+  updateProviderMenuStatus();
+}
+
+function getDownloadTitle() {
+  return globalThis.astSubtitleExport.sanitizeFileName((document.title || "").replace(/\s*[-–|]\s*YouTube\s*$/i, ""));
+}
+
+async function downloadSummaryFile() {
+  if (subtitleState.summaryJob) return;
+  const exporter = globalThis.astSubtitleExport;
+  const sourceLanguage = subtitleState.currentSourceDocument?.sourceLanguage || subtitleState.currentDocument?.sourceLanguage || "";
+  const text = exporter.buildTxt(getDownloadCues(), "source", { language: sourceLanguage });
+  if (!text) throw new Error(contentText("contentDownloadEmpty"));
+  const requestId = `summary-${Date.now()}`;
+  subtitleState.summaryJob = { requestId, step: 0, total: 1 };
+  setSummaryNotice(null);
+  refreshOpenProviderMenu();
+  try {
+    const title = getDownloadTitle();
+    const response = await sendRuntimeMessage({ type: "summary.generate", text, title, requestId });
+    if (!response?.ok) throw new Error(response?.error || "Summary failed.");
+    const language = subtitleState.targetLanguage || "";
+    saveTextFile(`${title}.summary${language ? `.${language}` : ""}.md`, `${response.summary.trim()}\n`, "text/markdown;charset=utf-8");
+    setSummaryNotice({ text: contentText("contentSummarySaved") }, SUMMARY_SAVED_NOTICE_MS);
+  } catch (error) {
+    // Shown on the menu status line, not as a popup over the video.
+    setSummaryNotice({ text: contentText("contentSummaryFailed", [error.message]), failed: true });
+  } finally {
+    subtitleState.summaryJob = null;
+    refreshOpenProviderMenu();
+  }
+}
+
+function saveTextFile(fileName, content, type) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  link.style.display = "none";
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+function downloadSubtitleFile(kind, format) {
+  const exporter = globalThis.astSubtitleExport;
+  const cues = getDownloadCues();
+  const language = kind === "source"
+    ? (subtitleState.currentSourceDocument?.sourceLanguage || subtitleState.currentDocument?.sourceLanguage || "")
+    : (subtitleState.targetLanguage || "");
+  const content = format === "srt"
+    ? exporter.buildSrt(cues, kind)
+    : exporter.buildTxt(cues, kind, { language });
+  if (!content) throw new Error(contentText("contentDownloadEmpty"));
+  const suffix = language ? `.${language}` : `.${kind}`;
+  saveTextFile(
+    `${getDownloadTitle()}${suffix}.${format}`,
+    content,
+    format === "srt" ? "application/x-subrip;charset=utf-8" : "text/plain;charset=utf-8"
+  );
+}
+
 // Switch at the right of the "Source subtitles" row: colors the spoken words of the source line as it plays.
 function renderWordHighlightToggle() {
   const on = subtitleState.wordProgressHighlight !== false;
@@ -738,7 +927,8 @@ function renderProviderMenu(platform = detectPlatform()) {
     item.setAttribute("aria-checked", String(isActive));
     if (isActive) item.classList.add("active");
 
-    if (provider.id === subtitleState.pendingProviderId) {
+    // Spins while switching to this provider, or while it writes a summary.
+    if (provider.id === subtitleState.pendingProviderId || (isActive && subtitleState.summaryJob)) {
       const spinner = document.createElement("span");
       spinner.className = "ast-provider-spinner";
       spinner.setAttribute("aria-hidden", "true");
@@ -775,6 +965,7 @@ function renderProviderMenu(platform = detectPlatform()) {
   renderTargetLanguageMenu(menu, platform);
   renderTranslationStyleMenu(menu, platform);
   renderSubtitleDisplayMenu(menu);
+  renderSubtitleDownloadMenu(menu);
 
   const lastSeparator = document.createElement("div");
   lastSeparator.className = "ast-provider-menu-separator";
@@ -1960,13 +2151,40 @@ function getOverlayMaxWidth(overlay) {
     : OVERLAY_MAX_STYLE_WIDTH * getOverlayScale(overlay);
 }
 
-function buildTextShadow(style, scale = 1) {
+function buildTextShadow(style, scale = 1, outlineShadows = []) {
+  const shadows = [...outlineShadows];
   if (style.shadowEnabled) {
     const distance = scalePx(clampNumber(style.shadowDistance, 0, 12, 2), scale);
     const blur = scalePx(clampNumber(style.shadowBlur, 0, 20, 3), scale);
-    return `${formatPx(distance)} ${formatPx(distance)} ${formatPx(blur)} ${style.shadowColor || "#000000"}`;
+    shadows.push(`${formatPx(distance)} ${formatPx(distance)} ${formatPx(blur)} ${style.shadowColor || "#000000"}`);
   }
-  return "none";
+  return shadows.length ? shadows.join(", ") : "none";
+}
+
+// A thick -webkit-text-stroke draws mitered corners, so V, W and N grow long spikes, and Chrome
+// ignores stroke-linejoin on HTML text. The stroke stays thin; the rest of the outline is rings of
+// sharp text-shadows, which round every corner. Ring spacing follows the font size, so the shadow
+// count stays about the same at any player size.
+const OUTLINE_STROKE_MAX_PX = 2;
+
+function getOutlineStrokeWidth(width) {
+  return Math.min(width, OUTLINE_STROKE_MAX_PX);
+}
+
+function buildOutlineShadows(width, color, fontSize) {
+  const radius = width / 2;
+  const inner = getOutlineStrokeWidth(width) / 2;
+  if (!(radius > inner)) return [];
+  const spacing = Math.max(0.75, fontSize * 0.05, radius / 8);
+  const shadows = [];
+  for (let ring = radius; ring > inner; ring -= spacing) {
+    const count = Math.max(8, Math.ceil(2 * Math.PI * ring / spacing));
+    for (let index = 0; index < count; index += 1) {
+      const angle = 2 * Math.PI * index / count;
+      shadows.push(`${(ring * Math.cos(angle)).toFixed(2)}px ${(ring * Math.sin(angle)).toFixed(2)}px 0 ${color}`);
+    }
+  }
+  return shadows;
 }
 
 function getOverlayBackgroundColor(style) {
@@ -2088,9 +2306,10 @@ function applyOverlayStyle(overlay) {
   overlay.style.fontFamily = style.fontFamily || "Arial, sans-serif";
   overlay.style.fontWeight = String(clampNumber(style.fontWeight, 100, 900, 700));
   overlay.style.color = style.textColor || "#e2ffad";
-  overlay.style.textShadow = buildTextShadow(style, scale);
+  const outlineColor = style.outlineColor || "#000000";
+  overlay.style.textShadow = buildTextShadow(style, scale, outlineEnabled ? buildOutlineShadows(outlineWidth, outlineColor, fontSize) : []);
   overlay.style.webkitTextStroke = outlineEnabled
-    ? `${formatPx(outlineWidth)} ${style.outlineColor || "#000000"}`
+    ? `${formatPx(getOutlineStrokeWidth(outlineWidth))} ${outlineColor}`
     : "0 transparent";
   overlay.style.paintOrder = "stroke fill";
   overlay.style.background = `rgba(${hexToRgb(backgroundColor)}, ${backgroundOpacity})`;
@@ -2442,6 +2661,9 @@ function setButtonState(enabled, loading = false) {
 // One wording for the toolbar tooltip and the status line at the bottom of the player menu.
 function getTranslationStatus(enabled = subtitleState.enabled, loading = subtitleState.loading) {
   const status = (key, substitutions) => ({ text: contentText(key, substitutions) });
+  // A summary the user started is the newest news, so it takes the line while it runs.
+  if (subtitleState.summaryJob) return { text: summaryProgressText(subtitleState.summaryJob) };
+  if (subtitleState.summaryNotice) return { text: subtitleState.summaryNotice.text };
   if (loading) return status("contentStatusLoading");
   if (!enabled) return status("contentStatusOff");
   if (subtitleState.youtubeProvidedTranslationLanguage) {
@@ -2486,7 +2708,9 @@ function updateProviderMenuStatus(enabled = subtitleState.enabled, loading = sub
   const line = document.getElementById(PROVIDER_MENU_ID)?.querySelector(".ast-provider-status");
   if (!line) return;
   const status = getTranslationStatus(enabled, loading);
-  line.dataset.phase = loading ? "loading" : enabled ? getDisplayedPhase(enabled, loading) : "off";
+  line.dataset.phase = subtitleState.summaryJob ? "summary"
+    : subtitleState.summaryNotice ? (subtitleState.summaryNotice.failed ? "summary-failed" : "summary-done")
+      : loading ? "loading" : enabled ? getDisplayedPhase(enabled, loading) : "off";
   line.querySelector(".ast-provider-status-text").textContent = status.text;
   line.title = status.hint ? `${status.text}\n${status.hint}` : status.text;
 }
@@ -4405,6 +4629,10 @@ chrome.runtime.onMessage.addListener((message) => {
     if (subtitleState.currentVideo) renderCurrentOverlayCue(subtitleState.currentVideo);
     renderUdemyTranscriptTranslations();
     refreshOpenProviderMenu();
+    return false;
+  }
+  if (message?.type === "summary.progress") {
+    updateSummaryProgress(message.requestId, message.progress);
     return false;
   }
   if (message?.type !== "translation.progress") return false;
