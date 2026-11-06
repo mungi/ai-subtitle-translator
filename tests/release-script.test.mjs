@@ -19,3 +19,9 @@ test("release script publishes the versioned ZIP as a GitHub Release asset", () 
   assert.match(releaseScript, /gh release edit "\$tag" --title "\$title"/);
   assert.match(releaseScript, /gh release create "\$tag" "\$zip_path" --title "\$title" --generate-notes/);
 });
+
+test("release script uses hand-written notes from release-notes/<tag>.md when they exist", () => {
+  assert.match(releaseScript, /notes_file="release-notes\/\$\{tag\}\.md"/);
+  assert.match(releaseScript, /gh release create "\$tag" "\$zip_path" --title "\$title" --notes-file "\$notes_file"/);
+  assert.match(releaseScript, /gh release edit "\$tag" --title "\$title" --notes-file "\$notes_file"/);
+});
