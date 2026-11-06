@@ -327,6 +327,57 @@
       }
     }
   },
+  "providerTestStep": {
+    "message": "接続テスト中（$current$/$total$）：$step$",
+    "placeholders": {
+      "current": {
+        "content": "$1",
+        "example": "2"
+      },
+      "total": {
+        "content": "$2",
+        "example": "4"
+      },
+      "step": {
+        "content": "$3",
+        "example": "context"
+      }
+    }
+  },
+  "providerTestStepReply": {
+    "message": "モデルの応答を確認"
+  },
+  "providerTestStepModels": {
+    "message": "モデル情報からコンテキストサイズを確認"
+  },
+  "providerTestStepLmStudio": {
+    "message": "LM Studio 方式でコンテキストサイズを確認"
+  },
+  "providerTestStepOllama": {
+    "message": "Ollama 方式でコンテキストサイズを確認"
+  },
+  "contextLengthDetected": {
+    "message": "コンテキスト $tokens$ トークン（$source$）",
+    "placeholders": {
+      "tokens": {
+        "content": "$1",
+        "example": "8,192"
+      },
+      "source": {
+        "content": "$2",
+        "example": "loaded"
+      }
+    }
+  },
+  "contextLengthSourceLoaded": {
+    "message": "サーバーの実行値"
+  },
+  "contextLengthSourceMax": {
+    "message": "モデルの最大値"
+  },
+  "contextLengthUnknown": {
+    "message": "コンテキストサイズは確認できませんでした"
+  },
   "reasoningSettingUnsupported": {
     "message": "推論オプション非対応"
   },

@@ -58,7 +58,9 @@ test("connection test saves the lowest reasoning mode accepted by the selected m
       }
     }
   };
-  globalThis.fetch = async (_url, init) => {
+  globalThis.fetch = async (url, init) => {
+    // Context size questions that follow the reply check; this server answers none of them.
+    if (!String(url).endsWith("/chat/completions")) return { ok: false, status: 404, json: async () => ({}) };
     const mode = JSON.parse(init.body).reasoning_effort;
     requestModes.push(mode);
     return mode === "low"
@@ -78,6 +80,64 @@ test("connection test saves the lowest reasoning mode accepted by the selected m
     assert.equal(result.reasoningProfile.mode, "low");
     assert.equal(result.reasoningProfile.model, "test-model");
     assert.equal(result.text, "OK");
+    assert.equal(result.contextProfile, null);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Custom LLM connection test reads the loaded context size and reports each step", async () => {
+  const requests = [];
+  const progress = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.chrome = {
+    runtime: { id: "test-extension", onMessage: { addListener() {} } },
+    storage: {
+      local: {
+        setAccessLevel: async () => {},
+        set: async () => {},
+        get: async () => ({
+          llmSettings: { providers: { local: { model: "qwen3-8b", baseUrl: "http://localhost:1234/v1", apiKey: "" } } }
+        })
+      }
+    }
+  };
+  globalThis.fetch = async (url, init = {}) => {
+    requests.push(`${init.method || "GET"} ${url}`);
+    if (String(url).endsWith("/chat/completions")) {
+      return { ok: true, json: async () => ({ choices: [{ message: { content: "OK" } }] }) };
+    }
+    if (String(url).endsWith("/api/v1/models")) {
+      return {
+        ok: true,
+        json: async () => ({
+          models: [{ key: "qwen3-8b", max_context_length: 40960, loaded_instances: [{ config: { context_length: 8192 } }] }]
+        })
+      };
+    }
+    return { ok: false, status: 404, json: async () => ({}) };
+  };
+
+  try {
+    const { testActiveProvider } = await import("../extension/background/service-worker.js");
+    const result = await testActiveProvider("local", { onProgress: (value) => progress.push(value) });
+    assert.deepEqual(result.contextProfile, {
+      model: "qwen3-8b",
+      baseUrl: "http://localhost:1234/v1",
+      contextLength: 8192,
+      source: "loaded"
+    });
+    // Reply check, OpenAI-style model list, then LM Studio, which answers; Ollama is not asked.
+    assert.deepEqual(requests, [
+      "POST http://localhost:1234/v1/chat/completions",
+      "GET http://localhost:1234/v1/models",
+      "GET http://localhost:1234/api/v1/models"
+    ]);
+    assert.deepEqual(progress.map(({ step, index, total }) => `${index}/${total} ${step}`), [
+      "1/4 reply",
+      "2/4 models",
+      "3/4 lmStudio"
+    ]);
   } finally {
     globalThis.fetch = originalFetch;
   }

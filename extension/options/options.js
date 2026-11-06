@@ -28,6 +28,8 @@ const MESSAGE_SUBSTITUTION_NAMES = {
   restoreKeyTestSuccessItem: ["provider"],
   restoreKeyTestFailureItem: ["provider", "error"],
   reasoningSettingDetected: ["mode"],
+  providerTestStep: ["current", "total", "step"],
+  contextLengthDetected: ["tokens", "source"],
   durationMinutes: ["minutes"],
   localFontsLoaded: ["count"],
   localLlmRequestUrl: ["url"],
@@ -641,6 +643,36 @@ function applyReasoningProfileFromTestResponse(providerId, response) {
   const profile = response?.ok && response.result?.reasoningProfile;
   const provider = settings.providers?.[providerId];
   if (profile && provider) provider.reasoningProfile = profile;
+  // Custom LLM only: the context size found by this test, or null when the server did not say.
+  if (response?.ok && provider && Object.hasOwn(response.result || {}, "contextProfile")) {
+    provider.contextProfile = response.result.contextProfile || null;
+  }
+}
+
+function getDetectedContextStatus(response) {
+  if (!Object.hasOwn(response?.result || {}, "contextProfile")) return "";
+  const profile = response.result.contextProfile;
+  if (!profile?.contextLength) return t("contextLengthUnknown");
+  return formatMessage("contextLengthDetected", {
+    tokens: Number(profile.contextLength).toLocaleString(uiLanguage),
+    source: t(profile.source === "loaded" ? "contextLengthSourceLoaded" : "contextLengthSourceMax")
+  });
+}
+
+const PROVIDER_TEST_STEP_MESSAGE_KEYS = {
+  reply: "providerTestStepReply",
+  models: "providerTestStepModels",
+  lmStudio: "providerTestStepLmStudio",
+  ollama: "providerTestStepOllama"
+};
+let providerTestInProgressId = "";
+
+// Progress the background sends while the connection test runs; shown on the status line under the button.
+function showProviderTestProgress(message) {
+  if (message?.type !== "llm.testProgress" || !providerTestInProgressId || message.providerId !== providerTestInProgressId) return;
+  const stepKey = PROVIDER_TEST_STEP_MESSAGE_KEYS[message.step];
+  if (!stepKey) return;
+  setStatus(formatMessage("providerTestStep", { current: message.index, total: message.total, step: t(stepKey) }));
 }
 
 function getDetectedReasoningStatus(response) {
@@ -1359,6 +1391,7 @@ async function fetchModelsForSelectedProvider(button) {
     }));
 
     let testResponse;
+    providerTestInProgressId = provider.id;
     try {
       testResponse = await chrome.runtime.sendMessage({
         type: "llm.testActiveProvider",
@@ -1366,6 +1399,8 @@ async function fetchModelsForSelectedProvider(button) {
       });
     } catch (error) {
       testResponse = { ok: false, error: error.message };
+    } finally {
+      providerTestInProgressId = "";
     }
     applyReasoningProfileFromTestResponse(provider.id, testResponse);
     updateProviderTestStatus(provider.id, testResponse?.ok ? "success" : "idle");
@@ -1380,7 +1415,7 @@ async function fetchModelsForSelectedProvider(button) {
         model: recommendedModel.label || recommendedModel.id,
         count: provider.models.length
       });
-      setStatus([status, getDetectedReasoningStatus(testResponse)].filter(Boolean).join(" · "), "success");
+      setStatus([status, getDetectedReasoningStatus(testResponse), getDetectedContextStatus(testResponse)].filter(Boolean).join(" · "), "success");
     } else {
       setStatus(formatMessage("modelsLoadedTestFailed", {
         provider: provider.label,
@@ -1749,10 +1784,16 @@ async function testProvider() {
   await flushAutomaticSave();
   setStatus(t("testing"));
 
-  const response = await chrome.runtime.sendMessage({
-    type: "llm.testActiveProvider",
-    providerId
-  });
+  providerTestInProgressId = providerId;
+  let response;
+  try {
+    response = await chrome.runtime.sendMessage({
+      type: "llm.testActiveProvider",
+      providerId
+    });
+  } finally {
+    providerTestInProgressId = "";
+  }
   if (!response?.ok) {
     await persistProviderTestStatus(providerId, "idle");
     setStatus(`${t("testFailed")}: ${response?.error || "Unknown error"}`, "error");
@@ -1764,7 +1805,8 @@ async function testProvider() {
   await persistProviderTestStatus(providerId, "success", { activate: true });
   setStatus([
     `${response.result.providerLabel} ${t("response")}: ${text}`,
-    getDetectedReasoningStatus(response)
+    getDetectedReasoningStatus(response),
+    getDetectedContextStatus(response)
   ].filter(Boolean).join(" · "), "success");
 }
 
@@ -1794,6 +1836,7 @@ async function init() {
   rememberPlayerOwnedValues(settings);
   selectedProviderId = settings.activeProvider;
   renderAll();
+  chrome.runtime.onMessage?.addListener?.(showProviderTestProgress);
 
   simpleSettingsTab.addEventListener("click", () => setSettingsMode("simple"));
   advancedSettingsTab.addEventListener("click", () => setSettingsMode("advanced"));

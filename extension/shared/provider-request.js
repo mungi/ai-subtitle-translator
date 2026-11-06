@@ -1,4 +1,5 @@
 import { assertProviderEndpoint } from "./provider-security.js";
+import { fitMaxTokensToContext } from "./provider-context.js";
 
 function joinUrl(baseUrl, path) {
   return `${baseUrl.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
@@ -146,7 +147,8 @@ export function buildProviderRequest(provider, { systemPrompt, input, structured
   const model = resolveProviderModel(provider);
   const reasoningMode = resolveReasoningMode(provider, model, reasoningModeOverride);
   const temperature = Number(provider.temperature ?? 0.2);
-  const maxTokens = Number(maxTokensOverride ?? provider.maxTokens ?? 4096);
+  // A Custom LLM whose context size the connection test found asks for no more than fits.
+  const maxTokens = fitMaxTokensToContext(provider, Number(maxTokensOverride ?? provider.maxTokens ?? 4096), `${systemPrompt ?? ""}${input ?? ""}`);
 
   switch (apiStyle) {
     case "openai-responses": {

@@ -327,6 +327,57 @@
       }
     }
   },
+  "providerTestStep": {
+    "message": "연결 테스트 중 ($current$/$total$): $step$",
+    "placeholders": {
+      "current": {
+        "content": "$1",
+        "example": "2"
+      },
+      "total": {
+        "content": "$2",
+        "example": "4"
+      },
+      "step": {
+        "content": "$3",
+        "example": "context"
+      }
+    }
+  },
+  "providerTestStepReply": {
+    "message": "모델 응답 확인"
+  },
+  "providerTestStepModels": {
+    "message": "모델 정보에서 컨텍스트 크기 확인"
+  },
+  "providerTestStepLmStudio": {
+    "message": "LM Studio 방식으로 컨텍스트 크기 확인"
+  },
+  "providerTestStepOllama": {
+    "message": "Ollama 방식으로 컨텍스트 크기 확인"
+  },
+  "contextLengthDetected": {
+    "message": "컨텍스트 $tokens$ 토큰 ($source$)",
+    "placeholders": {
+      "tokens": {
+        "content": "$1",
+        "example": "8,192"
+      },
+      "source": {
+        "content": "$2",
+        "example": "loaded"
+      }
+    }
+  },
+  "contextLengthSourceLoaded": {
+    "message": "서버 실행값"
+  },
+  "contextLengthSourceMax": {
+    "message": "모델 최대값"
+  },
+  "contextLengthUnknown": {
+    "message": "컨텍스트 크기 확인 안 됨"
+  },
   "reasoningSettingUnsupported": {
     "message": "추론 옵션 미지원"
   },

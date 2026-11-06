@@ -3,6 +3,7 @@
 import { buildProviderRequest, extractText } from "./provider-request.js";
 import { assertProviderEndpoint } from "./provider-security.js";
 import { normalizeSummarySystemPrompt } from "./defaults.js";
+import { fitSummaryPartChars } from "./provider-context.js";
 
 export const SUMMARY_PART_MAX_CHARS = 20000;
 const SUMMARY_NOTES_MAX_TOKENS = 4096;
@@ -116,7 +117,8 @@ export async function summarizeTranscript({ text, title = "", languageName = "",
   provider,
   onProgress,
   signal,
-  maxPartChars = SUMMARY_PART_MAX_CHARS,
+  // A Custom LLM with a detected small context gets smaller parts.
+  maxPartChars = fitSummaryPartChars(provider, SUMMARY_PART_MAX_CHARS),
   ...requestOptions
 } = {}) {
   if (!isSummaryProvider(provider)) throw new Error("Summaries need an LLM provider.");

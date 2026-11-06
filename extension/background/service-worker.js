@@ -7,6 +7,7 @@ import { sanitizeProviderErrorMessage } from "../shared/provider-error-sanitizer
 import { assertProviderEndpoint } from "../shared/provider-security.js";
 import { translateSubtitleDocument } from "../shared/translation.js";
 import { isSummaryProvider, summarizeTranscript } from "../shared/summary.js";
+import { CONTEXT_DETECTION_PROVIDER_ID, CONTEXT_DETECTION_STEPS, createContextProfile, detectContextLength } from "../shared/provider-context.js";
 import { benchmarkReasoningModes } from "../shared/reasoning-benchmark.js";
 import { fetchYoutubeCaptionTracks, fetchYoutubeTranscript } from "../platforms/youtube-captions.js";
 import { fetchUdemyCaptionTracks, fetchUdemyTranscript } from "../platforms/udemy-captions.js";
@@ -310,7 +311,7 @@ export async function listProviderModels(provider) {
   }
 }
 
-export async function testActiveProvider(providerId) {
+export async function testActiveProvider(providerId, { onProgress } = {}) {
   const settings = await getSettings();
   const provider = settings.providers[providerId || settings.activeProvider];
   if (!provider) {
@@ -357,6 +358,10 @@ export async function testActiveProvider(providerId) {
     };
     let responseBody;
     let reasoningMode;
+    // Custom LLM: the reply check, then up to three read-only questions about the context size.
+    const detectsContext = provider.id === CONTEXT_DETECTION_PROVIDER_ID;
+    const totalSteps = detectsContext ? 1 + CONTEXT_DETECTION_STEPS.length : 1;
+    if (detectsContext) onProgress?.({ step: "reply", index: 1, total: totalSteps });
     const probeModes = getReasoningProbeModes(provider);
     for (const mode of probeModes) {
       const request = buildProviderRequest(provider, { ...requestOptions, reasoningMode: mode });
@@ -373,11 +378,18 @@ export async function testActiveProvider(providerId) {
       if (!isReasoningOptionError(error) || mode === probeModes.at(-1)) throw error;
     }
 
+    const contextProfile = detectsContext
+      ? createContextProfile(provider, await detectContextLength(provider, {
+        onStep: (step) => onProgress?.({ step, index: 2 + CONTEXT_DETECTION_STEPS.indexOf(step), total: totalSteps })
+      }))
+      : undefined;
+
     return {
       providerId: provider.id,
       providerLabel: provider.label,
       text: extractText(provider, responseBody).trim(),
       reasoningProfile: createReasoningProfile(provider, reasoningMode),
+      ...(detectsContext ? { contextProfile } : {}),
       raw: responseBody
     };
   } catch (error) {
@@ -573,7 +585,12 @@ export function dispatchBackgroundMessage(message, sender, sendResponse) {
   }
 
   if (message?.type === "llm.testActiveProvider") {
-    testActiveProvider(message.providerId)
+    testActiveProvider(message.providerId, {
+      // The settings page shows each step on the status line under the test button.
+      onProgress: (progress) => {
+        chrome.runtime.sendMessage?.({ type: "llm.testProgress", providerId: message.providerId, ...progress })?.catch?.(() => {});
+      }
+    })
       .then((result) => sendResponse({ ok: true, result }))
       .catch((error) => sendResponse({ ok: false, error: error.message }));
     return true;

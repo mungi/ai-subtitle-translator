@@ -327,6 +327,57 @@
       }
     }
   },
+  "providerTestStep": {
+    "message": "Testing connection ($current$/$total$): $step$",
+    "placeholders": {
+      "current": {
+        "content": "$1",
+        "example": "2"
+      },
+      "total": {
+        "content": "$2",
+        "example": "4"
+      },
+      "step": {
+        "content": "$3",
+        "example": "context"
+      }
+    }
+  },
+  "providerTestStepReply": {
+    "message": "checking the model's reply"
+  },
+  "providerTestStepModels": {
+    "message": "reading the context size from model info"
+  },
+  "providerTestStepLmStudio": {
+    "message": "reading the context size the LM Studio way"
+  },
+  "providerTestStepOllama": {
+    "message": "reading the context size the Ollama way"
+  },
+  "contextLengthDetected": {
+    "message": "Context $tokens$ tokens ($source$)",
+    "placeholders": {
+      "tokens": {
+        "content": "$1",
+        "example": "8,192"
+      },
+      "source": {
+        "content": "$2",
+        "example": "loaded"
+      }
+    }
+  },
+  "contextLengthSourceLoaded": {
+    "message": "as loaded on the server"
+  },
+  "contextLengthSourceMax": {
+    "message": "model maximum"
+  },
+  "contextLengthUnknown": {
+    "message": "Context size not reported"
+  },
   "reasoningSettingUnsupported": {
     "message": "Reasoning option unsupported"
   },
