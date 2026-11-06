@@ -1,18 +1,32 @@
 import { buildDefaultCustom2StyleSystemPrompt, buildDefaultCustomStyleSystemPrompt, DEFAULT_SETTINGS, extractStyleSystemPrompt, getTargetLanguageLabel, normalizeCustomStyleLabel, normalizeLlmParallelRequests, normalizeSummarySystemPrompt, PROVIDERS, TARGET_LANGUAGES, WEB_FONT_PRESETS } from "./defaults.js";
 import { clearEncryptedProviderSecrets, readEncryptedProviderSecrets, writeEncryptedProviderSecrets } from "./secret-storage.js";
+import { CUSTOM_HEADER_SECRET_SUFFIX, CUSTOM_LLM_PROVIDER_ID, normalizeCustomHeaders, normalizeJsonMode, normalizeReasoningEffort } from "./custom-llm-options.js";
 
 const SETTINGS_KEY = "llmSettings";
 const MIN_CHUNK_DURATION_SECONDS = 2 * 60;
 const MAX_CHUNK_DURATION_SECONDS = 15 * 60;
 
+// Custom LLM header values can be tokens, so they are kept in the encrypted vault like API keys,
+// as one JSON record per provider ("local:headers"); the settings keep only the header names.
+function hasHeaderValues(provider) {
+  return Array.isArray(provider?.customHeaders)
+    && provider.customHeaders.some((header) => typeof header?.value === "string" && header.value.length > 0);
+}
+
 function collectProviderSecrets(settings = {}) {
-  return Object.fromEntries(Object.entries(settings.providers || {})
-    .filter(([, provider]) => typeof provider?.apiKey === "string" && provider.apiKey.length > 0)
-    .map(([id, provider]) => [id, provider.apiKey]));
+  const secrets = {};
+  for (const [id, provider] of Object.entries(settings.providers || {})) {
+    if (typeof provider?.apiKey === "string" && provider.apiKey.length > 0) secrets[id] = provider.apiKey;
+    if (hasHeaderValues(provider)) {
+      secrets[`${id}${CUSTOM_HEADER_SECRET_SUFFIX}`] = JSON.stringify(provider.customHeaders.map((header) => String(header?.value ?? "")));
+    }
+  }
+  return secrets;
 }
 
 function hasProviderSecretFields(settings = {}) {
-  return Object.values(settings.providers || {}).some((provider) => Object.hasOwn(provider || {}, "apiKey"));
+  return Object.values(settings.providers || {}).some((provider) => Object.hasOwn(provider || {}, "apiKey")
+    || (Array.isArray(provider?.customHeaders) && provider.customHeaders.some((header) => Object.hasOwn(header || {}, "value"))));
 }
 
 function omitProviderSecrets(settings = {}) {
@@ -20,6 +34,9 @@ function omitProviderSecrets(settings = {}) {
     ...settings,
     providers: Object.fromEntries(Object.entries(settings.providers || {}).map(([id, provider]) => {
       const { apiKey: _apiKey, ...publicProvider } = provider || {};
+      if (Array.isArray(publicProvider.customHeaders)) {
+        publicProvider.customHeaders = publicProvider.customHeaders.map((header) => ({ name: String(header?.name ?? "") }));
+      }
       return [id, publicProvider];
     }))
   };
@@ -28,6 +45,18 @@ function omitProviderSecrets(settings = {}) {
 function applyProviderSecrets(settings, secrets = {}) {
   for (const [id, provider] of Object.entries(settings.providers || {})) {
     provider.apiKey = secrets[id] || "";
+    if (Array.isArray(provider.customHeaders)) {
+      let values = [];
+      try {
+        values = JSON.parse(secrets[`${id}${CUSTOM_HEADER_SECRET_SUFFIX}`] || "[]");
+      } catch {
+        values = [];
+      }
+      provider.customHeaders = provider.customHeaders.map((header, index) => ({
+        name: header.name,
+        value: typeof values[index] === "string" ? values[index] : ""
+      }));
+    }
   }
   return settings;
 }
@@ -67,6 +96,11 @@ function mergeProvider(defaultProvider, storedProvider = {}) {
   if (defaultProvider.id === "googleTranslate"
     && storedProvider.baseUrl === "https://translate.googleapis.com/translate_a/single") {
     provider.baseUrl = defaultProvider.baseUrl;
+  }
+  if (defaultProvider.id === CUSTOM_LLM_PROVIDER_ID) {
+    provider.reasoningEffort = normalizeReasoningEffort(provider.reasoningEffort);
+    provider.jsonMode = normalizeJsonMode(provider.jsonMode);
+    provider.customHeaders = normalizeCustomHeaders(provider.customHeaders);
   }
   return provider;
 }

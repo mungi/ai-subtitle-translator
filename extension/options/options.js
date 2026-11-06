@@ -1,5 +1,6 @@
 import { buildDefaultCustom2StyleSystemPrompt, buildDefaultCustomStyleSystemPrompt, buildStyleSystemPrompt, DEFAULT_CUSTOM_WEB_FONT_CSS, getDeepLEndpoint, DEFAULT_SETTINGS, extractStyleSystemPrompt, getTargetLanguageLabel, getWebFontPresetLabel, normalizeCustomStyleLabel, normalizeLlmParallelRequests, normalizeSummarySystemPrompt, DEFAULT_SUMMARY_SYSTEM_PROMPT, TARGET_LANGUAGES, TRANSLATION_STYLES, WEB_FONT_PRESETS } from "../shared/defaults.js";
 import { getProviderGuide } from "../shared/provider-guides.js";
+import { CUSTOM_LLM_JSON_MODES, CUSTOM_LLM_REASONING_OPTIONS, isUsableHeaderName, MAX_CUSTOM_HEADERS, normalizeCustomHeaders, normalizeJsonMode, normalizeReasoningEffort } from "../shared/custom-llm-options.js";
 import { getConfiguredKeyProviders, validateConfiguredProviderKeys } from "../shared/provider-key-validation.js";
 import { selectRecommendedModel } from "../shared/model-recommendations.js";
 import { getOrderedProviders, PROVIDER_TAB_SEPARATOR_AFTER_ID } from "../shared/provider-order.js";
@@ -1124,6 +1125,10 @@ function readProviderForm() {
     provider.model = withOpenRouterNitro(provider.model, provider.nitro);
   }
 
+  if (provider.id === "local" && providerForm.querySelector("[data-custom-header-fields]")) {
+    provider.customHeaders = readCustomHeaderRows();
+  }
+
   if (provider.apiStyle === "deepl") {
     provider.baseUrl = getDeepLEndpoint(provider.plan);
     const baseUrlInput = providerForm.elements.namedItem("baseUrl");
@@ -1448,8 +1453,155 @@ function renderProviderForm() {
   }
 
   if (provider.id === "local") {
+    providerForm.append(...renderCustomLlmOptionFields(provider));
     providerForm.append(renderLocalLlmCheck(provider));
   }
+}
+
+const CUSTOM_LLM_REASONING_LABEL_KEYS = {
+  auto: "customLlmReasoningAuto",
+  omit: "customLlmReasoningOmit"
+};
+const CUSTOM_LLM_JSON_MODE_LABEL_KEYS = {
+  off: "customLlmJsonModeOff",
+  json_object: "customLlmJsonModeObject",
+  json_schema: "customLlmJsonModeSchema"
+};
+
+function renderOptionSelect(name, labelKey, options, selected) {
+  const wrapper = document.createElement("label");
+  const label = document.createElement("span");
+  label.textContent = t(labelKey);
+  const select = document.createElement("select");
+  select.name = name;
+  for (const [value, text] of options) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = text;
+    select.append(option);
+  }
+  select.value = selected;
+  wrapper.append(label, select);
+  return wrapper;
+}
+
+// Reasoning effort, JSON response mode and up to three extra headers; Custom LLM only.
+function renderCustomLlmOptionFields(provider) {
+  const reasoning = renderOptionSelect(
+    "reasoningEffort",
+    "customLlmReasoning",
+    CUSTOM_LLM_REASONING_OPTIONS.map((value) => [value, CUSTOM_LLM_REASONING_LABEL_KEYS[value] ? t(CUSTOM_LLM_REASONING_LABEL_KEYS[value]) : value]),
+    normalizeReasoningEffort(provider.reasoningEffort)
+  );
+  const jsonMode = renderOptionSelect(
+    "jsonMode",
+    "customLlmJsonMode",
+    CUSTOM_LLM_JSON_MODES.map((value) => [value, t(CUSTOM_LLM_JSON_MODE_LABEL_KEYS[value])]),
+    normalizeJsonMode(provider.jsonMode)
+  );
+  return [reasoning, jsonMode, renderCustomHeaderFields(provider)];
+}
+
+function renderCustomHeaderFields(provider) {
+  const section = document.createElement("div");
+  section.className = "custom-header-fields wide";
+  section.dataset.customHeaderFields = "true";
+
+  const titleRow = document.createElement("div");
+  titleRow.className = "custom-header-title-row";
+  const title = document.createElement("span");
+  title.textContent = t("customLlmHeaders");
+  const addButton = document.createElement("button");
+  addButton.type = "button";
+  addButton.className = "ghost custom-header-add";
+  addButton.textContent = "+";
+  addButton.title = t("customLlmHeaderAdd");
+  addButton.setAttribute("aria-label", t("customLlmHeaderAdd"));
+  titleRow.append(title, addButton);
+
+  const list = document.createElement("div");
+  list.className = "custom-header-list";
+  const headers = normalizeCustomHeaders(provider.customHeaders);
+  const updateAddButton = () => {
+    addButton.disabled = list.children.length >= MAX_CUSTOM_HEADERS;
+  };
+  const appendRow = (header = { name: "", value: "" }) => {
+    list.append(renderCustomHeaderRow(header, () => {
+      updateAddButton();
+      readProviderForm();
+      updateLocalLlmCheck();
+      scheduleAutomaticSave({ immediate: true });
+    }));
+    updateAddButton();
+  };
+  headers.forEach((header) => appendRow(header));
+  addButton.addEventListener("click", () => {
+    if (list.children.length >= MAX_CUSTOM_HEADERS) return;
+    appendRow();
+    list.lastElementChild?.querySelector("input")?.focus();
+  });
+
+  const guide = document.createElement("p");
+  guide.className = "custom-header-guide";
+  guide.textContent = t("customLlmHeadersGuide");
+  section.append(titleRow, list, guide);
+  updateAddButton();
+  return section;
+}
+
+// One header row. The inputs have no name, so the generic form reader skips them; readCustomHeaderRows reads them.
+function renderCustomHeaderRow(header, onRemove) {
+  const row = document.createElement("div");
+  row.className = "custom-header-row";
+  row.dataset.customHeaderRow = "true";
+
+  const nameInput = document.createElement("input");
+  nameInput.type = "text";
+  nameInput.dataset.customHeaderName = "true";
+  nameInput.placeholder = t("customLlmHeaderName");
+  nameInput.setAttribute("aria-label", t("customLlmHeaderName"));
+  nameInput.autocomplete = "off";
+  nameInput.spellcheck = false;
+  nameInput.value = header.name || "";
+  const markName = () => {
+    const name = nameInput.value.trim();
+    nameInput.classList.toggle("invalid", Boolean(name) && !isUsableHeaderName(name));
+    nameInput.title = name && !isUsableHeaderName(name) ? t("customLlmHeaderNameInvalid") : "";
+  };
+  nameInput.addEventListener("input", markName);
+  markName();
+
+  // Values can be tokens, so they are hidden like API keys and stored in the encrypted vault.
+  const valueInput = document.createElement("input");
+  valueInput.type = "password";
+  valueInput.dataset.customHeaderValue = "true";
+  valueInput.className = "api-key-input";
+  valueInput.placeholder = t("customLlmHeaderValue");
+  valueInput.setAttribute("aria-label", t("customLlmHeaderValue"));
+  valueInput.autocomplete = "off";
+  valueInput.spellcheck = false;
+  valueInput.value = header.value || "";
+
+  const removeButton = document.createElement("button");
+  removeButton.type = "button";
+  removeButton.className = "ghost custom-header-remove";
+  removeButton.textContent = "×";
+  removeButton.title = t("customLlmHeaderRemove");
+  removeButton.setAttribute("aria-label", t("customLlmHeaderRemove"));
+  removeButton.addEventListener("click", () => {
+    row.remove();
+    onRemove();
+  });
+
+  row.append(nameInput, valueInput, removeButton);
+  return row;
+}
+
+function readCustomHeaderRows() {
+  return normalizeCustomHeaders([...providerForm.querySelectorAll("[data-custom-header-row]")].map((row) => ({
+    name: row.querySelector("[data-custom-header-name]")?.value,
+    value: row.querySelector("[data-custom-header-value]")?.value
+  })));
 }
 
 function readProviderDraft(provider) {
@@ -1476,12 +1628,17 @@ function buildLocalLlmCheckText(provider) {
   const model = String(draft.model || "google/gemma-4-e4b").trim();
   const apiKey = String(draft.apiKey || "").trim();
   const authHeader = apiKey ? ` \\\n  -H "Authorization: Bearer \${API_KEY}"` : "";
+  // Extra header values are shown as placeholders, like the API key.
+  const extraHeaders = (providerForm.querySelector?.("[data-custom-header-fields]") ? readCustomHeaderRows() : normalizeCustomHeaders(draft.customHeaders))
+    .filter((header) => header.value && isUsableHeaderName(header.name))
+    .map((header) => ` \\\n  -H "${header.name}: \${${header.name.toUpperCase().replace(/[^A-Z0-9]+/g, "_")}}"`)
+    .join("");
 
   return [
     t("localLlmBaseUrlComment"),
     t("localLlmRequestUrl", { url }),
     `curl ${url} \\`,
-    "  -H \"Content-Type: application/json\"" + authHeader + " \\",
+    "  -H \"Content-Type: application/json\"" + authHeader + extraHeaders + " \\",
     "  -d '{",
     `    "model": "${model}",`,
     "    \"messages\": [",

@@ -86,7 +86,10 @@ export const PROVIDERS = {
     apiKey: "",
     model: "google/gemma-4-e4b",
     temperature: 0.2,
-    maxTokens: 16384
+    maxTokens: 16384,
+    reasoningEffort: "auto",
+    jsonMode: "off",
+    customHeaders: []
   }
 };
 

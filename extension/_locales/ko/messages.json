@@ -378,6 +378,48 @@
   "contextLengthUnknown": {
     "message": "컨텍스트 크기 확인 안 됨"
   },
+  "customLlmReasoning": {
+    "message": "추론(thinking)"
+  },
+  "customLlmReasoningAuto": {
+    "message": "자동(최소)"
+  },
+  "customLlmReasoningOmit": {
+    "message": "보내지 않음"
+  },
+  "customLlmJsonMode": {
+    "message": "JSON 응답 모드"
+  },
+  "customLlmJsonModeOff": {
+    "message": "사용 안 함"
+  },
+  "customLlmJsonModeObject": {
+    "message": "JSON 객체 (json_object)"
+  },
+  "customLlmJsonModeSchema": {
+    "message": "JSON 스키마 (json_schema)"
+  },
+  "customLlmHeaders": {
+    "message": "추가 헤더"
+  },
+  "customLlmHeaderAdd": {
+    "message": "헤더 추가"
+  },
+  "customLlmHeaderRemove": {
+    "message": "헤더 삭제"
+  },
+  "customLlmHeaderName": {
+    "message": "헤더 이름"
+  },
+  "customLlmHeaderValue": {
+    "message": "값"
+  },
+  "customLlmHeaderNameInvalid": {
+    "message": "사용할 수 없는 헤더 이름입니다. 이 헤더는 보내지 않습니다."
+  },
+  "customLlmHeadersGuide": {
+    "message": "번역·요약·연결 테스트 등 이 서버로 보내는 모든 요청에 붙습니다. 최대 3개, 값은 API 키처럼 암호화해 저장합니다."
+  },
   "reasoningSettingUnsupported": {
     "message": "추론 옵션 미지원"
   },

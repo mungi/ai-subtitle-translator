@@ -378,6 +378,48 @@
   "contextLengthUnknown": {
     "message": "Context size not reported"
   },
+  "customLlmReasoning": {
+    "message": "Reasoning (thinking)"
+  },
+  "customLlmReasoningAuto": {
+    "message": "Auto (lowest)"
+  },
+  "customLlmReasoningOmit": {
+    "message": "Don't send"
+  },
+  "customLlmJsonMode": {
+    "message": "JSON response mode"
+  },
+  "customLlmJsonModeOff": {
+    "message": "Off"
+  },
+  "customLlmJsonModeObject": {
+    "message": "JSON object (json_object)"
+  },
+  "customLlmJsonModeSchema": {
+    "message": "JSON schema (json_schema)"
+  },
+  "customLlmHeaders": {
+    "message": "Extra headers"
+  },
+  "customLlmHeaderAdd": {
+    "message": "Add header"
+  },
+  "customLlmHeaderRemove": {
+    "message": "Remove header"
+  },
+  "customLlmHeaderName": {
+    "message": "Header name"
+  },
+  "customLlmHeaderValue": {
+    "message": "Value"
+  },
+  "customLlmHeaderNameInvalid": {
+    "message": "This header name cannot be used, so the header is not sent."
+  },
+  "customLlmHeadersGuide": {
+    "message": "Sent with every request to this server, including translation, summaries and the connection test. Up to 3; values are stored encrypted like API keys."
+  },
   "reasoningSettingUnsupported": {
     "message": "Reasoning option unsupported"
   },

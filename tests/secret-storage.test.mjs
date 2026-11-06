@@ -155,3 +155,34 @@ test("concurrent first writes keep the vault and distributed key fragments consi
     globalThis.chrome = previousChrome;
   }
 });
+
+test("Custom LLM header values are encrypted with the API keys and never reach public settings", async () => {
+  const previousChrome = globalThis.chrome;
+  const harness = createChromeStorage();
+  globalThis.chrome = harness.chrome;
+
+  try {
+    const settings = await getSettings();
+    settings.providers.local.apiKey = "local-plain-key";
+    settings.providers.local.customHeaders = [
+      { name: "X-Proxy-Token", value: "header-plain-secret" },
+      { name: "X-Team", value: "" }
+    ];
+    await saveSettings(settings);
+
+    const serialized = JSON.stringify(harness.data);
+    assert.doesNotMatch(serialized, /header-plain-secret|local-plain-key/);
+    assert.deepEqual(harness.data.llmSettings.providers.local.customHeaders, [{ name: "X-Proxy-Token" }, { name: "X-Team" }]);
+
+    const restored = await getSettings();
+    assert.deepEqual(restored.providers.local.customHeaders, [
+      { name: "X-Proxy-Token", value: "header-plain-secret" },
+      { name: "X-Team", value: "" }
+    ]);
+    const publicSettings = await getPublicSettings();
+    assert.doesNotMatch(JSON.stringify(publicSettings), /header-plain-secret/);
+    assert.deepEqual(publicSettings.providers.local.customHeaders, [{ name: "X-Proxy-Token" }, { name: "X-Team" }]);
+  } finally {
+    globalThis.chrome = previousChrome;
+  }
+});

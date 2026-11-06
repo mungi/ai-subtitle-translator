@@ -583,6 +583,61 @@ textarea:focus {
   grid-column: 1 / -1;
 }
 
+.custom-header-fields {
+  display: grid;
+  gap: 8px;
+}
+
+.custom-header-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.custom-header-list {
+  display: grid;
+  gap: 8px;
+}
+
+.custom-header-list:empty {
+  display: none;
+}
+
+.custom-header-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) 36px;
+  gap: 8px;
+  align-items: center;
+}
+
+.custom-header-row .api-key-input {
+  padding-right: 10px;
+}
+
+.custom-header-add,
+.custom-header-remove {
+  width: 36px;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.custom-header-add:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.custom-header-row input.invalid {
+  border-color: #dc2626;
+}
+
+.custom-header-guide {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .local-llm-check {
   border-top: 1px solid var(--line);
   margin-top: 2px;

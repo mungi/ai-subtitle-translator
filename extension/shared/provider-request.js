@@ -1,5 +1,6 @@
 import { assertProviderEndpoint } from "./provider-security.js";
 import { fitMaxTokensToContext } from "./provider-context.js";
+import { buildCustomHeaders, CUSTOM_LLM_PROVIDER_ID, normalizeJsonMode, normalizeReasoningEffort } from "./custom-llm-options.js";
 
 function joinUrl(baseUrl, path) {
   return `${baseUrl.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
@@ -74,6 +75,9 @@ export function getReasoningProbeModes(provider) {
   }
   if (provider.apiStyle === "anthropic-messages") return ["low", "omit"];
   if (provider.id === "nvidiaNim") return ["low", "omit"];
+  // A reasoning value chosen in Custom LLM settings is the only one the connection test tries.
+  const chosenEffort = getChosenReasoningEffort(provider);
+  if (chosenEffort) return [chosenEffort];
   if (provider.id === "local" || provider.id === "openai" || provider.id === "openrouter") {
     return ["none", "minimal", "low", "omit"];
   }
@@ -89,8 +93,17 @@ export function createReasoningProfile(provider, mode) {
   };
 }
 
+// The Custom LLM's reasoning setting when it is not "auto"; "omit" means send no reasoning_effort.
+function getChosenReasoningEffort(provider) {
+  if (provider?.id !== CUSTOM_LLM_PROVIDER_ID) return null;
+  const effort = normalizeReasoningEffort(provider.reasoningEffort);
+  return effort === "auto" ? null : effort;
+}
+
 function resolveReasoningMode(provider, model, override) {
   if (override !== undefined) return override;
+  const chosenEffort = getChosenReasoningEffort(provider);
+  if (chosenEffort) return chosenEffort;
   const profile = provider.reasoningProfile;
   if (profile?.model === model && profile.apiStyle === provider.apiStyle
     && profile.baseUrl === provider.baseUrl && getReasoningProbeModes(provider).includes(profile.mode)) {
@@ -114,7 +127,17 @@ function buildOpenAICompatibleOptions(provider, { structuredOutput = true, reaso
     };
   }
 
-  if (provider.id === "nvidiaNim" || provider.id === "local") {
+  if (provider.id === "local") {
+    // JSON mode is the user's choice: many local servers do not accept response_format.
+    const jsonMode = structuredOutput ? normalizeJsonMode(provider.jsonMode) : "off";
+    return {
+      ...(reasoningMode === "omit" ? {} : { reasoning_effort: reasoningMode }),
+      ...(jsonMode === "json_schema" ? { response_format: TRANSLATION_RESPONSE_FORMAT } : {}),
+      ...(jsonMode === "json_object" ? { response_format: { type: "json_object" } } : {})
+    };
+  }
+
+  if (provider.id === "nvidiaNim") {
     return reasoningMode === "omit" ? {} : { reasoning_effort: reasoningMode };
   }
 
@@ -254,6 +277,9 @@ export function buildProviderRequest(provider, { systemPrompt, input, structured
       if (provider.appTitle) {
         headers["X-Title"] = provider.appTitle;
       }
+
+      // Custom LLM extra headers; one named Authorization replaces the Bearer API key header.
+      Object.assign(headers, buildCustomHeaders(provider));
 
       return {
         url: joinUrl(baseUrl, "chat/completions"),

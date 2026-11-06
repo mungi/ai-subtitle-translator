@@ -693,3 +693,48 @@ test("the subtitle ON/OFF toggle is sent only to supported video site tabs", asy
   assert.ok(queries[0].url.includes("https://*.udemy.com/course/*/learn/*"));
   assert.deepEqual(delivered, [{ tabId: 3, message: { type: "subtitles.setEnabled", enabled: false } }]);
 });
+
+test("Custom LLM connection test sends only the chosen reasoning value, in JSON mode, with extra headers", async () => {
+  const chatRequests = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.chrome = {
+    runtime: { id: "test-extension", onMessage: { addListener() {} } },
+    storage: {
+      local: {
+        setAccessLevel: async () => {},
+        set: async () => {},
+        get: async () => ({
+          llmSettings: {
+            providers: {
+              local: {
+                model: "qwen3-8b",
+                baseUrl: "http://localhost:1234/v1",
+                reasoningEffort: "medium",
+                jsonMode: "json_object",
+                customHeaders: [{ name: "X-Team" }]
+              }
+            }
+          }
+        })
+      }
+    }
+  };
+  globalThis.fetch = async (url, init = {}) => {
+    if (!String(url).endsWith("/chat/completions")) return { ok: false, status: 404, json: async () => ({}) };
+    chatRequests.push({ headers: init.headers, body: JSON.parse(init.body) });
+    return { ok: true, json: async () => ({ choices: [{ message: { content: "{\"ok\":true}" } }] }) };
+  };
+
+  try {
+    const { testActiveProvider } = await import("../extension/background/service-worker.js");
+    const result = await testActiveProvider("local");
+    assert.equal(chatRequests.length, 1);
+    assert.equal(chatRequests[0].body.reasoning_effort, "medium");
+    assert.deepEqual(chatRequests[0].body.response_format, { type: "json_object" });
+    assert.equal(result.reasoningProfile.mode, "medium");
+    // The header has a name but its value lives in the vault, which this test leaves empty, so it is not sent.
+    assert.equal(Object.hasOwn(chatRequests[0].headers, "X-Team"), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

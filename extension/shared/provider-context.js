@@ -4,6 +4,8 @@
 // maximum), LM Studio /api/v0 and Ollama /api/show (maximum only). OpenAI-compatible /v1/models has
 // no standard field, so a few common extras are read when present.
 
+import { buildCustomHeaders } from "./custom-llm-options.js";
+
 export const CONTEXT_DETECTION_PROVIDER_ID = "local";
 const CONTEXT_REQUEST_TIMEOUT_MS = 5000;
 // Rough characters per token used to size requests. Low on purpose: Korean, Japanese and Chinese
@@ -65,7 +67,7 @@ export function getServerRootUrl(baseUrl) {
 
 function authHeaders(provider) {
   const apiKey = String(provider.apiKey || "").trim();
-  return apiKey ? { Authorization: `Bearer ${apiKey}` } : {};
+  return { ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}), ...buildCustomHeaders(provider) };
 }
 
 async function fetchJsonQuietly(url, init) {

@@ -8,6 +8,7 @@ import { assertProviderEndpoint } from "../shared/provider-security.js";
 import { translateSubtitleDocument } from "../shared/translation.js";
 import { isSummaryProvider, summarizeTranscript } from "../shared/summary.js";
 import { CONTEXT_DETECTION_PROVIDER_ID, CONTEXT_DETECTION_STEPS, createContextProfile, detectContextLength } from "../shared/provider-context.js";
+import { buildCustomHeaders, CUSTOM_LLM_PROVIDER_ID, normalizeJsonMode } from "../shared/custom-llm-options.js";
 import { benchmarkReasoningModes } from "../shared/reasoning-benchmark.js";
 import { fetchYoutubeCaptionTracks, fetchYoutubeTranscript } from "../platforms/youtube-captions.js";
 import { fetchUdemyCaptionTracks, fetchUdemyTranscript } from "../platforms/udemy-captions.js";
@@ -276,6 +277,7 @@ export async function listProviderModels(provider) {
         if (provider.apiKey?.trim()) {
           headers.Authorization = `Bearer ${provider.apiKey.trim()}`;
         }
+        Object.assign(headers, buildCustomHeaders(provider));
         const body = await fetchJson(joinUrl(baseUrl, "models"), { headers });
         return provider.id === "openrouter"
           ? normalizeOpenRouterModelList(body.data || [])
@@ -353,7 +355,8 @@ export async function testActiveProvider(providerId, { onProgress } = {}) {
     const requestOptions = {
       systemPrompt: TEST_SYSTEM_PROMPT,
       input: TEST_INPUT,
-      structuredOutput: false,
+      // A Custom LLM with JSON mode on is tested in that mode, so a server that refuses it fails here.
+      structuredOutput: provider.id === CUSTOM_LLM_PROVIDER_ID && normalizeJsonMode(provider.jsonMode) !== "off",
       maxTokens: PROVIDER_CONNECTION_TEST_MAX_TOKENS
     };
     let responseBody;

@@ -378,6 +378,48 @@
   "contextLengthUnknown": {
     "message": "コンテキストサイズは確認できませんでした"
   },
+  "customLlmReasoning": {
+    "message": "推論（thinking）"
+  },
+  "customLlmReasoningAuto": {
+    "message": "自動（最小）"
+  },
+  "customLlmReasoningOmit": {
+    "message": "送信しない"
+  },
+  "customLlmJsonMode": {
+    "message": "JSON 応答モード"
+  },
+  "customLlmJsonModeOff": {
+    "message": "使用しない"
+  },
+  "customLlmJsonModeObject": {
+    "message": "JSON オブジェクト（json_object）"
+  },
+  "customLlmJsonModeSchema": {
+    "message": "JSON スキーマ（json_schema）"
+  },
+  "customLlmHeaders": {
+    "message": "追加ヘッダー"
+  },
+  "customLlmHeaderAdd": {
+    "message": "ヘッダーを追加"
+  },
+  "customLlmHeaderRemove": {
+    "message": "ヘッダーを削除"
+  },
+  "customLlmHeaderName": {
+    "message": "ヘッダー名"
+  },
+  "customLlmHeaderValue": {
+    "message": "値"
+  },
+  "customLlmHeaderNameInvalid": {
+    "message": "使用できないヘッダー名です。このヘッダーは送信しません。"
+  },
+  "customLlmHeadersGuide": {
+    "message": "翻訳・要約・接続テストなど、このサーバーへのすべてのリクエストに付きます。最大 3 個。値は API キーと同様に暗号化して保存します。"
+  },
   "reasoningSettingUnsupported": {
     "message": "推論オプション非対応"
   },
