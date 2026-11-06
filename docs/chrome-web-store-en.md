@@ -55,6 +55,13 @@ Naturally translate subtitles from videos on the following websites into your pr
   - If you have a DeepL API key, you can use DeepL for fast translation (Free or Pro plan).
 
 # Major Changes
+  [ v0.2.1 (2026-11-07) ]
+  - Added downloads for AI-translated subtitles and summaries.
+  - Improved subtitle styles and the subtitle box.
+  - Richer player menu: model names and a word highlight on/off switch (YouTube).
+  - Shows when YouTube auto-translation is in use (default).
+  - Temporary translation now always uses Google Translate.
+
   [ v0.2.0 (2026-11-01) ]
   ※ Site access now covers all sites. Chrome pauses the extension after this update until you approve the new permission on the extensions page. (See "Permissions" below.)
   - Dual subtitles are now the default, with separate fonts and a top/bottom position option.

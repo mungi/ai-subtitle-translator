@@ -4,7 +4,7 @@
   "description": "__MSG_extensionDescription__",
   "default_locale": "en",
   "minimum_chrome_version": "102",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "action": {
     "default_popup": "popup/popup.html",
     "default_icon": {
