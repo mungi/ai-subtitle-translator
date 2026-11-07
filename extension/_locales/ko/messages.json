@@ -6,7 +6,7 @@
     "message": "영상의 문맥을 살려, 자연스러운 자막 번역을 제공합니다."
   },
   "supportedPlatformsDescription": {
-    "message": "지원 플랫폼 : Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI"
+    "message": "지원 플랫폼 : Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI, edX"
   },
   "websiteLabel": {
     "message": "웹사이트 :"
@@ -991,7 +991,7 @@
     "message": "자동 생성 자막처럼 짧게 끊기는 자막과 문장 중간에서 줄이 나뉜 사이트 자막을 읽기 좋은 구문 단위로 다시 묶습니다. 단어별 시간이 있는 자동 생성 자막은 각 단어의 원래 시간을 그대로 유지합니다."
   },
   "wordProgressHighlight": {
-    "message": "단어 진행 강조 표시(YouTube 한정)"
+    "message": "단어 진행 표시(YouTube 한정)"
   },
   "sourcePreviewText": {
     "message": "Original subtitle preview"
@@ -1024,7 +1024,7 @@
     "message": "YouTube 자막"
   },
   "contentWordHighlight": {
-    "message": "단어 강조"
+    "message": "진행 표시"
   },
   "contentTranslationPositionBottom": {
     "message": "하단"
@@ -1141,21 +1141,7 @@
     "message": "범용 동영상 플레이어 (테크니컬 프리뷰)"
   },
   "genericPlayerDescription": {
-    "message": "동영상 페이지에서 툴바 팝업으로 추가한 사이트에서만 HTML5 동영상의 자막(<track> 파일, 플레이어 자막 트랙, HLS 자막)을 찾아 번역합니다. 사이트에 따라 다르게 동작할 수 있습니다."
-  },
-  "popupSiteToggle": {
-    "message": "이 사이트에서 AST"
-  },
-  "popupSiteDedicatedNote": {
-    "message": "$host$ · $platform$ 전체에 적용됩니다",
-    "placeholders": {
-      "host": {
-        "content": "$1"
-      },
-      "platform": {
-        "content": "$2"
-      }
-    }
+    "message": "동영상 페이지에서 툴바 팝업으로 추가한 사이트에서만 HTML5 동영상의 자막(<track> 파일, 플레이어 자막 트랙, HLS 자막)을 찾아 번역합니다."
   },
   "genericAllowedHostsTitle": {
     "message": "범용 플레이어 지원 목록"
@@ -1196,5 +1182,20 @@
   },
   "popupGenericSiteGuide": {
     "message": "범용 플레이어 (테크니컬 프리뷰)"
+  },
+  "genericPlayerReportPrefix": {
+    "message": "동작하지 않는 웹사이트가 있으면 다음 URL에서 알려주세요: "
+  },
+  "contentFontSize": {
+    "message": "글자 크기"
+  },
+  "contentFontSizeDecrease": {
+    "message": "글자 작게"
+  },
+  "contentFontSizeIncrease": {
+    "message": "글자 크게"
+  },
+  "contentMissingEdx": {
+    "message": "edX 자막 정보를 찾지 못했습니다."
   }
 }

@@ -8,7 +8,7 @@ web
 
 ## Users
 
-- **Online course learners (primary):** people watching foreign-language lectures on Udemy, YouTube, TED, NVIDIA Academy, and Vimeo (and, additionally, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, and DeepLearning.AI) who want subtitles in their own language while they study.
+- **Online course learners (primary):** people watching foreign-language lectures on Udemy, YouTube, TED, NVIDIA Academy, and Vimeo (and, additionally, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI, and edX) who want subtitles in their own language while they study.
 - **Developers and power users:** people who run local LLMs or hold API keys with several AI providers and want to plug those into subtitle translation.
 - **General YouTube viewers:** people who want to follow foreign-language videos beyond lectures, such as talks, interviews, and vlogs.
 

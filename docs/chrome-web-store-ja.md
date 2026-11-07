@@ -11,6 +11,7 @@
   - O'Reilly: https://www.oreilly.com/
   - NVIDIA On-Demand: https://www.nvidia.com/en-us/on-demand/
   - DeepLearning.AI: https://learn.deeplearning.ai/
+  - edX: https://learning.edx.org/
 
 # 主な特徴
   - Google 翻訳で字幕をすばやく翻訳するか、LLM を接続して文脈を考慮した自然な翻訳を利用できます。
@@ -26,7 +27,7 @@
   - 無料利用枠、制限、発生する料金は、各 LLM API プロバイダーのポリシーを確認してください。
 
 # 主な機能
-  - Udemy、NVIDIA Academy、YouTube、TED、Vimeo 動画の字幕翻訳（ほか Coursera、LinkedIn Learning、O'Reilly、NVIDIA On-Demand、DeepLearning.AI）
+  - Udemy、NVIDIA Academy、YouTube、TED、Vimeo 動画の字幕翻訳（ほか Coursera、LinkedIn Learning、O'Reilly、NVIDIA On-Demand、DeepLearning.AI、edX）
   - 原文字幕の流れを考慮した AI 文脈翻訳
   - Google 翻訳による高速翻訳を標準搭載
   - LLM 翻訳の準備中は高速翻訳を先に表示
@@ -105,7 +106,7 @@
       - Chrome のサイトアクセス一覧にアドレスが長く並び、かえって分かりにくかった問題を整理しました。
       - 汎用動画プレーヤー（テクニカルプレビュー）: ユーザーがツールバーのポップアップから汎用プレーヤーの対応リストに追加したサイトにのみ動画検出用の小さなスクリプトを登録し、字幕付き動画のあるフレームにのみ字幕スクリプトを挿入してその動画の字幕を翻訳します。サイトはユーザーが選ぶため、サイトごとの権限を事前に列挙できません。
     - 実際の利用範囲
-      - 字幕表示スクリプトは対応動画サイト（Udemy、NVIDIA Academy、YouTube、TED、Vimeo、Coursera、LinkedIn Learning、O'Reilly、NVIDIA On-Demand、DeepLearning.AI）にのみ挿入します。その他のウェブサイトの内容を読み取ったり変更したりしません。
+      - 字幕表示スクリプトは対応動画サイト（Udemy、NVIDIA Academy、YouTube、TED、Vimeo、Coursera、LinkedIn Learning、O'Reilly、NVIDIA On-Demand、DeepLearning.AI、edX）にのみ挿入します。その他のウェブサイトの内容を読み取ったり変更したりしません。
       - ネットワーク要求は、対応サイトでの字幕取得とユーザーが選択した翻訳プロバイダーにのみ送信します。要求先はコードで再確認します。
   - storage: 設定、暗号化された API キー、翻訳キャッシュをブラウザに保存します。
   - scripting: 対応動画サイトで字幕を取得するスクリプトを実行します。

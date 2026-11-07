@@ -1,5 +1,5 @@
 import { validateCues } from "./subtitles.js";
-import { ALL_PLATFORM_IDS, getHostname, isGenericEligibleUrl, isHostListed, normalizeGenericHost } from "./platform-urls.js";
+import { ALL_PLATFORM_IDS, getHostname, isDedicatedSiteHost, isGenericEligibleUrl, isHostListed, normalizeGenericHost } from "./platform-urls.js";
 
 const BACKGROUND_MESSAGE_TYPES = new Set([
   "llm.listModels",
@@ -38,6 +38,7 @@ const BACKGROUND_MESSAGE_TYPES = new Set([
   "captions.nvidiaOnDemand.listTracks",
   "captions.nvidiaOnDemand.fetchTranscript",
   "captions.deeplearningai.fetchTranscript",
+  "captions.edx.buildTranscript",
   "captions.ted.listTracks",
   "captions.ted.fetchTranscript",
   "platform.nvidia.isCoursePlayer",
@@ -89,6 +90,7 @@ const CONTENT_SCRIPT_MESSAGE_TYPES = new Set([
   "captions.nvidiaOnDemand.listTracks",
   "captions.nvidiaOnDemand.fetchTranscript",
   "captions.deeplearningai.fetchTranscript",
+  "captions.edx.buildTranscript",
   "captions.ted.listTracks",
   "captions.ted.fetchTranscript",
   "platform.nvidia.isCoursePlayer",
@@ -128,7 +130,9 @@ function validateGenericCues(cues) {
 const SUBTITLE_STYLE_PATCH_LIMITS = Object.freeze({
   positionX: [0, 100],
   positionY: [0, 100],
-  width: [160, 32768]
+  width: [160, 32768],
+  fontSize: [10, 64],
+  sourceFontSize: [10, 64]
 });
 const SUBTITLE_STYLE_BOOLEAN_PATCH_KEYS = new Set(["translationOnTop"]);
 
@@ -208,6 +212,8 @@ function isSupportedContentUrl(value, tabUrl) {
     if (url.hostname === "www.linkedin.com" && url.pathname.startsWith("/learning/")) return true;
     if (url.hostname === "www.oreilly.com" && url.pathname.startsWith("/videos/")) return true;
     if (url.hostname === "learn.deeplearning.ai" && url.pathname.startsWith("/courses/")) return true;
+    // edX video blocks run in a courses.edx.org frame (learning.edx.org page) or on courseware pages.
+    if (url.hostname === "courses.edx.org" && (url.pathname.startsWith("/xblock/") || url.pathname.startsWith("/courses/"))) return true;
     if (url.hostname === "www.nvidia.com" && /^\/[a-z]{2}-[a-z]{2}\/on-demand\/session\//i.test(url.pathname)) return true;
     if (isNvidiaAcademyCourseUrl(url.href)) return true;
     if (isVimeoPageUrl(url.href) && isVimeoPageUrl(tabUrl)) return true;
@@ -311,6 +317,7 @@ export function validateBackgroundMessage(message) {
       break;
     case "settings.setGenericSiteAllowed":
       if (!normalizeGenericHost(message.host)) error = "host is invalid.";
+      else if (isDedicatedSiteHost(normalizeGenericHost(message.host))) error = "host is a supported site.";
       else if (typeof message.allowed !== "boolean") error = "allowed must be a boolean.";
       break;
     case "generic.prepareFrames":
@@ -372,6 +379,17 @@ export function validateBackgroundMessage(message) {
       else if (!isOptionalString(message.sourceLanguage)) error = "sourceLanguage must be a string.";
       else if (message.platform !== undefined && !["nvidia", "vimeo"].includes(message.platform)) {
         error = "platform must be nvidia or vimeo.";
+      }
+      break;
+    case "captions.edx.buildTranscript":
+      if (!/^[\w.-]{1,120}$/.test(String(message.videoId || ""))) error = "videoId is invalid.";
+      else if (!isOptionalString(message.sourceLanguage)) error = "sourceLanguage must be a string.";
+      else if (!message.sjson || typeof message.sjson !== "object"
+        || !Array.isArray(message.sjson.start) || !Array.isArray(message.sjson.end) || !Array.isArray(message.sjson.text)
+        || message.sjson.start.length > 20000 || message.sjson.end.length > 20000 || message.sjson.text.length > 20000
+        || !message.sjson.start.every(Number.isFinite) || !message.sjson.end.every(Number.isFinite)
+        || !message.sjson.text.every((text) => typeof text === "string" && text.length <= 5000)) {
+        error = "sjson must hold start, end, and text arrays.";
       }
       break;
     case "captions.deeplearningai.fetchTranscript":

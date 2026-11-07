@@ -97,3 +97,20 @@ test("DeepLearning.AI messages, sender rules, and player wiring", async () => {
   assert.match(contentScript, /const DLAI_VIDEO_SELECTOR = "\.lesson-video-player video"/);
   assert.match(contentScript, /player && \(player\.readyState >= 1 \|\| player\.currentSrc\) \? player : null/);
 });
+
+test("older DeepLearning.AI lessons with CloudFront caption files are accepted, still only /subtitle/*.vtt", async () => {
+  const cloudfront = "https://dft3h5i221ap1.cloudfront.net/Lamini/finetuning-llm/subtitle/SC-Fine_Tuning_C1_Intro.mp4_en.vtt";
+  assert.equal(isDeeplearningaiCaptionUrl(cloudfront), true);
+  assert.equal(isDeeplearningaiCaptionUrl("https://dft3h5i221ap1.cloudfront.net/Lamini/finetuning-llm/video/thumbnails/thumbnail.vtt"), false);
+  assert.equal(isDeeplearningaiCaptionUrl("https://evil.example/subtitle/a.vtt"), false);
+
+  const source = await readFile(new URL("../extension/content/content-script.js", import.meta.url), "utf8");
+  const parse = loadParser(source);
+  const nextData = { props: { pageProps: { videoId: 85, trpcState: { json: { queries: [{ state: { data: { video: {
+    videoId: 85,
+    tracks: [{ kind: "subtitles", label: "ENGLISH", src: cloudfront, srcLang: "en-us" }]
+  } } } }] } } } } };
+  const tracks = [...parse(`<script id="__NEXT_DATA__" type="application/json">${JSON.stringify(nextData)}</script>`)];
+  assert.equal(tracks.length, 1);
+  assert.equal(tracks[0].trackUrl, cloudfront);
+});

@@ -465,6 +465,7 @@ export const DEFAULT_SETTINGS = {
     oreilly: true,
     nvidiaOnDemand: true,
     deeplearningai: true,
+    edx: true,
     // Technical preview: HTML5 videos on other sites, only on sites added from the popup.
     generic: true
   },

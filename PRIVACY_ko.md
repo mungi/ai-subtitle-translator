@@ -4,11 +4,11 @@
 
 시행일: 2026년 7월 21일
 
-AST - AI Subtitle Translator는 Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI의 자막을 사용자가 선택한 번역 서비스로 번역해 표시하는 Chrome 확장 프로그램입니다. 개발자는 별도의 서버를 운영하지 않으며, 광고·추적·분석 목적으로 사용자 데이터를 수집하지 않습니다.
+AST - AI Subtitle Translator는 Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI, edX의 자막을 사용자가 선택한 번역 서비스로 번역해 표시하는 Chrome 확장 프로그램입니다. 개발자는 별도의 서버를 운영하지 않으며, 광고·추적·분석 목적으로 사용자 데이터를 수집하지 않습니다.
 
 ## 처리하는 데이터
 
-- Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI의 자막 텍스트와 자막 구간의 시간 정보
+- Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI, edX의 자막 텍스트와 자막 구간의 시간 정보
 - 현재 영상·강의를 식별하는 URL, 영상 ID, 강좌 ID, 강의 ID 및 자막 언어 정보
 - 범용 동영상 플레이어(테크니컬 프리뷰) 지원 목록에 사용자가 추가한 사이트: 그 사이트 주소(호스트 이름), 그 사이트 페이지의 동영상 요소 정보와 동영상의 자막 텍스트·시간 정보
 - 사용자가 입력한 번역 제공업체의 API 키, 엔드포인트, 모델, 번역·자막 설정
@@ -38,7 +38,7 @@ AST - AI Subtitle Translator는 Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Cour
 
 - `storage`: 설정, 암호화된 API 키와 번역 캐시를 로컬에 저장합니다.
 - `scripting`: YouTube 페이지 시작 시 플레이어의 자막 응답을 수집하는 스크립트를 실행합니다. 수집된 자막에서 쿠키·인증 헤더·서명 URL을 제외한 텍스트와 언어·시간 정보만 확장 프로그램에 전달합니다.
-- 호스트 권한: 모든 사이트(`<all_urls>`) 접근 권한을 사이트마다 나열하지 않고 한 번에 요청하며, 실제 동작 범위는 코드에서 제한합니다. 자막 스크립트는 Udemy·YouTube·TED·NVIDIA Academy·Vimeo·Coursera·LinkedIn Learning·O'Reilly·NVIDIA On-Demand·DeepLearning.AI 페이지에만 주입하고, 네트워크 요청은 이 사이트들의 자막 조회와 사용자가 선택한 번역 제공업체(공식 HTTPS 주소 또는 사용자가 입력한 Custom LLM 주소)로만 보냅니다. 다른 사이트의 페이지 내용은 읽거나 전송하지 않습니다. 단, 사용자가 툴바 팝업에서 범용 동영상 플레이어(테크니컬 프리뷰) 지원 목록에 추가한 사이트에서는 동영상 감지용 작은 스크립트가 들어가고, 자막이 있는 동영상이 있는 프레임에만 자막 스크립트를 주입해 그 동영상의 자막 파일을 요청합니다. 확장 프로그램이 직접 자막 파일을 요청할 때는 쿠키를 보내지 않으며 사설망·로컬 주소는 요청하지 않습니다. 목록에 없는 사이트에서는 동작하지 않습니다.
+- 호스트 권한: 모든 사이트(`<all_urls>`) 접근 권한을 사이트마다 나열하지 않고 한 번에 요청하며, 실제 동작 범위는 코드에서 제한합니다. 자막 스크립트는 Udemy·YouTube·TED·NVIDIA Academy·Vimeo·Coursera·LinkedIn Learning·O'Reilly·NVIDIA On-Demand·DeepLearning.AI·edX 페이지에만 주입하고, 네트워크 요청은 이 사이트들의 자막 조회와 사용자가 선택한 번역 제공업체(공식 HTTPS 주소 또는 사용자가 입력한 Custom LLM 주소)로만 보냅니다. 다른 사이트의 페이지 내용은 읽거나 전송하지 않습니다. 단, 사용자가 툴바 팝업에서 범용 동영상 플레이어(테크니컬 프리뷰) 지원 목록에 추가한 사이트에서는 동영상 감지용 작은 스크립트가 들어가고, 자막이 있는 동영상이 있는 프레임에만 자막 스크립트를 주입해 그 동영상의 자막 파일을 요청합니다. 확장 프로그램이 직접 자막 파일을 요청할 때는 쿠키를 보내지 않으며 사설망·로컬 주소는 요청하지 않습니다. 목록에 없는 사이트에서는 동작하지 않습니다.
 
 ## Google API Limited Use
 

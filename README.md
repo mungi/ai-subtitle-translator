@@ -2,7 +2,7 @@
 
 [English](README.md) · [한국어](README_ko.md) · [日本語](README_ja.md)
 
-A Chrome Manifest V3 extension that translates subtitles from Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, and DeepLearning.AI and displays them over the video. Use Google Translate right away, or connect an LLM provider for context-aware translations.
+A Chrome Manifest V3 extension that translates subtitles from Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI, and edX and displays them over the video. Use Google Translate right away, or connect an LLM provider for context-aware translations.
 
 Product page: <https://mungi.github.io/ai-subtitle-translator/>
 
@@ -10,7 +10,7 @@ Chrome 102 or later is required.
 
 ## Key features
 
-- Collects subtitles from Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, and DeepLearning.AI and displays the original or translated subtitles.
+- Collects subtitles from Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI, and edX and displays the original or translated subtitles.
 - Generic video player (Technical Preview): also finds and translates captions for HTML5 videos on other websites (`<track>` files, the player's caption tracks, and HLS subtitles). It is on by default but works only on sites you add to the generic player list with "Add" in the toolbar popup on a video page; listed sites show "Remove" in the same place.
 - Lets you choose a source subtitle language and translation style directly from the AST menu.
 - On YouTube, prioritizes native player caption responses and changes source words from dark gray to the configured text color as speech progresses. When word timing is unavailable, progress is estimated from cue timing. Translations use cue-level display, and AST subtitles are hidden during ads.
@@ -18,7 +18,7 @@ Chrome 102 or later is required.
 - Uses the full subtitle context and current playback position for LLM translation, splitting long videos into manageable parts.
 - Provides Natural, Lecture, Technical, and custom translation styles.
 - Instead of translating, shows YouTube's human-made subtitles in the target language, or YouTube's auto-translation when there are none. Turn off "Prefer YouTube-provided subtitles" under Translation style in the player menu or in settings to translate with your selected style.
-- Regroups choppy auto-generated captions and subtitles split mid-sentence into phrases. Auto-generated captions keep each word's original time, so word progress highlighting follows the speech. Restructuring into phrases, the exception for subtitles uploaded by people on YouTube, and word progress highlighting (YouTube only) can each be turned on or off in settings.
+- Regroups choppy auto-generated captions and subtitles split mid-sentence into phrases. Auto-generated captions keep each word's original time, so word progress display follows the speech. Restructuring into phrases, the exception for subtitles uploaded by people on YouTube, and word progress display (YouTube only) can each be turned on or off in settings.
 - Lets you adjust subtitle position, size, font, color, shadow, outline, and background.
 - Caches translations and falls back to Google Translate when an LLM quota is exceeded.
 - Provides provider connection tests, model discovery, and settings backup and restore.
@@ -42,7 +42,7 @@ After reloading the extension, also refresh any open YouTube pages to activate c
 
 ## Usage
 
-1. Open a Udemy course, YouTube video, TED video, NVIDIA Academy course, Vimeo video, Coursera lecture, LinkedIn Learning course, O'Reilly video, NVIDIA On-Demand session, or DeepLearning.AI lesson with subtitles.
+1. Open a Udemy course, YouTube video, TED video, NVIDIA Academy course, Vimeo video, Coursera lecture, LinkedIn Learning course, O'Reilly video, NVIDIA On-Demand session, DeepLearning.AI lesson, or edX course video with subtitles.
 2. Select the AST icon in the video toolbar to open the menu.
 3. Choose a source subtitle language, translation provider, and translation style from the menu, or open the settings page.
 4. Under **Subtitle display**, choose **Dual subtitles**, **Source subtitles**, or **Translated subtitles**. **Translated subtitles** is the default. **Source subtitles** shows the selected source language, and **Dual subtitles** shows the source above its translation. The source remains visible while translation is pending or if it fails. The display mode is shared across supported sites and saved for future use.

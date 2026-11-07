@@ -284,9 +284,28 @@ button.ghost {
   margin-top: 10px;
 }
 
+/* The supported sites line up in columns, like a left-aligned table: six per row, then three on
+   narrower windows, then one. */
+.supported-sites-toggles.supported-sites-list {
+  display: grid;
+  grid-template-columns: repeat(6, max-content);
+  align-items: center;
+  gap: 12px 28px;
+}
+
 .generic-player-description {
   margin-top: 6px;
   font-size: 12px;
+}
+
+.generic-player-report {
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+.generic-player-report a {
+  color: var(--accent-strong);
+  font-weight: 650;
 }
 
 .generic-allowed-hosts {
@@ -1087,4 +1106,16 @@ textarea:focus {
 /* Room for "700 SemiBold"-length values so the slider keeps one length. */
 .font-weight-control output {
   min-width: 12ch;
+}
+
+@media (max-width: 820px) {
+  .supported-sites-toggles.supported-sites-list {
+    grid-template-columns: repeat(3, max-content);
+  }
+}
+
+@media (max-width: 500px) {
+  .supported-sites-toggles.supported-sites-list {
+    grid-template-columns: max-content;
+  }
 }

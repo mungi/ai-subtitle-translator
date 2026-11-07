@@ -275,10 +275,19 @@ const platformToggleInputs = {
   coursera: document.getElementById("toggleCoursera"),
   linkedin: document.getElementById("toggleLinkedin"),
   oreilly: document.getElementById("toggleOreilly"),
-  nvidiaOnDemand: document.getElementById("toggleNvidiaOnDemand"),
   deeplearningai: document.getElementById("toggleDeeplearningai"),
+  edx: document.getElementById("toggleEdx"),
   generic: document.getElementById("toggleGeneric")
 };
+// One box in the UI can stand for several platforms: "NVIDIA" covers NVIDIA Academy and
+// NVIDIA On-Demand, which are switched on and off together.
+const linkedPlatformToggles = {
+  nvidia: ["nvidia", "nvidiaOnDemand"]
+};
+
+function getTogglePlatforms(platform) {
+  return linkedPlatformToggles[platform] || [platform];
+}
 let backupPasswordResolver = null;
 let backupPasswordMode = "backup";
 const subtitleStylePreview = document.getElementById("subtitleStylePreview");
@@ -1985,7 +1994,7 @@ function renderAll() {
 
 function renderPlatformSettings() {
   for (const [platform, input] of Object.entries(platformToggleInputs)) {
-    input.checked = settings.platforms?.[platform] !== false;
+    input.checked = getTogglePlatforms(platform).every((key) => settings.platforms?.[key] !== false);
   }
   renderGenericAllowedHosts();
 }
@@ -2151,7 +2160,7 @@ async function init() {
     input.addEventListener("change", () => {
       settings.platforms = {
         ...(settings.platforms || {}),
-        [platform]: input.checked
+        ...Object.fromEntries(getTogglePlatforms(platform).map((key) => [key, input.checked]))
       };
       scheduleAutomaticSave({ immediate: true });
     });

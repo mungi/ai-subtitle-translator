@@ -155,6 +155,8 @@ function detectPlatform() {
   if (host === "www.linkedin.com" && location.pathname.startsWith("/learning/")) return "linkedin";
   if (host === "www.nvidia.com" && getNvidiaOnDemandSessionId()) return "nvidiaOnDemand";
   if (host === "learn.deeplearning.ai") return "deeplearningai";
+  // edX plays a unit's videos inside a courses.edx.org frame of learning.edx.org.
+  if (host === "courses.edx.org") return "edx";
   // The O'Reilly player lives in a same-origin srcdoc iframe, so only that frame runs the platform.
   if (getOreillyPagePath().startsWith("/videos/")) return "oreilly";
   if (host === "player.vimeo.com") return "vimeo";
@@ -249,6 +251,11 @@ async function getPublicSettings() {
 }
 
 function findToolbarTarget(platform, { allowFloatingToolbar = true } = {}) {
+  if (platform === "edx") {
+    return findVideoElement("edx")?.closest(".video")?.querySelector(".video-controls .secondary-controls")
+      || (allowFloatingToolbar ? ensureFloatingToolbar() : null);
+  }
+
   if (platform === "generic") {
     return typeof getGenericToolbarTarget === "function" ? getGenericToolbarTarget() : null;
   }
@@ -352,6 +359,11 @@ function clearElement(element) {
 }
 
 function getProviderMenuHost(platform) {
+  if (platform === "edx") {
+    // The whole video block (player and controls), so a short player does not clip the menu.
+    const video = findVideoElement("edx");
+    return video?.closest(".video") || findOverlayHost(platform, video);
+  }
   // On unknown sites the player can be small and clips or restyles anything inside it, so the
   // generic menu lives at the top of the page (or in the fullscreen element) and is placed by script.
   if (platform === "generic") {
@@ -609,11 +621,9 @@ function renderSubtitleDisplayMenu(menu) {
   const showWordHighlight = detectPlatform() === "youtube";
   for (const [mode, messageKey] of Object.entries(SUBTITLE_DISPLAY_MESSAGE_KEYS)) {
     const withWordHighlight = mode === "source" && showWordHighlight;
-    // The source row also holds the word-highlight switch, so it is a div: a button cannot contain one.
-    const item = withWordHighlight
-      ? document.createElement("div")
-      : document.createElement("button");
-    if (!withWordHighlight) item.type = "button";
+    // Each row holds the font size buttons (and the source row the word-highlight switch), so it is
+    // a div: a button cannot contain buttons.
+    const item = document.createElement("div");
     item.className = "ast-provider-menu-item ast-subtitle-display-item";
     const label = document.createElement("span");
     label.className = "ast-provider-menu-label";
@@ -629,17 +639,16 @@ function renderSubtitleDisplayMenu(menu) {
       keepSubtitleDisplaySubmenuOpen(item, false);
       select();
     });
-    if (withWordHighlight) {
-      item.tabIndex = 0;
-      item.addEventListener("keydown", (event) => {
-        if (event.target !== item || (event.key !== "Enter" && event.key !== " ")) return;
-        event.preventDefault();
-        event.stopPropagation();
-        keepSubtitleDisplaySubmenuOpen(item, false);
-        select();
-      });
-      item.append(renderWordHighlightToggle());
-    }
+    item.tabIndex = 0;
+    item.addEventListener("keydown", (event) => {
+      if (event.target !== item || (event.key !== "Enter" && event.key !== " ")) return;
+      event.preventDefault();
+      event.stopPropagation();
+      keepSubtitleDisplaySubmenuOpen(item, false);
+      select();
+    });
+    if (withWordHighlight) item.append(renderWordHighlightToggle());
+    item.append(renderSubtitleFontSizeControl(mode));
     list.append(item);
   }
   list.append(...renderTranslationPositionControl());
@@ -857,6 +866,85 @@ async function selectWordProgressHighlight(enabled) {
   subtitleState.wordProgressHighlight = enabled;
   if (subtitleState.currentVideo) renderCurrentOverlayCue(subtitleState.currentVideo);
   refreshOpenProviderMenu();
+}
+
+// Font size, right on each display row: "Source" and "Translated" change their own line, and
+// "Dual" moves both by the same step. The overlay updates at once; the save waits for a pause.
+const SUBTITLE_FONT_SIZE_MIN = 10;
+const SUBTITLE_FONT_SIZE_MAX = 64;
+const SUBTITLE_FONT_SIZE_SAVE_DELAY_MS = 400;
+let subtitleFontSizeSaveTimer = null;
+let pendingSubtitleFontSizePatch = null;
+
+function getSubtitleFontSizes(style = subtitleState.subtitleStyle || {}) {
+  return {
+    source: clampNumber(style.sourceFontSize ?? style.fontSize, SUBTITLE_FONT_SIZE_MIN, SUBTITLE_FONT_SIZE_MAX, 30),
+    translated: clampNumber(style.fontSize, SUBTITLE_FONT_SIZE_MIN, SUBTITLE_FONT_SIZE_MAX, 30)
+  };
+}
+
+function getSubtitleFontSizePatch(mode, delta, sizes = getSubtitleFontSizes()) {
+  const step = (value) => clampNumber(Math.round(value + delta), SUBTITLE_FONT_SIZE_MIN, SUBTITLE_FONT_SIZE_MAX, value);
+  const patch = {};
+  if (mode === "source" || mode === "dual") patch.sourceFontSize = step(sizes.source);
+  if (mode === "translated" || mode === "dual") patch.fontSize = step(sizes.translated);
+  return patch;
+}
+
+function renderSubtitleFontSizeControl(mode) {
+  const sizes = getSubtitleFontSizes();
+  const control = document.createElement("span");
+  control.className = "ast-font-size-control";
+  control.setAttribute("role", "group");
+  control.setAttribute("aria-label", contentText("contentFontSize"));
+  // The dual row moves both lines; their sizes show on the two rows below it.
+  if (mode !== "dual") {
+    const value = document.createElement("span");
+    value.className = "ast-font-size-value";
+    value.textContent = String(mode === "source" ? sizes.source : sizes.translated);
+    control.append(value);
+  }
+  for (const [delta, text, messageKey] of [[-1, "\u2212", "contentFontSizeDecrease"], [1, "+", "contentFontSizeIncrease"]]) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "ast-font-size-button";
+    button.textContent = text;
+    button.setAttribute("aria-label", contentText(messageKey));
+    button.title = contentText(messageKey);
+    const patch = getSubtitleFontSizePatch(mode, delta, sizes);
+    button.disabled = (patch.sourceFontSize ?? sizes.source) === sizes.source
+      && (patch.fontSize ?? sizes.translated) === sizes.translated;
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      event.preventDefault();
+      keepSubtitleDisplaySubmenuOpen(button);
+      changeSubtitleFontSize(mode, delta);
+    });
+    button.addEventListener("keydown", (event) => event.stopPropagation());
+    control.append(button);
+  }
+  return control;
+}
+
+function changeSubtitleFontSize(mode, delta) {
+  const patch = getSubtitleFontSizePatch(mode, delta);
+  if (Object.keys(patch).length === 0) return;
+  subtitleState.subtitleStyle = { ...(subtitleState.subtitleStyle || {}), ...patch };
+  refreshActiveOverlayStyle();
+  if (subtitleState.currentVideo) renderCurrentOverlayCue(subtitleState.currentVideo);
+  refreshOpenProviderMenu();
+  pendingSubtitleFontSizePatch = { ...(pendingSubtitleFontSizePatch || {}), ...patch };
+  clearTimeout(subtitleFontSizeSaveTimer);
+  subtitleFontSizeSaveTimer = setTimeout(() => {
+    const toSave = pendingSubtitleFontSizePatch;
+    pendingSubtitleFontSizePatch = null;
+    // Saved without taking the reply back, so clicks made while it is on its way are not undone.
+    sendRuntimeMessage({ type: "settings.updateSubtitleStyle", patch: toSave })
+      .then((response) => {
+        if (!response?.ok) console.warn("[AST] Failed to save subtitle font size:", response?.error || "Unknown error");
+      })
+      .catch((error) => console.warn("[AST] Failed to save subtitle font size:", error.message));
+  }, SUBTITLE_FONT_SIZE_SAVE_DELAY_MS);
 }
 
 // "Translation position: top | bottom" at the bottom of the display submenu; it orders the dual lines.
@@ -1082,10 +1170,22 @@ async function retranslateCurrentVideo(platform) {
   }
 }
 
+// Anchors the overlay, menu, and toast. edX switches its player to position: fixed (and the inner
+// wrappers to static) for fullscreen, so an inline position there would pin the player at its
+// normal size; a class that steps aside in fullscreen is used instead.
+function makePositionedHost(host, platform = subtitleState.currentPlatform || detectPlatform()) {
+  if (!host) return;
+  if (platform === "edx") {
+    host.classList.add("ast-edx-position-host");
+    return;
+  }
+  if (getComputedStyle(host).position === "static") host.style.position = "relative";
+}
+
 function ensureProviderMenu(platform) {
   const host = getProviderMenuHost(platform);
   if (!host) return null;
-  if (platform !== "generic" && getComputedStyle(host).position === "static") host.style.position = "relative";
+  if (platform !== "generic") makePositionedHost(host, platform);
   let menu = document.getElementById(PROVIDER_MENU_ID);
   if (!menu) {
     menu = document.createElement("div");
@@ -1120,7 +1220,8 @@ function ensureProviderMenu(platform) {
 }
 
 const GENERIC_MENU_MARGIN_PX = 8;
-const GENERIC_SUBMENU_ROOM_PX = 280;
+// Room a submenu needs on the left (the display list with its font size buttons is the widest).
+const GENERIC_SUBMENU_ROOM_PX = 420;
 
 // Places the generic menu under its button, right-aligned to it, kept inside the viewport.
 // If there is no room below, it opens above the button instead.
@@ -1289,6 +1390,13 @@ function updateOpenProviderMenuPhase() {
 }
 
 function findVideoElement(platform) {
+  if (platform === "edx") {
+    // A unit can hold several video blocks; the one played last, else the first with media.
+    const videos = [...document.querySelectorAll(EDX_VIDEO_SELECTOR)]
+      .filter((video) => video.readyState >= 1 || video.currentSrc);
+    return videos.find((video) => !video.paused) || videos[0] || null;
+  }
+
   if (platform === "generic") {
     return typeof findGenericVideo === "function" ? findGenericVideo() : null;
   }
@@ -1343,6 +1451,10 @@ function findVideoElement(platform) {
 }
 
 function findOverlayHost(platform, video) {
+  if (platform === "edx") {
+    return video?.closest(".video-player") || video?.parentElement || null;
+  }
+
   if (platform === "generic") {
     return video?.parentElement || null;
   }
@@ -1438,6 +1550,60 @@ const COURSERA_PLAYER_HOST_SELECTOR = "[data-e2e='vlp-video-player'], [data-test
 const PLAYKIT_VIDEO_SELECTOR = ".playkit-player video";
 const PLAYKIT_CONTROLS_SELECTOR = ".playkit-bottom-bar .playkit-controls-container .playkit-right-controls";
 
+// edX video blocks keep their settings in data-metadata (transcript languages and handler URL).
+const EDX_VIDEO_SELECTOR = ".video[data-metadata] video";
+
+function getEdxVideoContext(video = findVideoElement("edx")) {
+  const block = video?.closest(".video[data-metadata]");
+  if (!block) return null;
+  if (!block.astEdxMetadata) {
+    try {
+      block.astEdxMetadata = JSON.parse(block.getAttribute("data-metadata") || "{}");
+    } catch {
+      block.astEdxMetadata = {};
+    }
+  }
+  const metadata = block.astEdxMetadata;
+  const videoId = String(block.id || "").replace(/^video_/, "").replace(/[^\w.-]/g, "").slice(0, 120);
+  const translationUrl = typeof metadata.transcriptTranslationUrl === "string" ? metadata.transcriptTranslationUrl : "";
+  if (!videoId || !translationUrl.includes("__lang__")) return null;
+  return {
+    videoId,
+    languages: metadata.transcriptLanguages && typeof metadata.transcriptLanguages === "object" ? metadata.transcriptLanguages : {},
+    originalLanguage: String(metadata.transcriptLanguage || ""),
+    translationUrl
+  };
+}
+
+function getEdxTranscriptUrl(context, languageCode) {
+  try {
+    const url = new URL(context.translationUrl.replace("__lang__", encodeURIComponent(languageCode)), location.origin);
+    return url.origin === location.origin ? url.href : "";
+  } catch {
+    return "";
+  }
+}
+
+// The transcript handler needs the learner's edX session, so it is fetched here, same-origin.
+async function fetchEdxTranscriptDocument(request) {
+  const url = request.edx?.transcriptUrl;
+  if (!url) return null;
+  const response = await fetch(url, {
+    credentials: "same-origin",
+    headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
+  });
+  if (response.status === 404) {
+    const error = new Error("No edX captions are available for this video.");
+    error.code = "CAPTIONS_UNAVAILABLE";
+    throw error;
+  }
+  if (!response.ok) throw new Error(`edX transcript request failed (${response.status}).`);
+  const sjson = await response.json();
+  const built = await sendRuntimeMessage({ ...request.message, sjson });
+  if (!built?.ok) throw new Error(built?.error || "Could not read edX captions.");
+  return built.document;
+}
+
 // DeepLearning.AI lessons play in a Vidstack player; the lesson page embeds its video in __NEXT_DATA__.
 const DLAI_VIDEO_SELECTOR = ".lesson-video-player video";
 const DLAI_PLAY_BUTTON_SELECTOR = ".lesson-video-player .vds-play-button";
@@ -1452,7 +1618,8 @@ function normalizeDeeplearningaiCaptionUrl(value) {
   try {
     const url = new URL(String(value || ""));
     const valid = url.protocol === "https:"
-      && url.hostname === "video.deeplearning.ai"
+      // Older lessons serve captions from a CloudFront distribution.
+      && (url.hostname === "video.deeplearning.ai" || url.hostname.endsWith(".cloudfront.net"))
       && url.pathname.includes("/subtitle/")
       && url.pathname.endsWith(".vtt");
     return valid ? url.href : "";
@@ -2496,6 +2663,7 @@ function getCurrentSessionKey(platform) {
   if (platform === "oreilly") return getOreillyClipContext()?.clipId || null;
   if (platform === "nvidiaOnDemand") return getNvidiaOnDemandSessionId() || null;
   if (platform === "deeplearningai") return getDeeplearningaiLessonContext()?.lessonId || null;
+  if (platform === "edx") return getEdxVideoContext()?.videoId || null;
   if (isVimeoPlatform(platform)) return getVimeoVideoId();
   return null;
 }
@@ -2582,8 +2750,26 @@ function formatPx(value) {
   return `${Math.round(value * 100) / 100}px`;
 }
 
+// The box the overlay is laid out in: its containing block (the nearest positioned ancestor), which
+// is not always its parent. In edX fullscreen the player wrapper turns static and collapses while
+// the fixed, full-screen video block holds both the video and the overlay. Read from computed
+// styles rather than offsetParent, which is null while the overlay is hidden between cues.
+function getOverlayFrame(overlay) {
+  const parent = overlay?.parentElement;
+  if (!parent || typeof getComputedStyle !== "function") return parent || null;
+  for (let element = parent; element && element !== document.documentElement; element = element.parentElement) {
+    const style = getComputedStyle(element);
+    if (style.position !== "static" || (style.transform && style.transform !== "none")) return element;
+  }
+  return parent;
+}
+
+function getOverlayFrameRect(overlay) {
+  return getOverlayFrame(overlay)?.getBoundingClientRect?.();
+}
+
 function getOverlayScale(overlay) {
-  const parentRect = overlay?.parentElement?.getBoundingClientRect();
+  const parentRect = getOverlayFrameRect(overlay);
   if (!parentRect?.width || !parentRect?.height) return 1;
 
   const widthScale = parentRect.width / OVERLAY_REFERENCE_WIDTH_PX;
@@ -2596,7 +2782,7 @@ function scalePx(value, scale, min = 0) {
 }
 
 function getOverlayMaxWidth(overlay) {
-  const parentWidth = overlay.parentElement?.getBoundingClientRect().width;
+  const parentWidth = getOverlayFrameRect(overlay)?.width;
   return parentWidth ? Math.max(1, parentWidth - OVERLAY_HORIZONTAL_MARGIN_PX * 2)
     : OVERLAY_MAX_STYLE_WIDTH * getOverlayScale(overlay);
 }
@@ -2689,7 +2875,7 @@ function applyWebFontCss(css) {
 // in instead (see positionOverlay), so moving it toward an edge never squeezes it into a scrollbar.
 // Only text taller than the whole player scrolls.
 function calculateOverlayMaxHeight(overlay) {
-  const parentRect = overlay.parentElement?.getBoundingClientRect();
+  const parentRect = getOverlayFrameRect(overlay);
   if (!parentRect?.height) {
     return null;
   }
@@ -2771,7 +2957,7 @@ function applyOverlayStyle(overlay) {
 // The center positions (in %) that keep the box inside the player, from the size it actually
 // shows: a short line can move right up to an edge, and a tall one stops before leaving the player.
 function clampOverlayPosition(overlay, x, y, fallbackWidth = 0) {
-  const parentRect = overlay.parentElement?.getBoundingClientRect();
+  const parentRect = getOverlayFrameRect(overlay);
   const rect = overlay.getBoundingClientRect?.();
   const visibleWidth = rect?.width || fallbackWidth;
   const visibleHeight = rect?.height || 0;
@@ -2944,7 +3130,7 @@ function installOverlayDrag(overlay) {
     if (event.button !== 0) return;
     if (isResizeHandleTarget(event)) {
       const resizeRect = overlay.getBoundingClientRect();
-      resizeParentRect = overlay.parentElement?.getBoundingClientRect();
+      resizeParentRect = getOverlayFrameRect(overlay);
       resizing = true;
       resizeMoved = false;
       resizeStartX = event.clientX;
@@ -2967,7 +3153,7 @@ function installOverlayDrag(overlay) {
       return;
     }
     dragging = true;
-    parentRect = overlay.parentElement?.getBoundingClientRect();
+    parentRect = getOverlayFrameRect(overlay);
     const overlayRect = overlay.getBoundingClientRect();
     dragOffsetX = event.clientX - (overlayRect.left + overlayRect.width / 2);
     dragOffsetY = event.clientY - (overlayRect.top + overlayRect.height / 2);
@@ -3053,10 +3239,7 @@ function ensureOverlay(video, platform = subtitleState.currentPlatform || detect
   const parent = findOverlayHost(platform, video);
   if (!parent) return null;
 
-  const computedPosition = getComputedStyle(parent).position;
-  if (computedPosition === "static") {
-    parent.style.position = "relative";
-  }
+  makePositionedHost(parent, platform);
 
   let overlay = parent.querySelector(`#${OVERLAY_ID}`);
   if (!overlay) {
@@ -3230,10 +3413,7 @@ function showToast(message, video = subtitleState.currentVideo, error = false) {
   toast.classList.toggle("ast-toast-error", error);
   toast.classList.toggle("ast-toast-video", Boolean(toastHost));
   if (toastHost) {
-    const computedPosition = getComputedStyle(toastHost).position;
-    if (computedPosition === "static") {
-      toastHost.style.position = "relative";
-    }
+    makePositionedHost(toastHost);
     toastHost.append(toast);
   } else {
     document.body.append(toast);
@@ -3256,7 +3436,7 @@ function isCaptionsUnavailableError(value) {
   if (errorCode === "CAPTIONS_UNAVAILABLE") return true;
 
   const message = String(value?.error || value?.message || value || "").trim();
-  return /^No (?:usable )?(?:(?:YouTube|Udemy|TED|Vimeo|Coursera|LinkedIn Learning|O'Reilly|NVIDIA On-Demand|DeepLearning.AI) )?captions?(?: tracks?)?.*\b(?:available|found)\b/i
+  return /^No (?:usable )?(?:(?:YouTube|Udemy|TED|Vimeo|Coursera|LinkedIn Learning|O'Reilly|NVIDIA On-Demand|DeepLearning.AI|edX) )?captions?(?: tracks?)?.*\b(?:available|found)\b/i
     .test(message);
 }
 
@@ -3762,6 +3942,10 @@ function createButton(platform) {
   if (platform === "ted") {
     button.classList.add("ast-ted-toolbar-button");
   }
+  if (platform === "edx") {
+    // edX's own control class gives the button the look of its neighbours in the control bar.
+    button.classList.add("control", "ast-edx-toolbar-button");
+  }
   button.innerHTML = CAPTION_SVG;
   button.addEventListener("click", (event) => {
     event.stopPropagation();
@@ -3852,6 +4036,7 @@ function shouldAllowFloatingToolbar(platform) {
   if (platform === "oreilly") return Boolean(getOreillyClipContext() && document.querySelector("video"));
   if (platform === "nvidiaOnDemand") return Boolean(getNvidiaOnDemandSessionId() && document.querySelector(PLAYKIT_VIDEO_SELECTOR));
   if (platform === "deeplearningai") return Boolean(getDeeplearningaiLessonContext() && document.querySelector(DLAI_VIDEO_SELECTOR));
+  if (platform === "edx") return Boolean(findVideoElement("edx"));
   if (platform === "udemy" || platform === "ted") return false;
   if (!isVimeoPlatform(platform)) return true;
   return location.hostname === "player.vimeo.com" || Boolean(document.querySelector("video"));
@@ -3860,7 +4045,7 @@ function shouldAllowFloatingToolbar(platform) {
 function watch(platform) {
   const allowFloatingToolbar = shouldAllowFloatingToolbar(platform);
   const installed = ensureButton(platform, { allowFloatingToolbar });
-  if (platform !== "udemy" && platform !== "ted" && platform !== "coursera" && platform !== "linkedin" && platform !== "oreilly" && platform !== "nvidiaOnDemand" && platform !== "deeplearningai" && !isVimeoPlatform(platform) && installed) return;
+  if (platform !== "udemy" && platform !== "ted" && platform !== "coursera" && platform !== "linkedin" && platform !== "oreilly" && platform !== "nvidiaOnDemand" && platform !== "deeplearningai" && platform !== "edx" && !isVimeoPlatform(platform) && installed) return;
 
   const observer = new MutationObserver(() => {
     ensureButton(platform, { allowFloatingToolbar: shouldAllowFloatingToolbar(platform) });
@@ -4955,6 +5140,55 @@ const platformHandlers = {
     // anything else goes to the worker through the request message.
     fetchNativeTranscript(request) {
       return fetchGenericNativeDocument(request);
+    }
+  },
+  edx: {
+    platform: "edx",
+    loadingMessage: contentText("contentTranslationPreparing"),
+    getSessionKey: () => getEdxVideoContext()?.videoId || null,
+    findVideo: () => findVideoElement("edx"),
+    async listCaptionTracks() {
+      const context = getEdxVideoContext();
+      if (!context) return [];
+      return Object.entries(context.languages)
+        .filter(([code]) => /^[\w-]{1,35}$/.test(code))
+        .map(([code, name]) => createSourceCaptionTrack({
+          label: String(name || code),
+          // The course's own transcript language is the original; other languages are translations.
+          isAutoGenerated: Boolean(context.originalLanguage) && code !== context.originalLanguage
+        }, {
+          id: `${context.videoId}:${code}`,
+          languageCode: code
+        }))
+        .filter(Boolean);
+    },
+    async buildTranscriptRequest({ quietMissingPageData = false } = {}) {
+      const video = this.findVideo();
+      const context = getEdxVideoContext(video);
+      if (!context || !video) {
+        if (!quietMissingPageData) {
+          console.warn("[AST] Missing edX caption data:", { hasVideo: Boolean(video), url: location.href });
+          if (video) showOverlayMessage(video, contentText("contentMissingEdx"), "error");
+        }
+        return null;
+      }
+      const track = requireCaptionTrack(
+        getSelectedSourceCaptionTrack(this.platform, context.videoId)
+          || setSourceCaptionTracks(this.platform, context.videoId, await this.listCaptionTracks())
+      );
+      return {
+        sessionKey: context.videoId,
+        video,
+        edx: { transcriptUrl: getEdxTranscriptUrl(context, track.languageCode) },
+        message: {
+          type: "captions.edx.buildTranscript",
+          videoId: context.videoId,
+          sourceLanguage: track.languageCode
+        }
+      };
+    },
+    fetchNativeTranscript(request) {
+      return fetchEdxTranscriptDocument(request);
     }
   },
   deeplearningai: {

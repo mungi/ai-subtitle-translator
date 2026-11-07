@@ -21,32 +21,32 @@ export const DEDICATED_PLATFORM_SITES = [
   { id: "coursera", label: "Coursera", test: (url) => hostIs(url, "coursera.org", "www.coursera.org") },
   { id: "linkedin", label: "LinkedIn Learning", test: (url) => hostIs(url, "www.linkedin.com") && url.pathname.startsWith("/learning") },
   { id: "oreilly", label: "O'Reilly", test: (url) => hostEndsWith(url, "oreilly.com") },
-  { id: "deeplearningai", label: "DeepLearning.AI", test: (url) => hostIs(url, "learn.deeplearning.ai") }
+  { id: "deeplearningai", label: "DeepLearning.AI", test: (url) => hostIs(url, "learn.deeplearning.ai") },
+  { id: "edx", label: "edX", test: (url) => hostEndsWith(url, "edx.org") }
 ];
 
 export const DEDICATED_PLATFORM_IDS = DEDICATED_PLATFORM_SITES.map((site) => site.id);
 export const GENERIC_PLATFORM_ID = "generic";
 export const ALL_PLATFORM_IDS = [...DEDICATED_PLATFORM_IDS, GENERIC_PLATFORM_ID];
 
-// Frames on these sites never get the generic probe: their own handler (or none) owns the video.
-export const GENERIC_EXCLUDE_MATCHES = [
-  "*://*.udemy.com/*",
-  "*://udemy.com/*",
-  "*://*.youtube.com/*",
-  "*://youtube.com/*",
-  "*://ted.com/*",
-  "*://*.ted.com/*",
-  "*://www.nvidia.com/*/training/academy/*",
-  "*://www.nvidia.com/*/on-demand/*",
-  "*://vimeo.com/*",
-  "*://*.vimeo.com/*",
-  "*://coursera.org/*",
-  "*://*.coursera.org/*",
-  "*://www.linkedin.com/learning/*",
-  "*://oreilly.com/*",
-  "*://*.oreilly.com/*",
-  "*://learn.deeplearning.ai/*"
+// The domains of the supported sites. The generic player never runs anywhere on them, not only on
+// the player pages (a LinkedIn feed video or an nvidia.com page stays untouched), and the popup
+// does not offer to add them.
+export const DEDICATED_SITE_DOMAINS = [
+  "udemy.com",
+  "youtube.com",
+  "ted.com",
+  "nvidia.com",
+  "vimeo.com",
+  "coursera.org",
+  "linkedin.com",
+  "oreilly.com",
+  "deeplearning.ai",
+  "edx.org"
 ];
+
+// Frames on these sites never get the generic probe: their own handler (or none) owns the video.
+export const GENERIC_EXCLUDE_MATCHES = DEDICATED_SITE_DOMAINS.flatMap((domain) => [`*://${domain}/*`, `*://*.${domain}/*`]);
 
 function parseUrl(value) {
   try {
@@ -69,9 +69,14 @@ export function getHostname(value) {
 }
 
 // A web page the generic player may run on: http(s) and not a dedicated site.
+export function isDedicatedSiteHost(value) {
+  const host = value instanceof URL ? value.hostname.toLowerCase() : String(value || "").toLowerCase();
+  return DEDICATED_SITE_DOMAINS.some((domain) => host === domain || host.endsWith(`.${domain}`));
+}
+
 export function isGenericEligibleUrl(value) {
   const url = parseUrl(value);
-  return Boolean(url && /^https?:$/.test(url.protocol) && !detectDedicatedPlatform(url));
+  return Boolean(url && /^https?:$/.test(url.protocol) && !isDedicatedSiteHost(url));
 }
 
 const HOSTNAME_PATTERN = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/;
@@ -83,7 +88,9 @@ export function normalizeGenericHost(value) {
 }
 
 export function normalizeGenericHosts(value) {
-  const hosts = Array.isArray(value) ? value.map(normalizeGenericHost).filter(Boolean) : [];
+  const hosts = Array.isArray(value)
+    ? value.map(normalizeGenericHost).filter((host) => host && !isDedicatedSiteHost(host))
+    : [];
   return [...new Set(hosts)].slice(0, 500);
 }
 
@@ -101,6 +108,8 @@ export function describeSiteForUrl(value, settings = {}) {
   if (platform) {
     return { kind: "dedicated", host, platform, active: settings.platforms?.[platform.id] !== false };
   }
+  // Other pages of a supported site (a LinkedIn feed, an nvidia.com product page): nothing to switch.
+  if (isDedicatedSiteHost(host)) return { kind: "unsupported", host };
   const genericEnabled = settings.platforms?.[GENERIC_PLATFORM_ID] !== false;
   const listed = isHostListed(settings.genericAllowedHosts, value);
   return { kind: "generic", host, genericEnabled, listed, active: genericEnabled && listed };

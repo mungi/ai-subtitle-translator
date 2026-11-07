@@ -60,19 +60,10 @@ async function sendSettingsMessage(message) {
   return response.settings;
 }
 
-// The generic player itself is turned on or off in settings; the popup only adds or removes the site.
+// The popup manages only sites outside the supported ten: it adds them to, or removes them from,
+// the generic player list. The supported sites and the generic player itself are switched in settings.
 function renderGenericAndSiteSwitches(currentSettings) {
   const site = describeSiteForUrl(activeTabUrl, currentSettings || {});
-
-  // A supported site: the switch turns that platform on or off.
-  const row = document.getElementById("siteToggleRow");
-  row.hidden = site.kind !== "dedicated";
-  if (site.kind === "dedicated") {
-    const siteToggle = document.getElementById("siteEnabled");
-    siteToggle.checked = site.active;
-    siteToggle.disabled = false;
-    document.getElementById("siteToggleNote").textContent = t("popupSiteDedicatedNote", [site.host, site.platform.label]);
-  }
 
   // Any other site: add it to, or remove it from, the generic player list. With the generic
   // player turned off in settings, the row is not shown at all.
@@ -87,22 +78,6 @@ function renderGenericAndSiteSwitches(currentSettings) {
     button.classList.toggle("is-remove", site.listed);
     button.disabled = false;
   }
-}
-
-function bindSwitch(input, save) {
-  input.addEventListener("change", async () => {
-    const checked = input.checked;
-    input.disabled = true;
-    document.getElementById("statusLine").textContent = "";
-    try {
-      settings = await save(checked) || settings;
-    } catch (error) {
-      input.checked = !checked;
-      document.getElementById("statusLine").textContent = t("popupLoadFailed", [error.message]);
-    } finally {
-      renderGenericAndSiteSwitches(settings);
-    }
-  });
 }
 
 async function init() {
@@ -132,10 +107,6 @@ async function init() {
   settings = await getSettings();
   activeTabUrl = await getActiveTabUrl();
   renderGenericAndSiteSwitches(settings);
-  bindSwitch(document.getElementById("siteEnabled"), (enabled) => {
-    const site = describeSiteForUrl(activeTabUrl, settings);
-    return sendSettingsMessage({ type: "settings.setPlatformEnabled", platform: site.platform.id, enabled });
-  });
   const genericSiteButton = document.getElementById("genericSiteButton");
   genericSiteButton.addEventListener("click", async () => {
     const site = describeSiteForUrl(activeTabUrl, settings);

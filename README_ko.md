@@ -2,7 +2,7 @@
 
 [English](README.md) · [한국어](README_ko.md) · [日本語](README_ja.md)
 
-Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI의 자막을 번역하여 영상 위에 표시하는 Chrome Manifest V3 확장 프로그램입니다. Google Translate를 바로 사용하거나, 원하는 LLM 제공업체를 연결해 문맥을 반영한 번역을 이용할 수 있습니다.
+Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI, edX의 자막을 번역하여 영상 위에 표시하는 Chrome Manifest V3 확장 프로그램입니다. Google Translate를 바로 사용하거나, 원하는 LLM 제공업체를 연결해 문맥을 반영한 번역을 이용할 수 있습니다.
 
 소개 웹사이트: <https://mungi.github.io/ai-subtitle-translator/>
 
@@ -10,7 +10,7 @@ Chrome 102 이상이 필요합니다.
 
 ## 주요 기능
 
-- Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI의 자막을 수집하여 원문 또는 번역 자막으로 표시합니다.
+- Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI, edX의 자막을 수집하여 원문 또는 번역 자막으로 표시합니다.
 - 범용 동영상 플레이어 (테크니컬 프리뷰): 지원 사이트 외 웹사이트의 HTML5 동영상에서도 자막(`<track>` 파일, 플레이어 자막 트랙, HLS 자막)을 찾아 번역합니다. 기본으로 켜져 있지만, 동영상 페이지에서 툴바 팝업의 "추가"로 범용 플레이어 지원 목록에 넣은 사이트에서만 동작합니다. 목록에 있는 사이트는 같은 자리에서 "삭제"할 수 있습니다.
 - AST 메뉴에서 영상이 제공하는 원문 자막 언어와 번역 스타일을 바로 선택할 수 있습니다.
 - YouTube에서는 실제 플레이어의 자막 응답을 우선 활용하고, 발화 진행에 따라 원문 글자색이 어두운 회색에서 설정한 색으로 바뀝니다. 단어 시간이 없으면 자막 시간으로 진행을 추정하며, 번역문은 문장 단위로 표시합니다. 광고 중에는 AST 자막을 숨깁니다.
@@ -18,7 +18,7 @@ Chrome 102 이상이 필요합니다.
 - LLM 번역 시 자막 전체 문맥과 재생 위치를 고려하며, 긴 영상은 나누어 처리합니다.
 - Natural, Lecture, Technical, 사용자 정의 번역 스타일을 제공합니다.
 - YouTube에 목표 언어로 된 사람 자막이 있으면 그 자막을, 없으면 YouTube 자동 번역을 번역 대신 보여 줍니다. 플레이어 메뉴의 번역 스타일 또는 설정에서 "YouTube 제공 자막 우선"을 끄면 선택한 스타일로 번역합니다.
-- 짧게 끊기는 자동 생성 자막과 문장 중간에서 나뉜 자막을 구문 단위로 다시 묶어 보여 줍니다. 자동 생성 자막은 단어별 원래 시간을 유지해 단어 진행 강조 표시가 말하는 속도를 따라갑니다. 구문 단위 재구성, YouTube 사람 업로드 자막 제외, 단어 진행 강조 표시(YouTube 한정)는 설정에서 켜고 끌 수 있습니다.
+- 짧게 끊기는 자동 생성 자막과 문장 중간에서 나뉜 자막을 구문 단위로 다시 묶어 보여 줍니다. 자동 생성 자막은 단어별 원래 시간을 유지해 단어 진행 표시가 말하는 속도를 따라갑니다. 구문 단위 재구성, YouTube 사람 업로드 자막 제외, 단어 진행 표시(YouTube 한정)는 설정에서 켜고 끌 수 있습니다.
 - 자막 위치, 크기, 글꼴, 색상, 그림자, 외곽선, 배경을 조정할 수 있습니다.
 - 번역 결과를 캐시하고, LLM의 쿼터가 초과되면 Google Translate로 대체 번역합니다.
 - 제공업체 연결 테스트, 모델 목록 조회, 설정 백업 및 복원을 제공합니다.
@@ -42,7 +42,7 @@ YouTube 자막 수집기를 적용하려면 확장 프로그램을 다시 로드
 
 ## 사용 방법
 
-1. 자막이 있는 Udemy 강의, YouTube 영상, TED 영상, NVIDIA Academy 강의, Vimeo 영상, Coursera 강의, LinkedIn Learning 강의, O'Reilly 영상, NVIDIA On-Demand 세션 또는 DeepLearning.AI 강의를 엽니다.
+1. 자막이 있는 Udemy 강의, YouTube 영상, TED 영상, NVIDIA Academy 강의, Vimeo 영상, Coursera 강의, LinkedIn Learning 강의, O'Reilly 영상, NVIDIA On-Demand 세션, DeepLearning.AI 강의 또는 edX 강의 영상을 엽니다.
 2. 영상 도구 모음의 AST 아이콘을 눌러 메뉴를 엽니다.
 3. 메뉴에서 원문 자막 언어, 번역 제공업체, 번역 스타일을 선택하거나 설정 화면을 엽니다.
 4. `자막 표시` 하위 메뉴에서 `이중 자막`, `원문 자막`, `번역 자막`을 선택합니다. 기본값은 `번역 자막`이며, `원문 자막`은 선택한 원본 언어로, `이중 자막`은 원문을 위에, 번역을 아래에 표시합니다. 번역 대기 또는 실패 시에는 원문을 유지합니다. 표시 모드는 사이트 간 공유되고 다음 사용에도 유지됩니다.

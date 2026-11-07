@@ -4,7 +4,7 @@
 
 ## 목표
 
-Udemy, YouTube, TED, NVIDIA Academy, Vimeo를 주요 지원 사이트로, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI를 추가 지원 사이트로 두고 자막을 수집하며, 전체 subtitle 문맥을 활용해 자연스러운 번역 자막을 제공한다. 빠른 표시를 위해 Google Translate cue 번역을 먼저 보여주고, LLM/DeepL 등 최종 provider 번역이 완료되면 교체한다.
+Udemy, YouTube, TED, NVIDIA Academy, Vimeo를 주요 지원 사이트로, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI, edX를 추가 지원 사이트로 두고 자막을 수집하며, 전체 subtitle 문맥을 활용해 자연스러운 번역 자막을 제공한다. 빠른 표시를 위해 Google Translate cue 번역을 먼저 보여주고, LLM/DeepL 등 최종 provider 번역이 완료되면 교체한다.
 
 ## 구현 구조
 
@@ -61,12 +61,13 @@ type SubtitleDocument = {
   - LinkedIn Learning: 강의 페이지 HTML에 포함된 Voyager 데이터의 `transcripts[].captionFile`(VTT)을 사용한다.
   - O'Reilly: `/api/v1/videoclips/{clipId}/`의 `transcriptions`를 사용한다. 플레이어(Kaltura)가 `srcdoc` iframe 안에 있어 해당 프레임에 content script를 주입한다.
   - NVIDIA On-Demand: `api-prod.nvidia.com/services/nod/api/v1/session/captions`의 SRT를 사용한다.
-  - DeepLearning.AI: 레슨 페이지 `__NEXT_DATA__`의 `video.tracks`(VTT)를 사용한다.
+  - DeepLearning.AI: 레슨 페이지 `__NEXT_DATA__`의 `video.tracks`(VTT)를 사용한다. 예전 강의는 CloudFront(`*.cloudfront.net/.../subtitle/*.vtt`) 주소를 쓴다.
+  - edX: 영상은 learning.edx.org 안의 courses.edx.org iframe에 있다. 영상 블록의 `data-metadata`(`transcriptLanguages`, `transcriptTranslationUrl`)로 언어 목록을 만들고, 자막(SJSON: 밀리초 `start`/`end`/`text` 배열)은 로그인 세션이 필요해 content script가 같은 출처로 받아 워커에서 cue로 바꾼다.
 - 범용 동영상 플레이어(테크니컬 프리뷰, `platforms.generic`, 기본값 켜짐, 사이트 허용 목록 `genericAllowedHosts`):
   - 켜져 있고 허용 목록이 있을 때만 서비스 워커가 `content/generic-probe.js`를 `chrome.scripting.registerContentScripts`로 목록의 호스트(`*://host/*`)에 등록한다(지원 사이트는 `excludeMatches`). 등록 매칭은 프레임 자신의 주소로 하므로, 최상위 프레임의 probe가 `generic.prepareFrames`를 보내면 워커가 그 탭의 다른 출처 iframe(플레이어)에도 probe를 주입한다. probe는 미디어 이벤트만 듣다가 실제 동영상(240×135 이상, 자막 트랙이 있거나 30초 이상, 장식용 무음 반복 영상 제외)을 찾으면 `generic.attach`를 보낸다.
   - 워커는 그 프레임에만 `generic-player.js`와 `content-script.js` 번들을 `executeScript`로 주입한다. 자막 소스 순서: `<track src>` → HLS 마스터의 SUBTITLES → 플레이어 text track → 페이지가 받은 자막 파일(resource timing). 자막을 찾은 동영상에만 우상단 버튼을 띄운다.
   - 워커의 자막 요청(`platforms/generic-captions.js`)은 공개 http(s) 주소만, 쿠키 없이, 5MB 이하로 받는다. 같은 출처 파일은 페이지 쿠키가 필요할 수 있어 content script가 먼저 받는다. VTT·SRT·TTML·HLS 세그먼트를 지원한다.
-  - 사이트 판정은 `shared/platform-urls.js` 한 곳에서 한다. 팝업은 지원 사이트면 "이 사이트에서 AST" 스위치로 해당 플랫폼을 켜고 끄고, 그 외 사이트면 "추가/삭제" 버튼으로 `genericAllowedHosts`를 바꾼다. 추가하면 열린 탭에 바로 probe를 넣고, 삭제하면 그 탭의 AST를 정리한다.
+  - 사이트 판정은 `shared/platform-urls.js` 한 곳에서 한다. 팝업은 지원 사이트 10개가 아닌 사이트에서만 "추가/삭제" 버튼으로 `genericAllowedHosts`를 바꾼다. 지원 사이트와 범용 플레이어 자체의 켜고 끄기는 설정 화면에서 한다. 추가하면 열린 탭에 바로 probe를 넣고, 삭제하면 그 탭의 AST를 정리한다.
   - 허용 목록 사이트에 임베드된 Vimeo 플레이어는 기존 Vimeo 핸들러가 처리한다.
 - 기본 source language는 영어 track을 우선 선택한다.
 

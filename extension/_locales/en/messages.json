@@ -6,7 +6,7 @@
     "message": "Natural subtitle translations that preserve the video's context."
   },
   "supportedPlatformsDescription": {
-    "message": "Supported platforms: Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI"
+    "message": "Supported platforms: Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI, edX"
   },
   "websiteLabel": {
     "message": "Website:"
@@ -991,7 +991,7 @@
     "message": "Regroups subtitles that are cut into short pieces, such as auto-generated captions, and site subtitles split in the middle of a sentence into readable phrases. Auto-generated captions with word timing keep each word at its original time."
   },
   "wordProgressHighlight": {
-    "message": "Highlight word progress (YouTube only)"
+    "message": "Show word progress (YouTube only)"
   },
   "sourcePreviewText": {
     "message": "Original subtitle preview"
@@ -1024,7 +1024,7 @@
     "message": "YouTube captions"
   },
   "contentWordHighlight": {
-    "message": "Word Highlight"
+    "message": "Word progress"
   },
   "contentTranslationPositionBottom": {
     "message": "Bottom"
@@ -1141,21 +1141,7 @@
     "message": "Generic video player (Technical Preview)"
   },
   "genericPlayerDescription": {
-    "message": "Translates captions of HTML5 videos (<track> files, the player's caption tracks, and HLS subtitles) only on the sites you add from the toolbar popup on a video page. Behavior can differ by site."
-  },
-  "popupSiteToggle": {
-    "message": "AST on this site"
-  },
-  "popupSiteDedicatedNote": {
-    "message": "$host$ · Applies to all of $platform$",
-    "placeholders": {
-      "host": {
-        "content": "$1"
-      },
-      "platform": {
-        "content": "$2"
-      }
-    }
+    "message": "Translates captions of HTML5 videos (<track> files, the player's caption tracks, and HLS subtitles) only on the sites you add from the toolbar popup on a video page."
   },
   "genericAllowedHostsTitle": {
     "message": "Generic player sites"
@@ -1196,5 +1182,20 @@
   },
   "popupGenericSiteGuide": {
     "message": "Generic player (Technical Preview)"
+  },
+  "genericPlayerReportPrefix": {
+    "message": "If a website does not work, let us know here: "
+  },
+  "contentFontSize": {
+    "message": "Font size"
+  },
+  "contentFontSizeDecrease": {
+    "message": "Smaller text"
+  },
+  "contentFontSizeIncrease": {
+    "message": "Larger text"
+  },
+  "contentMissingEdx": {
+    "message": "Could not find edX caption information."
   }
 }

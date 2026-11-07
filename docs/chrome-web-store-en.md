@@ -11,6 +11,7 @@ Naturally translate subtitles from videos on the following websites into your pr
   - O'Reilly: https://www.oreilly.com/
   - NVIDIA On-Demand: https://www.nvidia.com/en-us/on-demand/
   - DeepLearning.AI: https://learn.deeplearning.ai/
+  - edX: https://learning.edx.org/
 
 # Key Highlights
   - Translate subtitles quickly with Google Translate, or connect an LLM for natural translations that consider context.
@@ -26,7 +27,7 @@ Naturally translate subtitles from videos on the following websites into your pr
   - Check each LLM API provider's policy for free allowances, limits, and any applicable charges.
 
 # Main Features
-  - Subtitle translation for Udemy, NVIDIA Academy, YouTube, TED, and Vimeo videos (plus Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, and DeepLearning.AI)
+  - Subtitle translation for Udemy, NVIDIA Academy, YouTube, TED, and Vimeo videos (plus Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI, and edX)
   - Context-aware AI translation that considers the flow of the source subtitles
   - Fast translation with Google Translate included by default
   - Fast translation is displayed first while LLM translation is being prepared
@@ -105,7 +106,7 @@ Naturally translate subtitles from videos on the following websites into your pr
       - Chrome's site access list showed a long list of addresses that was hard to read.
       - Generic video player (Technical Preview): the extension registers a small video detection script only on sites the user adds to the generic player list from the toolbar popup, and injects the subtitle script only into frames with a captioned video to translate that video's captions. Because the user chooses the sites, they cannot be listed as permissions in advance.
     - What it is actually used for
-      - The subtitle script runs only on supported video sites (Udemy, NVIDIA Academy, YouTube, TED, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI). It does not read or change other websites.
+      - The subtitle script runs only on supported video sites (Udemy, NVIDIA Academy, YouTube, TED, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI, edX). It does not read or change other websites.
       - Network requests go only to supported sites for subtitles and to the translation provider you select. Request targets are checked again in code.
   - storage: stores settings, encrypted API keys, and the translation cache in your browser.
   - scripting: runs the script that fetches subtitles on supported video sites.

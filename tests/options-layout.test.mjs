@@ -560,11 +560,13 @@ test("supported site toggles are shown in one row below the settings header, not
   assert.match(optionsHtml, /id="toggleCoursera" type="checkbox"/);
   assert.match(optionsHtml, /id="toggleLinkedin" type="checkbox"/);
   assert.match(optionsHtml, /id="toggleOreilly" type="checkbox"/);
-  assert.match(optionsHtml, /id="toggleNvidiaOnDemand" type="checkbox"/);
+  assert.doesNotMatch(optionsHtml, /id="toggleNvidiaOnDemand"/);
+  assert.match(optionsJs, /nvidia: \["nvidia", "nvidiaOnDemand"\]/);
   assert.match(optionsHtml, /id="toggleDeeplearningai" type="checkbox"/);
   assert.match(optionsCss, /\.supported-sites-toggles\s*\{[\s\S]*display: flex/);
   assert.match(optionsJs, /Object\.entries\(platformToggleInputs\)\.forEach\(\(\[platform, input\]\) => \{/);
-  assert.match(optionsJs, /\[platform\]: input\.checked[\s\S]*scheduleAutomaticSave\(\{ immediate: true \}\)/);
+  assert.match(optionsJs, /getTogglePlatforms\(platform\)\.map\(\(key\) => \[key, input\.checked\]\)[\s\S]*scheduleAutomaticSave\(\{ immediate: true \}\)/);
+  assert.match(optionsJs, /getTogglePlatforms\(platform\)\.every\(\(key\) => settings\.platforms\?\.\[key\] !== false\)/);
   assert.doesNotMatch(popupHtml, /toggle(?:Udemy|Youtube|Nvidia|Vimeo|Coursera|Linkedin)/);
   assert.doesNotMatch(popupJs, /savePlatformToggle/);
   assert.equal(message("ko", "supportedSites"), "지원 사이트");
@@ -728,18 +730,21 @@ test("clearing the translation cache asks for confirmation first and can be canc
   assert.match(message("ko", "clearCacheConfirm"), /^번역 캐시를 삭제할까요\?/);
 });
 
-test("main supported sites stay first and the newer sites follow on a second row on the options page, and are listed under \"also supported\" on the intro site", () => {
+test("supported sites are listed in one aligned grid in the chosen order on the options page, and under \"also supported\" on the intro site", () => {
   const siteHtml = readFileSync(new URL("../site/index.html", import.meta.url), "utf8");
   const siteScript = readFileSync(new URL("../site/script.js", import.meta.url), "utf8");
-  const mainEnd = optionsHtml.indexOf('class="supported-sites-toggles supported-sites-more"');
-  assert.ok(mainEnd > 0);
-  for (const id of ["toggleUdemy", "toggleYoutube", "toggleTed", "toggleNvidia", "toggleVimeo"]) {
-    const index = optionsHtml.indexOf(`id="${id}"`);
-    assert.ok(index > 0 && index < mainEnd, `${id} stays in the main group`);
-  }
-  for (const id of ["toggleCoursera", "toggleLinkedin", "toggleOreilly", "toggleNvidiaOnDemand", "toggleDeeplearningai"]) {
-    assert.ok(optionsHtml.indexOf(`id="${id}"`) > mainEnd, `${id} is in the additional group`);
-  }
+  const listStart = optionsHtml.indexOf('class="supported-sites-toggles supported-sites-list"');
+  const listEnd = optionsHtml.indexOf('class="supported-sites-toggles supported-sites-generic"');
+  assert.ok(listStart > 0 && listEnd > listStart);
+  const order = [...optionsHtml.slice(listStart, listEnd).matchAll(/id="(toggle\w+)"/g)].map((match) => match[1]);
+  assert.deepEqual(order, [
+    "toggleYoutube", "toggleUdemy", "toggleCoursera", "toggleLinkedin", "toggleEdx", "toggleTed",
+    "toggleVimeo", "toggleOreilly", "toggleNvidia", "toggleDeeplearningai"
+  ]);
+  assert.match(optionsHtml, /<input id="toggleNvidia" type="checkbox">\s*<span>NVIDIA<\/span>/);
+  assert.match(optionsCss, /\.supported-sites-toggles\.supported-sites-list \{\s*display: grid;\s*grid-template-columns: repeat\(6, max-content\);/);
+  assert.match(optionsCss, /@media \(max-width: 820px\) \{\s*\.supported-sites-toggles\.supported-sites-list \{\s*grid-template-columns: repeat\(3, max-content\);/);
+  assert.match(optionsCss, /@media \(max-width: 500px\) \{\s*\.supported-sites-toggles\.supported-sites-list \{\s*grid-template-columns: max-content;/);
   assert.doesNotMatch(optionsHtml, /supportedSitesMore/);
 
   const list = siteHtml.slice(siteHtml.indexOf('class="support-more-list"'));

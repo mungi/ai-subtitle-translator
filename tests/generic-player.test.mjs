@@ -377,7 +377,8 @@ test("options, popup, and packaging expose the generic player as a technical pre
   // With the generic player off in settings, the add/remove row is hidden, not just disabled.
   const popupJs = readFileSync(new URL("../extension/popup/popup.js", import.meta.url), "utf8");
   assert.ok(popupJs.includes('genericRow.hidden = site.kind !== "generic" || !site.genericEnabled;'));
-  assert.match(popupHtml, /id="siteEnabled" type="checkbox" role="switch"/);
+  // Supported sites are switched in settings only; the popup has no per-site switch for them.
+  assert.doesNotMatch(popupHtml, /id="siteEnabled"/);
   assert.match(popupHtml, /id="genericSiteButton" type="button"/);
   for (const language of ["en", "ko", "ja"]) {
     const messages = JSON.parse(readFileSync(new URL(`../extension/_locales/${language}/messages.json`, import.meta.url), "utf8"));
@@ -418,4 +419,31 @@ test("the toolbar icon's AST mark keeps its size and font against page CSS", () 
   const contentCss = readFileSync(new URL("../extension/content/content-style.css", import.meta.url), "utf8");
   assert.match(contentCss, /\.ast-toolbar-icon \.ast-toolbar-icon-mark \{[^}]*font-size: 400px !important;[^}]*\}/);
   assert.match(contentCss, /\.ast-toolbar-icon \.ast-toolbar-icon-mark \{[^}]*font-family: Arial, Helvetica, sans-serif !important;[^}]*\}/);
+});
+
+test("settings point users to GitHub issues for sites the generic player cannot handle", () => {
+  const optionsHtml = readFileSync(new URL("../extension/options/options.html", import.meta.url), "utf8");
+  const description = optionsHtml.indexOf('data-i18n="genericPlayerDescription"');
+  const report = optionsHtml.indexOf('data-i18n="genericPlayerReportPrefix"');
+  assert.ok(description > 0 && report > description);
+  assert.ok(optionsHtml.includes('<a href="https://github.com/mungi/ai-subtitle-translator/issues/new" target="_blank" rel="noreferrer">https://github.com/mungi/ai-subtitle-translator/issues/new</a>'));
+});
+
+test("no page of the ten supported sites' domains is a generic site, and they cannot be added", () => {
+  for (const url of [
+    "https://www.linkedin.com/feed/",
+    "https://www.nvidia.com/en-us/ai/",
+    "https://www.deeplearning.ai/courses/",
+    "https://m.youtube.com/watch?v=1",
+    "https://blog.udemy.com/post",
+    "https://learn.oreilly.com/x"
+  ]) {
+    assert.equal(isGenericEligibleUrl(url), false, url);
+    assert.equal(describeSiteForUrl(url, { genericAllowedHosts: [new URL(url).hostname] }).kind === "generic", false, url);
+  }
+  assert.equal(describeSiteForUrl("https://www.linkedin.com/feed/", {}).kind, "unsupported");
+  assert.equal(describeSiteForUrl("https://www.linkedin.com/learning/c/v", {}).kind, "dedicated");
+  assert.deepEqual(normalizeGenericHosts(["www.linkedin.com", "www.nvidia.com", "site.example"]), ["site.example"]);
+  assert.match(validateBackgroundMessage({ type: "settings.setGenericSiteAllowed", host: "www.linkedin.com", allowed: true }).error, /supported site/);
+  assert.equal(isGenericContentSender({ tab: { id: 1, url: "https://www.linkedin.com/feed/" }, url: "https://www.linkedin.com/feed/" }, { enabled: true, allowedHosts: ["www.linkedin.com"] }), false);
 });

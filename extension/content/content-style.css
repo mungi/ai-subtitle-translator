@@ -179,6 +179,12 @@
 
 .ast-generic-toolbar .ast-toolbar-button {
   margin: 0;
+  /* The page may style every <button>; the icon keeps no border or shadow of its own. */
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
 }
 
 /* The bar can be dragged over the video. */
@@ -391,9 +397,7 @@
   cursor: default;
 }
 
-/* The word-highlight switch is as wide as the Top/Bottom control below it. */
-.ast-segmented-control,
-.ast-word-highlight-toggle {
+.ast-segmented-control {
   box-sizing: border-box;
   width: 160px;
 }
@@ -406,14 +410,19 @@
   border-radius: 6px;
 }
 
+/* Sized to its label, smaller than the Top/Bottom control, to leave room for the font size buttons. */
 .ast-word-highlight-toggle {
+  box-sizing: border-box;
   flex: 0 0 auto;
+  width: auto;
+  min-width: 110px;
   padding: 2px 10px;
   border: 1px solid rgba(255, 255, 255, 0.35);
   border-radius: 6px;
   background: transparent;
   color: inherit;
   font: inherit;
+  font-size: 0.92em;
   text-align: center;
   cursor: pointer;
 }
@@ -521,6 +530,58 @@
 }
 
 .ast-source-caption-item.active,
+.ast-subtitle-display-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Font size on each display row: current size, then minus and plus. */
+/* Compact, so the rows stay within the submenu's usual width (set by the translation position row). */
+.ast-font-size-control {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 3px;
+  margin-left: auto;
+}
+
+.ast-font-size-value {
+  min-width: 2ch;
+  margin-right: 3px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+  text-align: right;
+}
+
+.ast-provider-menu .ast-font-size-button {
+  box-sizing: border-box;
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  font: 600 14px/1 Arial, sans-serif;
+  cursor: pointer;
+}
+
+.ast-provider-menu .ast-font-size-button:hover,
+.ast-provider-menu .ast-font-size-button:focus-visible {
+  outline: none;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.ast-provider-menu .ast-font-size-button:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
 .ast-subtitle-display-item.active,
 .ast-target-language-item.active,
 .ast-translation-style-item.active {
@@ -595,6 +656,7 @@
 .ast-provider-menu-oreilly,
 .ast-provider-menu-nvidiaOnDemand,
 .ast-provider-menu-deeplearningai,
+.ast-provider-menu-edx,
 .ast-provider-menu-generic,
 .ast-provider-menu-vimeo,
 .ast-provider-menu-ted {
@@ -621,6 +683,7 @@
 .ast-provider-menu-oreilly .ast-provider-menu-item,
 .ast-provider-menu-nvidiaOnDemand .ast-provider-menu-item,
 .ast-provider-menu-deeplearningai .ast-provider-menu-item,
+.ast-provider-menu-edx .ast-provider-menu-item,
 .ast-provider-menu-generic .ast-provider-menu-item,
 .ast-provider-menu-vimeo .ast-provider-menu-item,
 .ast-provider-menu-ted .ast-provider-menu-item {
@@ -647,6 +710,7 @@
 .ast-provider-menu-oreilly .ast-provider-menu-item:hover,
 .ast-provider-menu-nvidiaOnDemand .ast-provider-menu-item:hover,
 .ast-provider-menu-deeplearningai .ast-provider-menu-item:hover,
+.ast-provider-menu-edx .ast-provider-menu-item:hover,
 .ast-provider-menu-generic .ast-provider-menu-item:hover,
 .ast-provider-menu-vimeo .ast-provider-menu-item:hover,
 .ast-provider-menu-coursera .ast-provider-menu-item:focus-visible,
@@ -654,6 +718,7 @@
 .ast-provider-menu-oreilly .ast-provider-menu-item:focus-visible,
 .ast-provider-menu-nvidiaOnDemand .ast-provider-menu-item:focus-visible,
 .ast-provider-menu-deeplearningai .ast-provider-menu-item:focus-visible,
+.ast-provider-menu-edx .ast-provider-menu-item:focus-visible,
 .ast-provider-menu-generic .ast-provider-menu-item:focus-visible,
 .ast-provider-menu-vimeo .ast-provider-menu-item:focus-visible,
 .ast-provider-menu-ted .ast-provider-menu-item:hover,
@@ -667,6 +732,7 @@
 .ast-provider-menu-oreilly .ast-provider-menu-separator,
 .ast-provider-menu-nvidiaOnDemand .ast-provider-menu-separator,
 .ast-provider-menu-deeplearningai .ast-provider-menu-separator,
+.ast-provider-menu-edx .ast-provider-menu-separator,
 .ast-provider-menu-generic .ast-provider-menu-separator,
 .ast-provider-menu-vimeo .ast-provider-menu-separator,
 .ast-provider-menu-ted .ast-provider-menu-separator {
@@ -676,6 +742,10 @@
 /* Coursera's control bar is taller than Vimeo's; keep the menu above it. */
 .ast-provider-menu-deeplearningai {
   bottom: 64px;
+}
+
+.ast-provider-menu-edx {
+  bottom: 56px;
 }
 
 /* The generic menu sits at the top of the page, placed under its button by script, so a small
@@ -700,6 +770,128 @@
 .ast-provider-menu-flyout-right .ast-translation-style-list {
   right: auto;
   left: 100%;
+}
+
+/* edX: the button carries edX's .control class (its background, padding and hover), plus the
+   dotted divider the other controls in that bar have. */
+.ast-toolbar-button.ast-edx-toolbar-button {
+  width: auto;
+  height: auto;
+  border-left: 1px dotted #4f595d !important;
+  line-height: 1;
+}
+
+.ast-edx-toolbar-button .ast-toolbar-icon {
+  width: 22px;
+  height: 22px;
+}
+
+/* Long lists (source languages) scroll with a thin scrollbar that fits the dark menu. */
+.ast-provider-menu,
+.ast-provider-menu * {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.35) transparent;
+}
+
+/* Sites like edX style every <button> (borders, their own bold font, shadows). Menu buttons on those
+   sites, and on any site the generic player runs on, take only the menu's own look. */
+.ast-provider-menu-edx button,
+.ast-provider-menu-generic button {
+  font-family: inherit !important;
+  font-style: normal !important;
+  letter-spacing: normal !important;
+  line-height: inherit;
+  text-shadow: none !important;
+  text-transform: none !important;
+  background-image: none !important;
+}
+
+.ast-provider-menu-edx button.ast-provider-menu-item,
+.ast-provider-menu-edx .ast-provider-retranslate,
+.ast-provider-menu-generic button.ast-provider-menu-item,
+.ast-provider-menu-generic .ast-provider-retranslate {
+  margin: 0 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  font-weight: 500 !important;
+}
+
+/* The menu's small buttons (+/-, Top/Bottom, SRT/TXT, summary, word progress, retranslate) on sites
+   whose own button rules (edX: dark fill, gradient, inset top highlight, white hover) would win. Each
+   state is pinned to the menu's look. */
+:is(.ast-provider-menu-edx, .ast-provider-menu-generic) button {
+  box-shadow: none !important;
+  text-shadow: none !important;
+  background-image: none !important;
+  color: inherit !important;
+}
+
+:is(.ast-provider-menu-edx, .ast-provider-menu-generic) .ast-provider-menu-item {
+  background-color: transparent !important;
+}
+
+:is(.ast-provider-menu-edx, .ast-provider-menu-generic) .ast-provider-menu-item:hover,
+:is(.ast-provider-menu-edx, .ast-provider-menu-generic) .ast-provider-menu-item:focus-visible {
+  outline: none !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+:is(.ast-provider-menu-edx, .ast-provider-menu-generic) .ast-segmented-option {
+  border: 0 !important;
+  border-radius: 0 !important;
+  font-weight: 500 !important;
+  background-color: transparent !important;
+}
+
+:is(.ast-provider-menu-edx, .ast-provider-menu-generic) .ast-segmented-option + .ast-segmented-option {
+  border-left: 1px solid rgba(255, 255, 255, 0.35) !important;
+}
+
+:is(.ast-provider-menu-edx, .ast-provider-menu-generic) .ast-font-size-button,
+:is(.ast-provider-menu-edx, .ast-provider-menu-generic) .ast-word-highlight-toggle {
+  border: 1px solid rgba(255, 255, 255, 0.35) !important;
+  background-color: transparent !important;
+}
+
+:is(.ast-provider-menu-edx, .ast-provider-menu-generic) .ast-font-size-button {
+  border-radius: 5px !important;
+  font-weight: 600 !important;
+}
+
+:is(.ast-provider-menu-edx, .ast-provider-menu-generic) .ast-word-highlight-toggle {
+  border-radius: 6px !important;
+}
+
+:is(.ast-provider-menu-edx, .ast-provider-menu-generic) .ast-provider-retranslate {
+  border-radius: 8px !important;
+  background-color: transparent !important;
+}
+
+:is(.ast-provider-menu-edx, .ast-provider-menu-generic) .ast-segmented-option:hover,
+:is(.ast-provider-menu-edx, .ast-provider-menu-generic) .ast-segmented-option:focus-visible,
+:is(.ast-provider-menu-edx, .ast-provider-menu-generic) .ast-word-highlight-toggle:hover,
+:is(.ast-provider-menu-edx, .ast-provider-menu-generic) .ast-word-highlight-toggle:focus-visible,
+:is(.ast-provider-menu-edx, .ast-provider-menu-generic) .ast-provider-retranslate:hover,
+:is(.ast-provider-menu-edx, .ast-provider-menu-generic) .ast-provider-retranslate:focus-visible {
+  outline: none !important;
+  background-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+:is(.ast-provider-menu-edx, .ast-provider-menu-generic) .ast-font-size-button:hover,
+:is(.ast-provider-menu-edx, .ast-provider-menu-generic) .ast-font-size-button:focus-visible {
+  outline: none !important;
+  background-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+:is(.ast-provider-menu-edx, .ast-provider-menu-generic) .ast-segmented-option.active,
+:is(.ast-provider-menu-edx, .ast-provider-menu-generic) .ast-word-highlight-toggle.active {
+  background-color: var(--ast-provider-state-color) !important;
+  color: #ffffff !important;
+}
+
+:is(.ast-provider-menu-edx, .ast-provider-menu-generic) button:disabled,
+:is(.ast-provider-menu-edx, .ast-provider-menu-generic) button:disabled:hover {
+  background-color: transparent !important;
 }
 
 /* Unknown pages may restyle spans and buttons; keep the on/off switch drawn. */
@@ -954,4 +1146,11 @@
 .ast-provider-menu-ted .ast-provider-model {
   color: rgba(247, 248, 250, 0.55) !important;
   -webkit-text-fill-color: rgba(247, 248, 250, 0.55) !important;
+}
+
+/* edX: anchor AST inside the player only outside fullscreen. In fullscreen edX makes .video fixed and
+   its wrappers static, and AST must not override that. */
+.video:not(.video-fullscreen).ast-edx-position-host,
+.video:not(.video-fullscreen) .ast-edx-position-host {
+  position: relative;
 }

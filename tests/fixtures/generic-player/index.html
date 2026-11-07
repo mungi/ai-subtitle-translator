@@ -13,6 +13,11 @@
     .small video { width: 420px; height: 236px; }
     .small .player span { display: inline; width: auto; height: auto; transform: none; }
     .small .player * { font-size: 1.4rem; font-family: Georgia, serif; letter-spacing: 0.2em; }
+    /* Like edX: every button restyled. */
+    .small button { border-top: 2px solid #fff; border-radius: 8px; font-family: Impact, sans-serif; font-weight: 700; text-shadow: 0 1px 0 #000; text-transform: uppercase; }
+    .small button { box-shadow: inset 0 1px 0 0 #254337; border: 1px solid #000; border-bottom: 1px solid #000; color: #fff; background-color: #00262B; background-image: linear-gradient(#0e3a40, #00262B); }
+    .small button:hover { background-color: #fff; background-image: none; color: #00262B; }
+    .small button:focus, .small button:active { box-shadow: inset 0 0 20px 0 #000; }
   </style>
   <!-- Manual check for the generic video player (technical preview) without loading the extension:
        serve the repository root over http and open /tests/fixtures/generic-player/.
@@ -20,6 +25,13 @@
   <script>
     globalThis.__astGenericMode = true;
     const astLog = (globalThis.astFixtureLog = []);
+    // Korean UI strings, loaded before the content scripts ask for them.
+    const fixtureMessages = (() => {
+      const request = new XMLHttpRequest();
+      request.open("GET", "../../../extension/_locales/ko/messages.json", false);
+      request.send();
+      return JSON.parse(request.responseText);
+    })();
     const modules = Promise.all([
       import("../../../extension/platforms/generic-captions.js"),
       import("../../../extension/shared/storage.js")
@@ -49,7 +61,15 @@
           }
         }
       },
-      i18n: { getMessage: (key) => key, getUILanguage: () => "ko" }
+      i18n: {
+        getMessage: (key, substitutions) => {
+          const entry = fixtureMessages[key];
+          if (!entry) return key;
+          let index = 0;
+          return entry.message.replace(/\$[a-z_]+\$/gi, () => [].concat(substitutions ?? [])[index++] ?? "");
+        },
+        getUILanguage: () => "ko"
+      }
     };
   </script>
 </head>

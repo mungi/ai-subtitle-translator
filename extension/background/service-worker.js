@@ -20,6 +20,7 @@ import { fetchLinkedinTranscript } from "../platforms/linkedin-captions.js";
 import { fetchOreillyTracks, fetchOreillyTranscript } from "../platforms/oreilly-captions.js";
 import { fetchNvidiaOnDemandTracks, fetchNvidiaOnDemandTranscript } from "../platforms/nvidia-ondemand-captions.js";
 import { fetchDeeplearningaiTranscript } from "../platforms/deeplearningai-captions.js";
+import { buildEdxTranscript } from "../platforms/edx-captions.js";
 import { fetchTedCaptionTracks, fetchTedTranscript } from "../platforms/ted-captions.js";
 
 const TEST_SYSTEM_PROMPT = "You are a concise API connection tester. Reply with only the word OK.";
@@ -252,6 +253,8 @@ const SUPPORTED_VIDEO_TAB_URLS = [
   "https://www.linkedin.com/learning/*",
   "https://www.oreilly.com/videos/*",
   "https://learn.deeplearning.ai/courses/*",
+  "https://courses.edx.org/*",
+  "https://learning.edx.org/*",
   // NVIDIA course URLs may omit the slash before the query; tabs without the player ignore the message.
   "https://www.nvidia.com/*"
 ];
@@ -875,6 +878,15 @@ export function dispatchBackgroundMessage(message, sender, sendResponse) {
       .then((document) => sendResponse({ ok: true, document }))
       .catch((error) => sendResponse({ ok: false, error: error.message }));
     return true;
+  }
+
+  if (message?.type === "captions.edx.buildTranscript") {
+    try {
+      sendResponse({ ok: true, document: buildEdxTranscript(message) });
+    } catch (error) {
+      sendResponse({ ok: false, error: error.message });
+    }
+    return false;
   }
 
   if (message?.type === "captions.deeplearningai.fetchTranscript") {

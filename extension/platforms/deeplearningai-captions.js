@@ -1,12 +1,15 @@
 import { createSubtitleDocument, parseWebVtt } from "../shared/subtitles.js";
 
-const DLAI_VIDEO_HOST = "video.deeplearning.ai";
+// Newer lessons serve captions from video.deeplearning.ai; older ones from a CloudFront distribution.
+function isDeeplearningaiCaptionHost(hostname) {
+  return hostname === "video.deeplearning.ai" || hostname.endsWith(".cloudfront.net");
+}
 
 export function isDeeplearningaiCaptionUrl(value) {
   try {
     const url = new URL(String(value || ""));
     return url.protocol === "https:"
-      && url.hostname === DLAI_VIDEO_HOST
+      && isDeeplearningaiCaptionHost(url.hostname)
       && url.pathname.includes("/subtitle/")
       && url.pathname.endsWith(".vtt");
   } catch {

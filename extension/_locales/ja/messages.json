@@ -6,7 +6,7 @@
     "message": "動画の文脈を生かした、自然な字幕翻訳を提供します。"
   },
   "supportedPlatformsDescription": {
-    "message": "対応プラットフォーム: Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI"
+    "message": "対応プラットフォーム: Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI, edX"
   },
   "websiteLabel": {
     "message": "ウェブサイト:"
@@ -991,7 +991,7 @@
     "message": "自動生成字幕のように短く区切られた字幕や、文の途中で行が分かれたサイトの字幕を、読みやすいフレーズ単位にまとめ直します。単語ごとの時間がある自動生成字幕は、各単語の元の時間をそのまま保ちます。"
   },
   "wordProgressHighlight": {
-    "message": "単語の進行を強調表示（YouTube のみ）"
+    "message": "単語の進行表示（YouTube のみ）"
   },
   "sourcePreviewText": {
     "message": "Original subtitle preview"
@@ -1024,7 +1024,7 @@
     "message": "YouTube 字幕"
   },
   "contentWordHighlight": {
-    "message": "単語強調"
+    "message": "進行表示"
   },
   "contentTranslationPositionBottom": {
     "message": "下"
@@ -1141,21 +1141,7 @@
     "message": "汎用動画プレーヤー（テクニカルプレビュー）"
   },
   "genericPlayerDescription": {
-    "message": "動画ページでツールバーのポップアップから追加したサイトでのみ、HTML5 動画の字幕（<track> ファイル、プレーヤーの字幕トラック、HLS 字幕）を見つけて翻訳します。サイトによって動作が異なる場合があります。"
-  },
-  "popupSiteToggle": {
-    "message": "このサイトで AST"
-  },
-  "popupSiteDedicatedNote": {
-    "message": "$host$ · $platform$ 全体に適用されます",
-    "placeholders": {
-      "host": {
-        "content": "$1"
-      },
-      "platform": {
-        "content": "$2"
-      }
-    }
+    "message": "動画ページでツールバーのポップアップから追加したサイトでのみ、HTML5 動画の字幕（<track> ファイル、プレーヤーの字幕トラック、HLS 字幕）を見つけて翻訳します。"
   },
   "genericAllowedHostsTitle": {
     "message": "汎用プレーヤーの対応リスト"
@@ -1196,5 +1182,20 @@
   },
   "popupGenericSiteGuide": {
     "message": "汎用プレーヤー（テクニカルプレビュー）"
+  },
+  "genericPlayerReportPrefix": {
+    "message": "動作しないウェブサイトがあれば、次の URL からお知らせください: "
+  },
+  "contentFontSize": {
+    "message": "文字サイズ"
+  },
+  "contentFontSizeDecrease": {
+    "message": "文字を小さく"
+  },
+  "contentFontSizeIncrease": {
+    "message": "文字を大きく"
+  },
+  "contentMissingEdx": {
+    "message": "edX の字幕情報を見つけられませんでした。"
   }
 }

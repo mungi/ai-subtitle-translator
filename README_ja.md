@@ -2,7 +2,7 @@
 
 [English](README.md) · [한국어](README_ko.md) · [日本語](README_ja.md)
 
-Udemy、YouTube、TED、NVIDIA Academy、Vimeo、Coursera、LinkedIn Learning、O'Reilly、NVIDIA On-Demand、DeepLearning.AI の字幕を翻訳し、動画上に表示する Chrome Manifest V3 拡張機能です。すぐに Google Translate を使用することも、LLM プロバイダーを接続して文脈を反映した翻訳を利用することもできます。
+Udemy、YouTube、TED、NVIDIA Academy、Vimeo、Coursera、LinkedIn Learning、O'Reilly、NVIDIA On-Demand、DeepLearning.AI、edX の字幕を翻訳し、動画上に表示する Chrome Manifest V3 拡張機能です。すぐに Google Translate を使用することも、LLM プロバイダーを接続して文脈を反映した翻訳を利用することもできます。
 
 紹介サイト: <https://mungi.github.io/ai-subtitle-translator/>
 
@@ -11,14 +11,14 @@ Chrome 102 以降が必要です。
 ## 主な機能
 
 - 汎用動画プレーヤー（テクニカルプレビュー）: 対応サイト以外のウェブサイトの HTML5 動画でも字幕（`<track>` ファイル、プレーヤーの字幕トラック、HLS 字幕）を見つけて翻訳します。既定でオンですが、動画ページでツールバーのポップアップの「追加」で汎用プレーヤーの対応リストに入れたサイトでのみ動作します。リストにあるサイトは同じ場所で「削除」できます。
-- Udemy、YouTube、TED、NVIDIA Academy、Vimeo、Coursera、LinkedIn Learning、O'Reilly、NVIDIA On-Demand、DeepLearning.AI から字幕を取得し、原文または翻訳字幕を表示します。
+- Udemy、YouTube、TED、NVIDIA Academy、Vimeo、Coursera、LinkedIn Learning、O'Reilly、NVIDIA On-Demand、DeepLearning.AI、edX から字幕を取得し、原文または翻訳字幕を表示します。
 - AST メニューから、現在の動画で提供されている元字幕の言語と翻訳スタイルを直接選択できます。
 - YouTube では実際のプレーヤーの字幕レスポンスを優先し、発話の進行に合わせて原文の文字色を濃いグレーから設定した色に変えます。単語の時刻情報がない場合は字幕キューの時刻から進行を推定し、翻訳文はキュー単位で表示します。広告中は AST 字幕を非表示にします。
 - Google Translate、DeepL、OpenAI、Anthropic、Google AI、OpenRouter、NVIDIA NIM、Custom LLM に対応しています。
 - LLM 翻訳では字幕全体の文脈と現在の再生位置を考慮し、長い動画は分割して処理します。
 - Natural、Lecture、Technical、カスタムの翻訳スタイルを提供します。
 - 翻訳する代わりに、YouTube にある翻訳先言語の人による字幕を、なければ YouTube の自動翻訳を表示します。プレーヤーメニューの翻訳スタイルまたは設定で「YouTube 提供の字幕を優先」をオフにすると、選択したスタイルで翻訳します。
-- 短く区切られた自動生成字幕や文の途中で分かれた字幕を、フレーズ単位にまとめ直して表示します。自動生成字幕は単語ごとの元の時間を保つため、単語の進行の強調表示が話す速さに合わせて進みます。フレーズ単位の再構成、YouTube で人がアップロードした字幕の除外、単語の進行の強調表示（YouTube のみ）は設定でオン・オフできます。
+- 短く区切られた自動生成字幕や文の途中で分かれた字幕を、フレーズ単位にまとめ直して表示します。自動生成字幕は単語ごとの元の時間を保つため、単語の進行表示が話す速さに合わせて進みます。フレーズ単位の再構成、YouTube で人がアップロードした字幕の除外、単語の進行表示（YouTube のみ）は設定でオン・オフできます。
 - 字幕の位置、サイズ、フォント、色、影、縁取り、背景を調整できます。
 - 翻訳結果をキャッシュし、LLM のクォータを超過した場合は Google Translate に切り替えて翻訳します。
 - プロバイダー接続テスト、モデル一覧の取得、設定のバックアップと復元を提供します。
@@ -42,7 +42,7 @@ Chrome 102 以降が必要です。
 
 ## 使用方法
 
-1. 字幕がある Udemy 講義、YouTube 動画、TED 動画、NVIDIA Academy 講義、Vimeo 動画、Coursera 講義、LinkedIn Learning 講義、O'Reilly 動画、NVIDIA On-Demand セッション、または DeepLearning.AI 講義を開きます。
+1. 字幕がある Udemy 講義、YouTube 動画、TED 動画、NVIDIA Academy 講義、Vimeo 動画、Coursera 講義、LinkedIn Learning 講義、O'Reilly 動画、NVIDIA On-Demand セッション、DeepLearning.AI 講義、または edX 講義動画を開きます。
 2. 動画ツールバーの AST アイコンを選択してメニューを開きます。
 3. メニューで元字幕の言語、翻訳プロバイダー、翻訳スタイルを選択するか、設定画面を開きます。
 4. **字幕表示** サブメニューで **二重字幕**、**原文字幕**、**翻訳字幕** を選択します。初期値は **翻訳字幕** です。**原文字幕** は選択した元の言語で表示し、**二重字幕** は原文を上、翻訳を下に表示します。翻訳待ちや失敗時には原文を維持します。表示モードは対応サイト間で共有され、次回以降も保存されます。
