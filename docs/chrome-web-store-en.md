@@ -7,7 +7,7 @@ See the introduction website for the full list of supported sites: https://mungi
   - Bring your own API key. Enter your own key from providers such as OpenAI, Anthropic, or Google AI, or connect any OpenAI-compatible server or local LLM (such as Ollama or LM Studio) through Custom LLM and translate with the model you choose.
   - Translate subtitles quickly with Google Translate, or connect an LLM for natural translations that consider context.
   - Watch with dual subtitles: the original and the translation shown together, so you can follow educational content in your own language while picking up the original expressions.
-  - Generic video player (technical preview): add a site that is not in the list above to the supported list from the toolbar popup, and translate the subtitles of standard HTML5 videos that have caption tracks.
+  - Generic video player (technical preview): add a site that is not on the supported list to the generic player list from the toolbar popup, and translate the subtitles of standard HTML5 videos that have caption tracks.
   - Use prompts to specify a translation style.
   - Customize the subtitle display style directly.
   - Supports multiple LLM providers, including commercial AI APIs, OpenAI-compatible APIs, and local servers. Choose providers, models, and API keys in Settings; see the Chrome Web Store settings screenshot for the full list of supported providers.
