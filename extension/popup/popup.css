@@ -54,14 +54,15 @@ h1 {
 
 .settings-summary {
   display: grid;
-  grid-template-columns: 92px minmax(0, 1fr);
+  grid-template-columns: max-content minmax(0, 1fr);
   align-items: center;
   margin: 0;
 }
 
 dt {
-  padding: 10px 0;
+  padding: 10px 12px 10px 0;
   color: #64748b;
+  white-space: nowrap;
   font-size: 12px;
   font-weight: 700;
 }
@@ -197,6 +198,79 @@ button:focus-visible {
 .translation-toggle input:focus-visible + .switch-track { outline: 3px solid #38bdf8; outline-offset: 3px; }
 .translation-toggle input:disabled + .switch-track { opacity: 0.5; }
 
+.toggle-with-note {
+  gap: 12px;
+}
+
+.toggle-with-note input {
+  top: 50%;
+  margin-top: -12px;
+}
+
+.toggle-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.toggle-eyebrow {
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.toggle-note {
+  margin-top: 2px;
+  overflow: hidden;
+  color: #64748b;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+/* Rows set display: flex, which would otherwise override the hidden attribute. */
+[hidden] {
+  display: none !important;
+}
+
+.generic-site-row {
+  cursor: default;
+}
+
+.site-list-button {
+  width: auto;
+  min-width: 64px;
+  min-height: 32px;
+  flex-shrink: 0;
+  padding: 0 14px;
+  font-size: 13px;
+}
+
+.site-list-button.is-remove {
+  border-color: #cbd5e1;
+  background: #fff;
+  box-shadow: none;
+  color: #b91c1c;
+}
+
+.site-list-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.toggle-with-note:has(input:disabled) {
+  cursor: default;
+}
+
 @media (prefers-color-scheme: dark) {
   .translation-toggle { border-color: #334155; background: #1e293b; }
+  .toggle-note,
+  .toggle-eyebrow { color: #94a3b8; }
+  .site-list-button.is-remove { border-color: #475569; background: #1e293b; color: #fca5a5; }
 }

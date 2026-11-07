@@ -1,5 +1,6 @@
 import { buildDefaultCustom2StyleSystemPrompt, buildDefaultCustomStyleSystemPrompt, DEFAULT_SETTINGS, extractStyleSystemPrompt, getTargetLanguageLabel, normalizeCustomStyleLabel, normalizeLlmParallelRequests, normalizeSummarySystemPrompt, PROVIDERS, TARGET_LANGUAGES, WEB_FONT_PRESETS } from "./defaults.js";
 import { clearEncryptedProviderSecrets, readEncryptedProviderSecrets, writeEncryptedProviderSecrets } from "./secret-storage.js";
+import { normalizeGenericHosts } from "./platform-urls.js";
 import { CUSTOM_HEADER_SECRET_SUFFIX, CUSTOM_LLM_PROVIDER_ID, normalizeCustomHeaders, normalizeJsonMode, normalizeReasoningEffort } from "./custom-llm-options.js";
 
 const SETTINGS_KEY = "llmSettings";
@@ -159,6 +160,7 @@ export function normalizeSettings(settings = {}) {
       ...defaults.platforms,
       ...settings.platforms
     },
+    genericAllowedHosts: normalizeGenericHosts(settings.genericAllowedHosts),
     fallback,
     subtitleStyle: withSourceFont({
       ...defaults.subtitleStyle,

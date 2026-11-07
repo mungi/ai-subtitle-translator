@@ -8,6 +8,9 @@
   "supportedPlatformsDescription": {
     "message": "지원 플랫폼 : Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI"
   },
+  "websiteLabel": {
+    "message": "웹사이트 :"
+  },
   "testProvider": {
     "message": "연결 테스트"
   },
@@ -1133,5 +1136,65 @@
   },
   "clearCacheConfirm": {
     "message": "번역 캐시를 삭제할까요?\n\n저장해 둔 모든 영상의 번역 결과가 지워집니다. 이미 번역한 영상을 다시 보면 처음부터 다시 번역하며, AI 제공업체를 쓰는 경우 API 사용량과 비용이 다시 발생합니다."
+  },
+  "genericPlayerToggle": {
+    "message": "범용 동영상 플레이어 (테크니컬 프리뷰)"
+  },
+  "genericPlayerDescription": {
+    "message": "동영상 페이지에서 툴바 팝업으로 추가한 사이트에서만 HTML5 동영상의 자막(<track> 파일, 플레이어 자막 트랙, HLS 자막)을 찾아 번역합니다. 사이트에 따라 다르게 동작할 수 있습니다."
+  },
+  "popupSiteToggle": {
+    "message": "이 사이트에서 AST"
+  },
+  "popupSiteDedicatedNote": {
+    "message": "$host$ · $platform$ 전체에 적용됩니다",
+    "placeholders": {
+      "host": {
+        "content": "$1"
+      },
+      "platform": {
+        "content": "$2"
+      }
+    }
+  },
+  "genericAllowedHostsTitle": {
+    "message": "범용 플레이어 지원 목록"
+  },
+  "genericAllowedHostsEmpty": {
+    "message": "아직 추가한 사이트가 없습니다. 동영상 페이지에서 툴바 팝업으로 추가하세요."
+  },
+  "genericAllowedHostRemove": {
+    "message": "삭제"
+  },
+  "popupGenericListed": {
+    "message": "범용 플레이어 지원 목록에 있습니다"
+  },
+  "popupGenericNotListed": {
+    "message": "추가하면 이 사이트의 동영상 자막을 번역합니다"
+  },
+  "popupGenericAdd": {
+    "message": "추가"
+  },
+  "popupGenericRemove": {
+    "message": "삭제"
+  },
+  "popupGenericAddLabel": {
+    "message": "$host$을(를) 범용 플레이어 지원 목록에 추가",
+    "placeholders": {
+      "host": {
+        "content": "$1"
+      }
+    }
+  },
+  "popupGenericRemoveLabel": {
+    "message": "$host$을(를) 범용 플레이어 지원 목록에서 삭제",
+    "placeholders": {
+      "host": {
+        "content": "$1"
+      }
+    }
+  },
+  "popupGenericSiteGuide": {
+    "message": "범용 플레이어 (테크니컬 프리뷰)"
   }
 }

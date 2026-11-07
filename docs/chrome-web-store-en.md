@@ -103,6 +103,7 @@ Naturally translate subtitles from videos on the following websites into your pr
       - Custom LLM: an OpenAI-compatible server you run or choose can live at any address. Previously, every change of address needed its own permission request.
       - Subtitle servers of video sites and the endpoints of the translation providers you choose work right away.
       - Chrome's site access list showed a long list of addresses that was hard to read.
+      - Generic video player (Technical Preview): the extension registers a small video detection script only on sites the user adds to the generic player list from the toolbar popup, and injects the subtitle script only into frames with a captioned video to translate that video's captions. Because the user chooses the sites, they cannot be listed as permissions in advance.
     - What it is actually used for
       - The subtitle script runs only on supported video sites (Udemy, NVIDIA Academy, YouTube, TED, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI). It does not read or change other websites.
       - Network requests go only to supported sites for subtitles and to the translation provider you select. Request targets are checked again in code.

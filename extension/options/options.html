@@ -17,7 +17,7 @@
               <h1 data-i18n="title"></h1>
               <span id="extensionVersion" class="extension-version"></span>
             </div>
-            <p><strong data-i18n="subtitle"></strong><br><span data-i18n="supportedPlatformsDescription"></span></p>
+            <p><strong data-i18n="subtitle"></strong><br><span data-i18n="supportedPlatformsDescription"></span><br><span data-i18n="websiteLabel"></span> <a class="page-website-link" href="https://mungi.github.io/ai-subtitle-translator/" target="_blank" rel="noreferrer">mungi.github.io/ai-subtitle-translator</a></p>
           </div>
         </div>
         <div class="header-panel">
@@ -123,6 +123,18 @@
             <input id="toggleDeeplearningai" type="checkbox">
             <span>DeepLearning.AI</span>
           </label>
+        </div>
+        <div class="supported-sites-toggles supported-sites-generic" role="group" data-i18n-aria-label="genericPlayerToggle">
+          <label class="checkbox-field">
+            <input id="toggleGeneric" type="checkbox">
+            <span data-i18n="genericPlayerToggle"></span>
+          </label>
+        </div>
+        <p class="section-description generic-player-description" data-i18n="genericPlayerDescription"></p>
+        <div id="genericAllowedHosts" class="generic-allowed-hosts">
+          <p class="generic-allowed-hosts-title" data-i18n="genericAllowedHostsTitle"></p>
+          <p id="genericAllowedHostsEmpty" class="generic-allowed-hosts-empty" data-i18n="genericAllowedHostsEmpty"></p>
+          <ul id="genericAllowedHostList" class="generic-allowed-host-list"></ul>
         </div>
       </section>
 

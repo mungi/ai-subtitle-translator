@@ -145,6 +145,8 @@ const CAPTION_SVG = `
 </svg>`.trim();
 
 function detectPlatform() {
+  // Set by the worker before it loads AST into a frame for the generic video player.
+  if (globalThis.__astGenericMode === true) return "generic";
   const host = location.hostname;
   if (host.includes("youtube.com")) return "youtube";
   if (host.includes("udemy.com")) return "udemy";
@@ -247,6 +249,10 @@ async function getPublicSettings() {
 }
 
 function findToolbarTarget(platform, { allowFloatingToolbar = true } = {}) {
+  if (platform === "generic") {
+    return typeof getGenericToolbarTarget === "function" ? getGenericToolbarTarget() : null;
+  }
+
   if (platform === "deeplearningai") {
     return document.querySelector(DLAI_PLAY_BUTTON_SELECTOR)?.closest(".vds-controls-group")
       || (allowFloatingToolbar ? ensureFloatingToolbar() : null);
@@ -346,6 +352,11 @@ function clearElement(element) {
 }
 
 function getProviderMenuHost(platform) {
+  // On unknown sites the player can be small and clips or restyles anything inside it, so the
+  // generic menu lives at the top of the page (or in the fullscreen element) and is placed by script.
+  if (platform === "generic") {
+    return document.fullscreenElement || document.body;
+  }
   if (platform === "youtube") {
     return document.querySelector("#movie_player");
   }
@@ -1074,7 +1085,7 @@ async function retranslateCurrentVideo(platform) {
 function ensureProviderMenu(platform) {
   const host = getProviderMenuHost(platform);
   if (!host) return null;
-  if (getComputedStyle(host).position === "static") host.style.position = "relative";
+  if (platform !== "generic" && getComputedStyle(host).position === "static") host.style.position = "relative";
   let menu = document.getElementById(PROVIDER_MENU_ID);
   if (!menu) {
     menu = document.createElement("div");
@@ -1104,7 +1115,53 @@ function ensureProviderMenu(platform) {
     menu.dataset.platform = platform;
   }
   if (menu.parentElement !== host) host.append(menu);
+  if (platform === "generic") watchGenericProviderMenuPosition(menu);
   return menu;
+}
+
+const GENERIC_MENU_MARGIN_PX = 8;
+const GENERIC_SUBMENU_ROOM_PX = 280;
+
+// Places the generic menu under its button, right-aligned to it, kept inside the viewport.
+// If there is no room below, it opens above the button instead.
+function positionGenericProviderMenu(menu = document.getElementById(PROVIDER_MENU_ID)) {
+  if (!menu || menu.hidden || menu.dataset.platform !== "generic") return;
+  const button = document.getElementById(BUTTON_ID);
+  const anchor = button?.getBoundingClientRect();
+  if (!anchor || (anchor.width === 0 && anchor.height === 0)) return;
+  const viewportWidth = document.documentElement.clientWidth || window.innerWidth;
+  const viewportHeight = document.documentElement.clientHeight || window.innerHeight;
+  const height = menu.offsetHeight;
+  const width = menu.offsetWidth;
+  const below = anchor.bottom + 6;
+  const above = anchor.top - 6 - height;
+  const top = below + height <= viewportHeight - GENERIC_MENU_MARGIN_PX || above < GENERIC_MENU_MARGIN_PX
+    ? Math.min(below, Math.max(GENERIC_MENU_MARGIN_PX, viewportHeight - GENERIC_MENU_MARGIN_PX - height))
+    : above;
+  const right = Math.min(
+    Math.max(GENERIC_MENU_MARGIN_PX, viewportWidth - anchor.right),
+    Math.max(GENERIC_MENU_MARGIN_PX, viewportWidth - GENERIC_MENU_MARGIN_PX - width)
+  );
+  menu.style.top = `${Math.round(top)}px`;
+  menu.style.right = `${Math.round(right)}px`;
+  // Submenus open to the left; near the left edge they open to the right instead.
+  const left = viewportWidth - right - width;
+  menu.classList.toggle("ast-provider-menu-flyout-right", left < GENERIC_SUBMENU_ROOM_PX && viewportWidth - (left + width) > left);
+}
+
+function watchGenericProviderMenuPosition(menu) {
+  if (menu.astGenericPositionWatched) return;
+  menu.astGenericPositionWatched = true;
+  const reposition = () => positionGenericProviderMenu(menu);
+  // Re-renders change the menu's size; scrolling and resizing move the button.
+  if (typeof ResizeObserver === "function") new ResizeObserver(reposition).observe(menu);
+  window.addEventListener("resize", reposition, { passive: true });
+  window.addEventListener("scroll", reposition, { passive: true, capture: true });
+  document.addEventListener("fullscreenchange", () => {
+    const host = getProviderMenuHost("generic");
+    if (host && menu.parentElement !== host) host.append(menu);
+    reposition();
+  });
 }
 
 async function refreshAvailableProviders() {
@@ -1153,6 +1210,7 @@ async function toggleProviderMenu(platform) {
   }
   renderProviderMenu(platform);
   menu.hidden = false;
+  if (platform === "generic") positionGenericProviderMenu(menu);
   document.getElementById(BUTTON_ID)?.setAttribute("aria-expanded", "true");
   void setProviderMenuVisibility(true);
   scheduleProviderMenuAutoClose();
@@ -1231,6 +1289,10 @@ function updateOpenProviderMenuPhase() {
 }
 
 function findVideoElement(platform) {
+  if (platform === "generic") {
+    return typeof findGenericVideo === "function" ? findGenericVideo() : null;
+  }
+
   if (platform === "deeplearningai") {
     // The server-rendered page has a bare <video> that the Vidstack player replaces on load; wait
     // until the player's own video has media so the overlay and time listeners stay attached.
@@ -1281,6 +1343,10 @@ function findVideoElement(platform) {
 }
 
 function findOverlayHost(platform, video) {
+  if (platform === "generic") {
+    return video?.parentElement || null;
+  }
+
   if (platform === "deeplearningai") {
     return video?.closest("media-player") || video?.closest(".lesson-video-player") || video?.parentElement || null;
   }
@@ -2421,6 +2487,7 @@ async function fetchYoutubeTranscriptPanelDocumentOnPage(retry) {
 }
 
 function getCurrentSessionKey(platform) {
+  if (platform === "generic") return typeof getGenericCurrentSessionKey === "function" ? getGenericCurrentSessionKey() : null;
   if (platform === "youtube") return getYoutubeVideoId();
   if (platform === "udemy") return getUdemyLectureId();
   if (platform === "ted") return getTedPlayerContext()?.sessionKey || getTedTalkSlug();
@@ -3736,6 +3803,7 @@ function mountToolbarButton(target, button, platform) {
 }
 
 function ensureButton(platform, options = {}) {
+  if (subtitleState.siteInactive) return false;
   if (platform === "deeplearningai" && !getDeeplearningaiLessonContext()) {
     document.getElementById(FLOATING_TOOLBAR_ID)?.remove();
     return false;
@@ -3778,6 +3846,7 @@ function ensureButton(platform, options = {}) {
 }
 
 function shouldAllowFloatingToolbar(platform) {
+  if (platform === "generic") return false;
   if (platform === "coursera") return Boolean(getCourseraLectureContext() && document.querySelector("video"));
   if (platform === "linkedin") return Boolean(getLinkedinVideoContext() && document.querySelector("video"));
   if (platform === "oreilly") return Boolean(getOreillyClipContext() && document.querySelector("video"));
@@ -4844,6 +4913,50 @@ const platformHandlers = {
       };
     }
   },
+  generic: {
+    platform: "generic",
+    loadingMessage: contentText("contentTranslationPreparing"),
+    getSessionKey: () => (typeof getGenericCurrentSessionKey === "function" ? getGenericCurrentSessionKey() : null),
+    findVideo: () => findVideoElement("generic"),
+    async listCaptionTracks() {
+      const video = this.findVideo();
+      if (!video) return [];
+      const key = getGenericSessionKeyForVideo(video);
+      const tracks = genericPlayerState.tracksBySession.get(key) || await listGenericCaptionTracks(video);
+      return tracks.map((track) => createSourceCaptionTrack(track, {
+        id: track.id,
+        languageCode: track.languageCode,
+        trackUrl: track.trackUrl
+      })).filter(Boolean);
+    },
+    async buildTranscriptRequest() {
+      const video = this.findVideo();
+      const sessionKey = this.getSessionKey();
+      if (!video || !sessionKey) return null;
+      const track = requireCaptionTrack(
+        getSelectedSourceCaptionTrack(this.platform, sessionKey)
+          || setSourceCaptionTracks(this.platform, sessionKey, await this.listCaptionTracks())
+      );
+      const meta = getGenericTrackMeta(track.id) || { source: "url", trackUrl: track.trackUrl, format: "auto" };
+      return {
+        sessionKey,
+        video,
+        generic: meta,
+        message: {
+          type: "captions.generic.fetchTranscript",
+          sessionKey,
+          trackUrl: meta.trackUrl || track.trackUrl,
+          sourceLanguage: track.languageCode || "auto",
+          format: meta.format === "hls" ? "hls" : "auto"
+        }
+      };
+    },
+    // Text tracks are read in the page, and same-origin files are fetched with the page's cookies;
+    // anything else goes to the worker through the request message.
+    fetchNativeTranscript(request) {
+      return fetchGenericNativeDocument(request);
+    }
+  },
   deeplearningai: {
     platform: "deeplearningai",
     loadingMessage: contentText("contentTranslationPreparing"),
@@ -5250,6 +5363,55 @@ let subtitlePreferenceUpdateGeneration = 0;
 const sourceDocumentsBySegmented = new WeakMap();
 // Set once initialization resolves the frame; an embedded Vimeo player may belong to NVIDIA.
 let contentPlatform = null;
+let contentPlatformStarted = false;
+
+// The popup's "AST on this site" switch: turning it off stops AST here at once and removes its UI;
+// turning it back on resumes without a reload.
+function setAstSiteActive(active) {
+  const platform = contentPlatform;
+  const handler = platformHandlers[platform];
+  if (!handler || subtitleState.disposed) return;
+  if (!active) {
+    subtitleState.siteInactive = true;
+    subtitleState.autoEnablePending = false;
+    if (subtitleState.enabled) {
+      void togglePlatformSubtitles(handler).catch((error) => console.warn("[AST] Failed to turn AST off here:", error.message));
+    }
+    closeProviderMenu({ notify: false });
+    document.getElementById(BUTTON_ID)?.remove();
+    document.getElementById(FLOATING_TOOLBAR_ID)?.remove();
+    if (platform === "generic" && typeof setGenericSiteInactive === "function") setGenericSiteInactive(true);
+    return;
+  }
+  const wasInactive = subtitleState.siteInactive;
+  subtitleState.siteInactive = false;
+  if (platform === "generic" && typeof setGenericSiteInactive === "function") setGenericSiteInactive(false);
+  if (!contentPlatformStarted) {
+    startPlatform(platform, handler);
+  } else if (wasInactive) {
+    sendRuntimeMessage({ type: "settings.getSubtitleEnabled" }).then((preference) => {
+      if (!subtitleState.siteInactive && preference?.ok && preference.enabled) subtitleState.autoEnablePending = true;
+    }).catch(() => {});
+  }
+}
+
+function startPlatform(platform, handler) {
+  if (contentPlatformStarted) return;
+  contentPlatformStarted = true;
+  const begin = () => {
+    if (platform === "generic") {
+      watchGenericPlayer();
+    } else {
+      watch(platform);
+    }
+    watchPlatformChanges(handler);
+  };
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", begin, { once: true });
+  } else {
+    begin();
+  }
+}
 
 chrome.runtime.onMessage.addListener((message) => {
   if (message?.type === "subtitles.setEnabled" && typeof message.enabled === "boolean") {
@@ -5273,6 +5435,10 @@ chrome.runtime.onMessage.addListener((message) => {
     refreshOpenProviderMenu();
     return false;
   }
+  if (message?.type === "ast.site.setActive" && typeof message.active === "boolean") {
+    setAstSiteActive(message.active);
+    return false;
+  }
   if (message?.type === "ast.providerMenu.setOpen") {
     crossFrameProviderMenuOpen = Boolean(message.open);
     if (!crossFrameProviderMenuOpen) closeProviderMenu({ notify: false });
@@ -5280,6 +5446,10 @@ chrome.runtime.onMessage.addListener((message) => {
   }
   if (message?.type === "settings.changed") {
     const settings = message.settings || {};
+    if (contentPlatform && contentPlatform !== "generic" && settings.platforms) {
+      const active = settings.platforms[contentPlatform] !== false;
+      if (active === Boolean(subtitleState.siteInactive)) setAstSiteActive(active);
+    }
     subtitleState.subtitleStyle = settings.subtitleStyle || subtitleState.subtitleStyle;
     if (Object.hasOwn(SUBTITLE_DISPLAY_MESSAGE_KEYS, settings.subtitleDisplayMode)) {
       subtitleState.subtitleDisplayMode = settings.subtitleDisplayMode;
@@ -5415,7 +5585,7 @@ function toggleSubtitles(platform) {
 
 function watchPlatformChanges(handler) {
   const tryRefresh = () => {
-    if (subtitleState.disposed) return;
+    if (subtitleState.disposed || subtitleState.siteInactive) return;
     // A load for a YouTube video the viewer already left must not hold up the one they are on now;
     // starting the new load makes the old one stale, and it ends without a word.
     const leftLoadingVideo = handler.platform === "youtube" && subtitleState.loading
@@ -5550,22 +5720,17 @@ async function initializeContentScript() {
 
   const preferenceGeneration = subtitlePreferenceUpdateGeneration;
   Promise.all([isPlatformEnabled(platform), loadSubtitleStyle(), sendRuntimeMessage({ type: "settings.getSubtitleEnabled" })]).then(([enabled, , preference]) => {
-    if (!enabled) return;
     const handler = platformHandlers[platform];
     if (!handler) return;
+    if (!enabled) {
+      // Turned off for this site; the popup can turn it back on without a reload.
+      subtitleState.siteInactive = true;
+      return;
+    }
     if (preferenceGeneration === subtitlePreferenceUpdateGeneration) {
       subtitleState.autoEnablePending = preference?.ok === true && preference.enabled === true;
     }
-
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", () => {
-        watch(platform);
-        watchPlatformChanges(handler);
-      }, { once: true });
-    } else {
-      watch(platform);
-      watchPlatformChanges(handler);
-    }
+    startPlatform(platform, handler);
   }).catch((error) => {
     if (isExtensionContextInvalidated(error)) {
       disposeContentScript();

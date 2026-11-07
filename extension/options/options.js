@@ -276,7 +276,8 @@ const platformToggleInputs = {
   linkedin: document.getElementById("toggleLinkedin"),
   oreilly: document.getElementById("toggleOreilly"),
   nvidiaOnDemand: document.getElementById("toggleNvidiaOnDemand"),
-  deeplearningai: document.getElementById("toggleDeeplearningai")
+  deeplearningai: document.getElementById("toggleDeeplearningai"),
+  generic: document.getElementById("toggleGeneric")
 };
 let backupPasswordResolver = null;
 let backupPasswordMode = "backup";
@@ -1986,7 +1987,44 @@ function renderPlatformSettings() {
   for (const [platform, input] of Object.entries(platformToggleInputs)) {
     input.checked = settings.platforms?.[platform] !== false;
   }
+  renderGenericAllowedHosts();
 }
+
+function renderGenericAllowedHosts() {
+  const list = document.getElementById("genericAllowedHostList");
+  const empty = document.getElementById("genericAllowedHostsEmpty");
+  if (!list || !empty) return;
+  const hosts = Array.isArray(settings.genericAllowedHosts) ? settings.genericAllowedHosts : [];
+  list.replaceChildren(...hosts.map((host) => {
+    const item = document.createElement("li");
+    const name = document.createElement("span");
+    name.textContent = host;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "ghost";
+    button.textContent = t("genericAllowedHostRemove");
+    button.setAttribute("aria-label", `${t("genericAllowedHostRemove")}: ${host}`);
+    button.addEventListener("click", () => {
+      settings.genericAllowedHosts = hosts.filter((value) => value !== host);
+      renderGenericAllowedHosts();
+      scheduleAutomaticSave({ immediate: true });
+    });
+    item.append(name, button);
+    return item;
+  }));
+  list.hidden = hosts.length === 0;
+  empty.hidden = hosts.length > 0;
+}
+
+// The popup changes these while this page may be open; keep them current so a later
+// automatic save here does not write an older copy back.
+globalThis.chrome?.storage?.onChanged?.addListener((changes, areaName) => {
+  const next = areaName === "local" ? changes.llmSettings?.newValue : null;
+  if (!next || !settings) return;
+  settings.platforms = { ...(settings.platforms || {}), ...(next.platforms || {}) };
+  settings.genericAllowedHosts = Array.isArray(next.genericAllowedHosts) ? next.genericAllowedHosts : [];
+  renderPlatformSettings();
+});
 
 async function init() {
   applyLocaleText();

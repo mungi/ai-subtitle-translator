@@ -8,6 +8,9 @@
   "supportedPlatformsDescription": {
     "message": "対応プラットフォーム: Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI"
   },
+  "websiteLabel": {
+    "message": "ウェブサイト:"
+  },
   "testProvider": {
     "message": "接続をテスト"
   },
@@ -1133,5 +1136,65 @@
   },
   "clearCacheConfirm": {
     "message": "翻訳キャッシュを削除しますか？\n\n保存済みのすべての動画の翻訳結果が削除されます。翻訳済みの動画をもう一度見ると最初から翻訳し直すため、AI プロバイダーを使っている場合は API の使用量と費用が再び発生します。"
+  },
+  "genericPlayerToggle": {
+    "message": "汎用動画プレーヤー（テクニカルプレビュー）"
+  },
+  "genericPlayerDescription": {
+    "message": "動画ページでツールバーのポップアップから追加したサイトでのみ、HTML5 動画の字幕（<track> ファイル、プレーヤーの字幕トラック、HLS 字幕）を見つけて翻訳します。サイトによって動作が異なる場合があります。"
+  },
+  "popupSiteToggle": {
+    "message": "このサイトで AST"
+  },
+  "popupSiteDedicatedNote": {
+    "message": "$host$ · $platform$ 全体に適用されます",
+    "placeholders": {
+      "host": {
+        "content": "$1"
+      },
+      "platform": {
+        "content": "$2"
+      }
+    }
+  },
+  "genericAllowedHostsTitle": {
+    "message": "汎用プレーヤーの対応リスト"
+  },
+  "genericAllowedHostsEmpty": {
+    "message": "まだ追加したサイトはありません。動画ページでツールバーのポップアップから追加してください。"
+  },
+  "genericAllowedHostRemove": {
+    "message": "削除"
+  },
+  "popupGenericListed": {
+    "message": "汎用プレーヤーの対応リストにあります"
+  },
+  "popupGenericNotListed": {
+    "message": "追加すると、このサイトの動画字幕を翻訳します"
+  },
+  "popupGenericAdd": {
+    "message": "追加"
+  },
+  "popupGenericRemove": {
+    "message": "削除"
+  },
+  "popupGenericAddLabel": {
+    "message": "$host$ を汎用プレーヤーの対応リストに追加",
+    "placeholders": {
+      "host": {
+        "content": "$1"
+      }
+    }
+  },
+  "popupGenericRemoveLabel": {
+    "message": "$host$ を汎用プレーヤーの対応リストから削除",
+    "placeholders": {
+      "host": {
+        "content": "$1"
+      }
+    }
+  },
+  "popupGenericSiteGuide": {
+    "message": "汎用プレーヤー（テクニカルプレビュー）"
   }
 }

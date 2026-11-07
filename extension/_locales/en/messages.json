@@ -8,6 +8,9 @@
   "supportedPlatformsDescription": {
     "message": "Supported platforms: Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI"
   },
+  "websiteLabel": {
+    "message": "Website:"
+  },
   "testProvider": {
     "message": "Test connection"
   },
@@ -1133,5 +1136,65 @@
   },
   "clearCacheConfirm": {
     "message": "Clear the translation cache?\n\nSaved translations for all videos will be deleted. Videos you have already translated will be translated again from the start, and with an AI provider this uses API quota and may cost again."
+  },
+  "genericPlayerToggle": {
+    "message": "Generic video player (Technical Preview)"
+  },
+  "genericPlayerDescription": {
+    "message": "Translates captions of HTML5 videos (<track> files, the player's caption tracks, and HLS subtitles) only on the sites you add from the toolbar popup on a video page. Behavior can differ by site."
+  },
+  "popupSiteToggle": {
+    "message": "AST on this site"
+  },
+  "popupSiteDedicatedNote": {
+    "message": "$host$ · Applies to all of $platform$",
+    "placeholders": {
+      "host": {
+        "content": "$1"
+      },
+      "platform": {
+        "content": "$2"
+      }
+    }
+  },
+  "genericAllowedHostsTitle": {
+    "message": "Generic player sites"
+  },
+  "genericAllowedHostsEmpty": {
+    "message": "No sites yet. Open a video page and add it from the toolbar popup."
+  },
+  "genericAllowedHostRemove": {
+    "message": "Remove"
+  },
+  "popupGenericListed": {
+    "message": "On the generic player list"
+  },
+  "popupGenericNotListed": {
+    "message": "Add it to translate this site's video captions"
+  },
+  "popupGenericAdd": {
+    "message": "Add"
+  },
+  "popupGenericRemove": {
+    "message": "Remove"
+  },
+  "popupGenericAddLabel": {
+    "message": "Add $host$ to the generic player list",
+    "placeholders": {
+      "host": {
+        "content": "$1"
+      }
+    }
+  },
+  "popupGenericRemoveLabel": {
+    "message": "Remove $host$ from the generic player list",
+    "placeholders": {
+      "host": {
+        "content": "$1"
+      }
+    }
+  },
+  "popupGenericSiteGuide": {
+    "message": "Generic player (Technical Preview)"
   }
 }

@@ -2,6 +2,8 @@ import { classifyProviderLimit, providerRetryDelay } from "../shared/provider-li
 import { getPublicSettings, getSettings, restrictLocalStorageAccess, saveSettings, updateSubtitleStyleSettings } from "../shared/storage.js";
 import { TARGET_LANGUAGES, TRANSLATION_STYLES } from "../shared/defaults.js";
 import { validateBackgroundMessage, validateMessageSender } from "../shared/message-contracts.js";
+import { buildGenericProbeMatches, GENERIC_EXCLUDE_MATCHES, getHostname, GENERIC_PLATFORM_ID, isGenericEligibleUrl, isHostListed, normalizeGenericHost, normalizeGenericHosts } from "../shared/platform-urls.js";
+import { fetchGenericTranscript, listGenericHlsTracks, parseGenericTranscript } from "../platforms/generic-captions.js";
 import { ANTHROPIC_DIRECT_BROWSER_ACCESS_HEADER, buildProviderRequest, createReasoningProfile, extractText, getReasoningProbeModes, isReasoningOptionError } from "../shared/provider-request.js";
 import { sanitizeProviderErrorMessage } from "../shared/provider-error-sanitizer.js";
 import { assertProviderEndpoint } from "../shared/provider-security.js";
@@ -93,6 +95,140 @@ export async function registerYoutubeCaptionCapture(scripting = chrome.scripting
 if (chrome.scripting) {
   void registerYoutubeCaptionCapture().catch((error) => console.error("[AST] Could not register YouTube caption capture:", error));
 }
+// ---- Generic video player (technical preview)
+
+export const GENERIC_PROBE_SCRIPT_ID = "ast-generic-probe";
+const GENERIC_PROBE_FILE = "content/generic-probe.js";
+export const GENERIC_BUNDLE_FILES = [
+  "content/phrase-segmentation.js",
+  "content/subtitle-export.js",
+  "content/generic-player.js",
+  "content/content-script.js"
+];
+
+// Kept in memory so the synchronous sender check can use it; refreshed from storage on change.
+const genericState = { enabled: true, allowedHosts: [] };
+const genericAttachedFrames = new Set();
+
+function isGenericSettingOn(settings = {}) {
+  return settings.platforms?.[GENERIC_PLATFORM_ID] !== false;
+}
+
+function applyGenericSettings(settings = {}) {
+  genericState.enabled = isGenericSettingOn(settings);
+  genericState.allowedHosts = normalizeGenericHosts(settings.genericAllowedHosts);
+}
+
+export function getGenericState() {
+  return { ...genericState, allowedHosts: [...genericState.allowedHosts] };
+}
+
+// The probe runs only on the sites the user added; cross-origin player frames inside those pages
+// receive it from the worker (see generic.prepareFrames).
+export function buildGenericProbeRegistration(settings = {}) {
+  return {
+    id: GENERIC_PROBE_SCRIPT_ID,
+    matches: buildGenericProbeMatches(settings.genericAllowedHosts),
+    excludeMatches: GENERIC_EXCLUDE_MATCHES,
+    js: [GENERIC_PROBE_FILE],
+    runAt: "document_idle",
+    allFrames: true,
+    persistAcrossSessions: true,
+    // Players often live in about:blank/srcdoc frames; older Chrome rejects the key, so it is retried without it.
+    matchOriginAsFallback: true
+  };
+}
+
+let genericRegistrationQueue = Promise.resolve();
+
+export function syncGenericProbeRegistration(settings, scripting = chrome.scripting) {
+  const run = async () => {
+    if (!scripting?.registerContentScripts) return;
+    const registered = await scripting.getRegisteredContentScripts({ ids: [GENERIC_PROBE_SCRIPT_ID] });
+    if (!isGenericSettingOn(settings || {}) || normalizeGenericHosts(settings?.genericAllowedHosts).length === 0) {
+      if (registered.length > 0) await scripting.unregisterContentScripts({ ids: [GENERIC_PROBE_SCRIPT_ID] });
+      return;
+    }
+    const script = buildGenericProbeRegistration(settings);
+    const write = (value) => (registered.length > 0
+      ? scripting.updateContentScripts([value])
+      : scripting.registerContentScripts([value]));
+    try {
+      await write(script);
+    } catch (error) {
+      const { matchOriginAsFallback: _unused, ...withoutFallback } = script;
+      await write(withoutFallback);
+    }
+  };
+  const result = genericRegistrationQueue.catch(() => {}).then(run);
+  genericRegistrationQueue = result.then(() => undefined, () => undefined);
+  return result;
+}
+
+const genericStateReady = (async () => {
+  try {
+    await storageAccessReady;
+    const settings = await getSettings();
+    applyGenericSettings(settings);
+    await syncGenericProbeRegistration(settings);
+  } catch (error) {
+    console.warn("[AST] Could not prepare the generic video player:", error?.message || error);
+  }
+})();
+
+function isGenericTabAllowed(tabUrl) {
+  return genericState.enabled
+    && isGenericEligibleUrl(tabUrl)
+    && isHostListed(genericState.allowedHosts, tabUrl);
+}
+
+async function attachGenericPlayer(sender, scripting = chrome.scripting) {
+  const tabId = sender.tab?.id;
+  const frameId = Number.isInteger(sender.frameId) ? sender.frameId : 0;
+  if (!Number.isInteger(tabId) || tabId < 0) throw new Error("A tab is required.");
+  if (!isGenericTabAllowed(sender.tab?.url)) return { attached: false };
+  const key = `${tabId}:${frameId}:${sender.documentId || ""}`;
+  if (genericAttachedFrames.has(key)) return { attached: true };
+  genericAttachedFrames.add(key);
+  try {
+    const target = { tabId, frameIds: [frameId] };
+    await scripting.executeScript({ target, func: () => { globalThis.__astGenericMode = true; } });
+    await scripting.insertCSS({ target, files: ["content/content-style.css"] });
+    await scripting.executeScript({ target, files: GENERIC_BUNDLE_FILES });
+    return { attached: true };
+  } catch (error) {
+    genericAttachedFrames.delete(key);
+    throw error;
+  }
+}
+
+chrome.tabs?.onRemoved?.addListener((tabId) => {
+  for (const key of genericAttachedFrames) {
+    if (key.startsWith(`${tabId}:`)) genericAttachedFrames.delete(key);
+  }
+});
+
+function genericAttachedTabIds() {
+  return [...new Set([...genericAttachedFrames].map((key) => Number(key.split(":")[0])))];
+}
+
+async function sendToTab(tabId, message) {
+  if (!Number.isInteger(tabId) || !chrome.tabs?.sendMessage) return;
+  await chrome.tabs.sendMessage(tabId, message).catch(() => {});
+}
+
+// The popup's per-site switch and the generic toggle take effect in open tabs right away.
+async function injectGenericProbe(tabId, scripting = chrome.scripting) {
+  if (!Number.isInteger(tabId) || !scripting?.executeScript) return;
+  await scripting.executeScript({ target: { tabId, allFrames: true }, files: [GENERIC_PROBE_FILE] }).catch(() => {});
+}
+
+async function activeTabsMatching(predicate) {
+  if (!chrome.tabs?.query) return [];
+  const tabs = await chrome.tabs.query({ active: true }).catch(() => []);
+  return tabs.filter((tab) => Number.isInteger(tab.id) && predicate(String(tab.url || "")));
+}
+
 let settingsMutationQueue = Promise.resolve();
 void storageAccessReady.catch((error) => {
   console.error("[AST] Could not restrict extension storage access:", error);
@@ -120,10 +256,20 @@ const SUPPORTED_VIDEO_TAB_URLS = [
   "https://www.nvidia.com/*"
 ];
 
+async function queryAstTabs() {
+  if (!chrome.tabs?.query) return [];
+  const supported = await chrome.tabs.query({ url: SUPPORTED_VIDEO_TAB_URLS }).catch(() => []);
+  const listedPatterns = buildGenericProbeMatches(genericState.allowedHosts);
+  if (!genericState.enabled || listedPatterns.length === 0) return supported;
+  const generic = await chrome.tabs.query({ url: listedPatterns }).catch(() => []);
+  const byId = new Map([...supported, ...generic.filter((tab) => isGenericTabAllowed(tab.url))].map((tab) => [tab.id, tab]));
+  return [...byId.values()];
+}
+
 async function broadcastPublicSettings() {
   if (!chrome.tabs?.query) return;
   const settings = await getPublicSettings();
-  const tabs = await chrome.tabs.query({ url: SUPPORTED_VIDEO_TAB_URLS });
+  const tabs = await queryAstTabs();
   await Promise.all(tabs
     .filter((tab) => Number.isInteger(tab.id))
     .map((tab) => chrome.tabs.sendMessage(tab.id, {
@@ -174,6 +320,14 @@ export function abortTranslationsWhenDisabled(changes, areaName) {
 chrome.storage?.onChanged?.addListener((changes, areaName) => {
   abortTranslationsWhenDisabled(changes, areaName);
   if (areaName === "local" && changes.llmSettings?.newValue) {
+    const before = getGenericState();
+    applyGenericSettings(changes.llmSettings.newValue);
+    if (before.enabled !== genericState.enabled
+      || before.allowedHosts.join(",") !== genericState.allowedHosts.join(",")) {
+      syncGenericProbeRegistration(changes.llmSettings.newValue).catch((error) => {
+        console.warn("[AST] Could not update the generic video player:", error?.message || error);
+      });
+    }
     broadcastPublicSettings().catch(() => {});
   }
 });
@@ -572,7 +726,7 @@ export function dispatchBackgroundMessage(message, sender, sendResponse) {
       if (!message.enabled) {
         for (const controller of activeTranslationRequests.values()) controller.abort();
       }
-      const tabs = await chrome.tabs.query({ url: SUPPORTED_VIDEO_TAB_URLS }).catch(() => []);
+      const tabs = await queryAstTabs().catch(() => []);
       await Promise.all(tabs.filter((tab) => Number.isInteger(tab.id)).map((tab) => chrome.tabs.sendMessage(tab.id, {
         type: "subtitles.setEnabled", enabled: message.enabled
       }).catch(() => {})));
@@ -812,13 +966,79 @@ export function dispatchBackgroundMessage(message, sender, sendResponse) {
     return false;
   }
 
+  if (message?.type === "generic.attach") {
+    attachGenericPlayer(sender)
+      .then((result) => sendResponse({ ok: true, ...result }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.type === "captions.generic.fetchTranscript") {
+    fetchGenericTranscript({
+      sessionKey: message.sessionKey,
+      trackUrl: message.trackUrl,
+      sourceLanguage: message.sourceLanguage,
+      format: message.format
+    })
+      .then((document) => sendResponse({ ok: true, document }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.type === "captions.generic.parseTranscript") {
+    try {
+      sendResponse({ ok: true, document: parseGenericTranscript(message) });
+    } catch (error) {
+      sendResponse({ ok: false, error: error.message });
+    }
+    return false;
+  }
+
+  if (message?.type === "captions.generic.listHlsTracks") {
+    listGenericHlsTracks({ urls: message.urls })
+      .then((tracks) => sendResponse({ ok: true, tracks }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.type === "settings.setPlatformEnabled") {
+    setPlatformEnabled(message.platform, message.enabled)
+      .then((settings) => sendResponse({ ok: true, settings }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.type === "settings.setGenericPlayerEnabled") {
+    setPlatformEnabled(GENERIC_PLATFORM_ID, message.enabled)
+      .then((settings) => sendResponse({ ok: true, settings }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.type === "generic.prepareFrames") {
+    if (Number.isInteger(sender.tab?.id) && isGenericTabAllowed(sender.tab?.url)) {
+      injectGenericProbe(sender.tab.id).then(() => sendResponse({ ok: true }), (error) => sendResponse({ ok: false, error: error.message }));
+      return true;
+    }
+    sendResponse({ ok: true });
+    return false;
+  }
+
+  if (message?.type === "settings.setGenericSiteAllowed") {
+    setGenericSiteAllowed(message.host, message.allowed)
+      .then((settings) => sendResponse({ ok: true, settings }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
   if (message?.type === "platform.vimeo.getContext") {
     const tabUrl = String(sender.tab?.url || "");
     const platform = /^https:\/\/www\.nvidia\.com\/[^?#]*\/training\/academy\/course-player\/?(?:[?#]|$)/i.test(tabUrl)
       ? "nvidia"
       : /^https:\/\/(?:www\.)?vimeo\.com\/|^https:\/\/player\.vimeo\.com\//i.test(tabUrl)
         ? "vimeo"
-        : null;
+        // A Vimeo player embedded in another site works there too once the generic player is on.
+        : isGenericTabAllowed(tabUrl) ? "vimeo" : null;
     sendResponse({ ok: true, platform });
     return false;
   }
@@ -926,6 +1146,59 @@ export function dispatchBackgroundMessage(message, sender, sendResponse) {
   return false;
 }
 
+export async function setPlatformEnabled(platform, enabled) {
+  const settings = await enqueueSettingsMutation(async () => {
+    const current = await getSettings();
+    current.platforms = { ...(current.platforms || {}), [platform]: Boolean(enabled) };
+    return saveSettings(current);
+  });
+  applyGenericSettings(settings);
+  if (platform === GENERIC_PLATFORM_ID) {
+    await syncGenericProbeRegistration(settings).catch(() => {});
+    if (enabled) {
+      const tabs = await activeTabsMatching((url) => isGenericTabAllowed(url));
+      await Promise.all(tabs.map((tab) => injectGenericProbe(tab.id)));
+    } else {
+      await Promise.all(genericAttachedTabIds().map((tabId) => sendToTab(tabId, { type: "ast.site.setActive", active: false })));
+      genericAttachedFrames.clear();
+    }
+  }
+  return settings;
+}
+
+export async function setGenericSiteAllowed(host, allowed) {
+  const normalizedHost = normalizeGenericHost(host);
+  const excluded = !allowed;
+  const settings = await enqueueSettingsMutation(async () => {
+    const current = await getSettings();
+    const hosts = new Set(normalizeGenericHosts(current.genericAllowedHosts));
+    if (allowed) hosts.add(normalizedHost);
+    else hosts.delete(normalizedHost);
+    current.genericAllowedHosts = [...hosts];
+    return saveSettings(current);
+  });
+  applyGenericSettings(settings);
+  await syncGenericProbeRegistration(settings).catch(() => {});
+  const tabs = chrome.tabs?.query
+    ? (await chrome.tabs.query({ url: ["http://*/*", "https://*/*"] }).catch(() => []))
+      .filter((tab) => Number.isInteger(tab.id) && getHostname(tab.url) === normalizedHost)
+    : [];
+  await Promise.all(tabs.map(async (tab) => {
+    if (excluded) {
+      await sendToTab(tab.id, { type: "ast.site.setActive", active: false });
+    } else if (isGenericTabAllowed(tab.url)) {
+      await sendToTab(tab.id, { type: "ast.site.setActive", active: true });
+      await injectGenericProbe(tab.id);
+    }
+  }));
+  if (excluded) {
+    for (const tab of tabs) {
+      for (const key of genericAttachedFrames) if (key.startsWith(`${tab.id}:`)) genericAttachedFrames.delete(key);
+    }
+  }
+  return settings;
+}
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const validation = validateBackgroundMessage(message);
   if (!validation.handled) return false;
@@ -934,10 +1207,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return false;
   }
 
-  const senderValidation = validateMessageSender(message, sender, chrome.runtime.id);
+  const senderValidation = validateMessageSender(message, sender, chrome.runtime.id, { genericState });
   if (!senderValidation.ok) {
-    sendResponse({ ok: false, error: `Invalid sender: ${senderValidation.error}` });
-    return false;
+    // Right after the worker wakes, the generic state may not be loaded yet; check once more after it is.
+    genericStateReady.then(() => {
+      const retry = validateMessageSender(message, sender, chrome.runtime.id, { genericState });
+      if (!retry.ok) {
+        sendResponse({ ok: false, error: `Invalid sender: ${retry.error}` });
+        return;
+      }
+      storageAccessReady
+        .then(() => dispatchBackgroundMessage(message, sender, sendResponse))
+        .catch((error) => sendResponse({ ok: false, error: `Secure storage initialization failed: ${error.message}` }));
+    });
+    return true;
   }
 
   storageAccessReady

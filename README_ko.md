@@ -11,6 +11,7 @@ Chrome 102 이상이 필요합니다.
 ## 주요 기능
 
 - Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI의 자막을 수집하여 원문 또는 번역 자막으로 표시합니다.
+- 범용 동영상 플레이어 (테크니컬 프리뷰): 지원 사이트 외 웹사이트의 HTML5 동영상에서도 자막(`<track>` 파일, 플레이어 자막 트랙, HLS 자막)을 찾아 번역합니다. 기본으로 켜져 있지만, 동영상 페이지에서 툴바 팝업의 "추가"로 범용 플레이어 지원 목록에 넣은 사이트에서만 동작합니다. 목록에 있는 사이트는 같은 자리에서 "삭제"할 수 있습니다.
 - AST 메뉴에서 영상이 제공하는 원문 자막 언어와 번역 스타일을 바로 선택할 수 있습니다.
 - YouTube에서는 실제 플레이어의 자막 응답을 우선 활용하고, 발화 진행에 따라 원문 글자색이 어두운 회색에서 설정한 색으로 바뀝니다. 단어 시간이 없으면 자막 시간으로 진행을 추정하며, 번역문은 문장 단위로 표시합니다. 광고 중에는 AST 자막을 숨깁니다.
 - Google Translate, DeepL, OpenAI, Anthropic, Google AI, OpenRouter, NVIDIA NIM, Custom LLM을 지원합니다.

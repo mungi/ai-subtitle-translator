@@ -128,6 +128,11 @@ button.ghost {
   color: var(--muted);
 }
 
+.page-header .page-website-link {
+  color: var(--accent-strong);
+  font-weight: 650;
+}
+
 .header-actions,
 .section-title-row {
   display: flex;
@@ -277,6 +282,53 @@ button.ghost {
 
 .supported-sites-toggles + .supported-sites-toggles {
   margin-top: 10px;
+}
+
+.generic-player-description {
+  margin-top: 6px;
+  font-size: 12px;
+}
+
+.generic-allowed-hosts {
+  margin-top: 12px;
+}
+
+.generic-allowed-hosts-empty {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.generic-allowed-hosts-title {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.generic-allowed-host-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.generic-allowed-host-list li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px 4px 10px;
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+.generic-allowed-host-list button {
+  min-height: 0;
+  padding: 2px 8px;
+  font-size: 12px;
 }
 
 .supported-sites-toggles .checkbox-field {

@@ -40,8 +40,8 @@ test("TED pages use player data, the native control bar, and TED caption message
   assert.match(contentScript, /ted: \{\s*platform: "ted"/);
   assert.equal(
     contentScript.match(/const track = requireCaptionTrack\(/g)?.length,
-    8,
-    "expected TED, NVIDIA, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, and DeepLearning.AI to classify an empty caption-track list as unavailable"
+    9,
+    "expected TED, NVIDIA, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI, and the generic player to classify an empty caption-track list as unavailable"
   );
   assert.match(contentStyle, /\.ast-ted-toolbar-button/);
   assert.match(contentStyle, /\.ast-ted-control\s*\{[\s\S]*align-items: center;[\s\S]*height: 40px;/);

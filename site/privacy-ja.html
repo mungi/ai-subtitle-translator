@@ -43,6 +43,7 @@
           <ul>
             <li>Udemy、YouTube、TED、NVIDIA Academy、Vimeo、Coursera、LinkedIn Learning、O'Reilly、NVIDIA On-Demand、DeepLearning.AI の字幕テキストおよび字幕キューの時刻情報</li>
             <li>現在の動画または講義を識別する URL、動画 ID、講座 ID、講義 ID、字幕言語情報</li>
+            <li>ユーザーが汎用動画プレーヤー（テクニカルプレビュー）の対応リストに追加したサイト: そのサイトのアドレス（ホスト名）、そのサイトのページの動画要素の情報と、動画の字幕テキスト・時刻情報</li>
             <li>ユーザーが入力した翻訳プロバイダーの API キー、エンドポイント、モデル、翻訳設定、字幕設定</li>
             <li>翻訳結果のキャッシュと、ユーザーが作成する暗号化設定バックアップファイル</li>
           </ul>
@@ -84,7 +85,7 @@
           <ul>
             <li><code>storage</code>: 設定、暗号化された API キー、翻訳キャッシュをローカルに保存します。</li>
             <li><code>scripting</code>: YouTube ページの開始時からプレーヤーの字幕レスポンスを取得します。Cookie、認証ヘッダー、署名付き URL を除き、字幕テキスト、言語、時刻情報のみを拡張機能に渡します。</li>
-            <li>ホスト権限: サイトごとに列挙せず、すべてのサイト（<code>&lt;all_urls&gt;</code>）へのアクセス権限を一度に要求し、実際の動作範囲はコードで制限しています。字幕スクリプトは Udemy・YouTube・TED・NVIDIA Academy・Vimeo・Coursera・LinkedIn Learning・O'Reilly・NVIDIA On-Demand・DeepLearning.AI のページにのみ挿入し、ネットワーク要求はこれらのサイトでの字幕取得と、ユーザーが選択した翻訳プロバイダー（公式 HTTPS アドレス、またはユーザーが入力した Custom LLM アドレス）にのみ送信します。その他のサイトのページ内容を読み取ったり送信したりしません。</li>
+            <li>ホスト権限: サイトごとに列挙せず、すべてのサイト（<code>&lt;all_urls&gt;</code>）へのアクセス権限を一度に要求し、実際の動作範囲はコードで制限しています。字幕スクリプトは Udemy・YouTube・TED・NVIDIA Academy・Vimeo・Coursera・LinkedIn Learning・O'Reilly・NVIDIA On-Demand・DeepLearning.AI のページにのみ挿入し、ネットワーク要求はこれらのサイトでの字幕取得と、ユーザーが選択した翻訳プロバイダー（公式 HTTPS アドレス、またはユーザーが入力した Custom LLM アドレス）にのみ送信します。その他のサイトのページ内容を読み取ったり送信したりしません。ただし、ユーザーがツールバーのポップアップから汎用動画プレーヤー（テクニカルプレビュー）の対応リストに追加したサイトでは、動画検出用の小さなスクリプトが入り、字幕付きの動画があるフレームにのみ字幕スクリプトを挿入してその動画の字幕ファイルを要求します。拡張機能が自ら字幕ファイルを要求する際は Cookie を送信せず、プライベートネットワークやローカルのアドレスには要求しません。リストにないサイトでは動作しません。</li>
           </ul>
         </section>
 

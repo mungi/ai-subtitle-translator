@@ -1,4 +1,5 @@
 import { validateCues } from "./subtitles.js";
+import { ALL_PLATFORM_IDS, getHostname, isGenericEligibleUrl, isHostListed, normalizeGenericHost } from "./platform-urls.js";
 
 const BACKGROUND_MESSAGE_TYPES = new Set([
   "llm.listModels",
@@ -15,8 +16,16 @@ const BACKGROUND_MESSAGE_TYPES = new Set([
   "settings.setPreferYoutubeProvidedTranslation",
   "settings.setWordProgressHighlight",
   "settings.setSourceCaptionLanguage",
+  "settings.setPlatformEnabled",
+  "settings.setGenericPlayerEnabled",
+  "settings.setGenericSiteAllowed",
   "ast.openOptions",
   "ast.providerMenu.setOpen",
+  "generic.attach",
+  "generic.prepareFrames",
+  "captions.generic.fetchTranscript",
+  "captions.generic.parseTranscript",
+  "captions.generic.listHlsTracks",
   "captions.youtube.listTracks",
   "captions.youtube.fetchTranscript",
   "captions.udemy.listTracks",
@@ -44,11 +53,19 @@ const BACKGROUND_MESSAGE_TYPES = new Set([
 const EXTENSION_PAGE_MESSAGE_TYPES = new Set([
   "llm.listModels",
   "llm.testActiveProvider",
-  "translation.clearCache"
+  "translation.clearCache",
+  "settings.setPlatformEnabled",
+  "settings.setGenericPlayerEnabled",
+  "settings.setGenericSiteAllowed"
 ]);
 
 const CONTENT_SCRIPT_MESSAGE_TYPES = new Set([
   "settings.getPublic",
+  "generic.attach",
+  "generic.prepareFrames",
+  "captions.generic.fetchTranscript",
+  "captions.generic.parseTranscript",
+  "captions.generic.listHlsTracks",
   "fonts.getBundledGowun",
   "settings.updateSubtitleStyle",
   "settings.setActiveProvider",
@@ -84,6 +101,29 @@ const CONTENT_SCRIPT_MESSAGE_TYPES = new Set([
 ]);
 
 const SUMMARY_TEXT_MAX_CHARS = 2000000;
+export const GENERIC_TRANSCRIPT_MAX_CHARS = 5000000;
+const GENERIC_SESSION_KEY_PATTERN = /^[\w:.-]{1,200}$/;
+
+function isHttpUrl(value, maxLength = 4096) {
+  if (typeof value !== "string" || value.length > maxLength) return false;
+  try {
+    return /^https?:$/.test(new URL(value).protocol);
+  } catch {
+    return false;
+  }
+}
+
+function validateGenericCues(cues) {
+  if (!Array.isArray(cues) || cues.length === 0) return "cues must be a non-empty array.";
+  if (cues.length > 20000) return "cues exceeds the 20000 cue limit.";
+  for (const cue of cues) {
+    if (!cue || typeof cue !== "object" || !Number.isFinite(cue.start) || !Number.isFinite(cue.end)
+      || typeof cue.text !== "string" || cue.text.length > 5000) {
+      return "cues contain an invalid cue.";
+    }
+  }
+  return "";
+}
 
 const SUBTITLE_STYLE_PATCH_LIMITS = Object.freeze({
   positionX: [0, 100],
@@ -178,7 +218,19 @@ function isSupportedContentUrl(value, tabUrl) {
   }
 }
 
-export function validateMessageSender(message, sender = {}, extensionId = globalThis.chrome?.runtime?.id) {
+// With the generic player on, a frame of a site the user added is a content-script sender: the page
+// (the tab) must be http(s), not a dedicated site, and on the user's list; the frame itself may be a
+// cross-origin player or an about:blank/srcdoc frame inside it.
+export function isGenericContentSender(sender = {}, genericState = {}) {
+  if (genericState.enabled !== true) return false;
+  if (!Number.isInteger(sender.tab?.id) || sender.tab.id < 0) return false;
+  const tabUrl = String(sender.tab?.url || "");
+  if (!isGenericEligibleUrl(tabUrl) || !isHostListed(genericState.allowedHosts, tabUrl)) return false;
+  const frameUrl = String(sender.url || tabUrl);
+  return Boolean(getHostname(frameUrl)) || /^about:(?:blank|srcdoc)$/.test(frameUrl);
+}
+
+export function validateMessageSender(message, sender = {}, extensionId = globalThis.chrome?.runtime?.id, { genericState } = {}) {
   if (!extensionId || sender.id !== extensionId) {
     return { ok: false, error: "Message sender is not this extension." };
   }
@@ -187,7 +239,7 @@ export function validateMessageSender(message, sender = {}, extensionId = global
   const isExtensionPage = senderUrl.startsWith(`chrome-extension://${extensionId}/`);
   const isContentScript = Number.isInteger(sender.tab?.id)
     && sender.tab.id >= 0
-    && isSupportedContentUrl(senderUrl, sender.tab?.url);
+    && (isSupportedContentUrl(senderUrl, sender.tab?.url) || isGenericContentSender(sender, genericState));
 
   if (["settings.getSubtitleEnabled", "settings.setSubtitleEnabled"].includes(message?.type)
     && !isExtensionPage && !isContentScript) {
@@ -250,8 +302,45 @@ export function validateBackgroundMessage(message) {
     case "settings.setSubtitleDisplayMode":
       if (!["dual", "source", "translated"].includes(message.mode)) error = "Unsupported subtitle display mode.";
       break;
+    case "settings.setPlatformEnabled":
+      if (!ALL_PLATFORM_IDS.includes(message.platform)) error = "Unsupported platform.";
+      else if (typeof message.enabled !== "boolean") error = "enabled must be a boolean.";
+      break;
+    case "settings.setGenericPlayerEnabled":
+      if (typeof message.enabled !== "boolean") error = "enabled must be a boolean.";
+      break;
+    case "settings.setGenericSiteAllowed":
+      if (!normalizeGenericHost(message.host)) error = "host is invalid.";
+      else if (typeof message.allowed !== "boolean") error = "allowed must be a boolean.";
+      break;
+    case "generic.prepareFrames":
+      break;
+    case "generic.attach":
+      break;
+    case "captions.generic.fetchTranscript":
+      if (!GENERIC_SESSION_KEY_PATTERN.test(String(message.sessionKey || ""))) error = "sessionKey is invalid.";
+      else if (!isHttpUrl(message.trackUrl)) error = "trackUrl must be an http(s) URL.";
+      else if (!isOptionalString(message.sourceLanguage)) error = "sourceLanguage must be a string.";
+      else if (message.format !== undefined && !["auto", "hls"].includes(message.format)) error = "format must be auto or hls.";
+      break;
+    case "captions.generic.parseTranscript":
+      if (!GENERIC_SESSION_KEY_PATTERN.test(String(message.sessionKey || ""))) error = "sessionKey is invalid.";
+      else if (!isOptionalString(message.sourceLanguage)) error = "sourceLanguage must be a string.";
+      else if (message.text !== undefined) {
+        if (typeof message.text !== "string" || !message.text.trim()) error = "text must be a non-empty string.";
+        else if (message.text.length > GENERIC_TRANSCRIPT_MAX_CHARS) error = "text is too long.";
+      } else {
+        error = validateGenericCues(message.cues);
+      }
+      break;
+    case "captions.generic.listHlsTracks":
+      if (!Array.isArray(message.urls) || message.urls.length === 0 || message.urls.length > 5
+        || !message.urls.every((url) => isHttpUrl(url))) {
+        error = "urls must list 1 to 5 http(s) URLs.";
+      }
+      break;
     case "settings.setSourceCaptionLanguage":
-      if (!["youtube", "udemy", "ted", "nvidia", "vimeo", "coursera", "linkedin", "oreilly", "nvidiaOnDemand", "deeplearningai"].includes(message.platform)) error = "Unsupported platform.";
+      if (!ALL_PLATFORM_IDS.includes(message.platform)) error = "Unsupported platform.";
       else if (!/^[\w-]{1,35}$/.test(String(message.languageCode || ""))) error = "languageCode is invalid.";
       break;
     case "settings.setPreferYoutubeProvidedTranslation":
@@ -343,7 +432,7 @@ export function validateBackgroundMessage(message) {
       break;
     case "translation.clearVideoCache":
       if (!isNonEmptyValue(message.platform)
-        || !["youtube", "udemy", "ted", "nvidia", "vimeo", "coursera", "linkedin", "oreilly", "nvidiaOnDemand", "deeplearningai"].includes(message.platform)) {
+        || !ALL_PLATFORM_IDS.includes(message.platform)) {
         error = "platform must be a supported video platform.";
       } else if (!isNonEmptyValue(message.videoId)) {
         error = "videoId is required.";

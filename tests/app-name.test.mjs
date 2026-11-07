@@ -43,7 +43,9 @@ test("extension app name uses AST - AI Subtitle Translator", () => {
   assert.match(optionsHtml, /class="settings-app-icon" src="\.\.\/icons\/icon128\.png"/);
   assert.match(popupHtml, /<title data-i18n="popupTitle"><\/title>/);
   assert.match(popupJs, /function formatTargetLanguage\(code\)/);
-  assert.match(popupJs, /function formatTranslationStyle\(style\)/);
+  assert.ok(popupJs.includes("function formatTranslationStyle(style, currentSettings = {})"));
+  // A named custom style shows its name in brackets, as in the player menu.
+  assert.ok(popupJs.includes("if (typeof customLabel === \"string\" && customLabel.trim()) return `[${customLabel.trim()}]`;"));
   assert.match(popupJs, /return t\(STYLE_MESSAGE_KEYS\[style\] \|\| "styleNatural"\)\.split\(\/\\s\+-\\s\+\/, 1\)\[0\];/);
   assert.match(popupJs, /getTargetLanguageLabel\(language, getExtensionUiLanguage\(\)\)/);
   assert.match(popupJs, /formatTargetLanguage\(settings\.targetLanguage\)/);

@@ -99,6 +99,22 @@
   transition: fill 120ms ease;
 }
 
+/* The "AST" mark is SVG text. Its size and font are SVG attributes, which any page rule overrides
+   (players often set font-size or font-family on everything inside them), so they are pinned here. */
+.ast-toolbar-icon .ast-toolbar-icon-mark {
+  display: inline !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  font-family: Arial, Helvetica, sans-serif !important;
+  font-size: 400px !important;
+  font-style: normal !important;
+  font-weight: 800 !important;
+  letter-spacing: -8px !important;
+  text-anchor: middle !important;
+  text-transform: none !important;
+  stroke: none !important;
+}
+
 .ast-toolbar-button[data-platform="youtube"] {
   width: 48px;
   height: 48px;
@@ -132,6 +148,50 @@
 
 .ast-ted-toolbar-button .ast-toolbar-icon {
   transform: translateY(2px);
+}
+
+/* Generic video player (technical preview): a small bar on the video's top-right corner. */
+.ast-generic-toolbar {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2147483645;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  border-radius: 8px;
+  /* Only the icon shows; a soft shadow keeps it readable on bright frames. */
+  background: transparent;
+  box-shadow: none;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55));
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+}
+
+.ast-generic-toolbar.ast-generic-toolbar-visible,
+.ast-generic-toolbar:hover,
+.ast-generic-toolbar:focus-within,
+.ast-generic-toolbar:has(.ast-toolbar-button[aria-expanded="true"]) {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.ast-generic-toolbar .ast-toolbar-button {
+  margin: 0;
+}
+
+/* The bar can be dragged over the video. */
+.ast-generic-toolbar {
+  cursor: grab;
+  touch-action: none;
+}
+
+.ast-generic-toolbar.ast-generic-toolbar-dragging,
+.ast-generic-toolbar.ast-generic-toolbar-dragging .ast-toolbar-button {
+  cursor: grabbing;
+  opacity: 1;
+  transition: none;
 }
 
 .ast-floating-toolbar {
@@ -535,6 +595,7 @@
 .ast-provider-menu-oreilly,
 .ast-provider-menu-nvidiaOnDemand,
 .ast-provider-menu-deeplearningai,
+.ast-provider-menu-generic,
 .ast-provider-menu-vimeo,
 .ast-provider-menu-ted {
   --ast-source-caption-menu-background: rgba(15, 23, 42, 0.94);
@@ -560,6 +621,7 @@
 .ast-provider-menu-oreilly .ast-provider-menu-item,
 .ast-provider-menu-nvidiaOnDemand .ast-provider-menu-item,
 .ast-provider-menu-deeplearningai .ast-provider-menu-item,
+.ast-provider-menu-generic .ast-provider-menu-item,
 .ast-provider-menu-vimeo .ast-provider-menu-item,
 .ast-provider-menu-ted .ast-provider-menu-item {
   min-height: 36px;
@@ -585,12 +647,14 @@
 .ast-provider-menu-oreilly .ast-provider-menu-item:hover,
 .ast-provider-menu-nvidiaOnDemand .ast-provider-menu-item:hover,
 .ast-provider-menu-deeplearningai .ast-provider-menu-item:hover,
+.ast-provider-menu-generic .ast-provider-menu-item:hover,
 .ast-provider-menu-vimeo .ast-provider-menu-item:hover,
 .ast-provider-menu-coursera .ast-provider-menu-item:focus-visible,
 .ast-provider-menu-linkedin .ast-provider-menu-item:focus-visible,
 .ast-provider-menu-oreilly .ast-provider-menu-item:focus-visible,
 .ast-provider-menu-nvidiaOnDemand .ast-provider-menu-item:focus-visible,
 .ast-provider-menu-deeplearningai .ast-provider-menu-item:focus-visible,
+.ast-provider-menu-generic .ast-provider-menu-item:focus-visible,
 .ast-provider-menu-vimeo .ast-provider-menu-item:focus-visible,
 .ast-provider-menu-ted .ast-provider-menu-item:hover,
 .ast-provider-menu-ted .ast-provider-menu-item:focus-visible {
@@ -603,6 +667,7 @@
 .ast-provider-menu-oreilly .ast-provider-menu-separator,
 .ast-provider-menu-nvidiaOnDemand .ast-provider-menu-separator,
 .ast-provider-menu-deeplearningai .ast-provider-menu-separator,
+.ast-provider-menu-generic .ast-provider-menu-separator,
 .ast-provider-menu-vimeo .ast-provider-menu-separator,
 .ast-provider-menu-ted .ast-provider-menu-separator {
   margin: 4px 8px;
@@ -611,6 +676,39 @@
 /* Coursera's control bar is taller than Vimeo's; keep the menu above it. */
 .ast-provider-menu-deeplearningai {
   bottom: 64px;
+}
+
+/* The generic menu sits at the top of the page, placed under its button by script, so a small
+   player cannot clip it or its submenus, and the page's player styles do not reach it. */
+.ast-provider-menu.ast-provider-menu-generic {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: auto;
+  left: auto;
+  max-width: calc(100vw - 16px);
+  font-size: 14px;
+  line-height: 1.4;
+  text-align: left;
+  letter-spacing: normal;
+}
+
+.ast-provider-menu-flyout-right .ast-source-caption-list,
+.ast-provider-menu-flyout-right .ast-subtitle-display-list,
+.ast-provider-menu-flyout-right .ast-subtitle-download-list,
+.ast-provider-menu-flyout-right .ast-target-language-list,
+.ast-provider-menu-flyout-right .ast-translation-style-list {
+  right: auto;
+  left: 100%;
+}
+
+/* Unknown pages may restyle spans and buttons; keep the on/off switch drawn. */
+.ast-provider-menu .ast-provider-toggle {
+  display: block !important;
+  width: 36px !important;
+  height: 14px !important;
+  padding: 0 !important;
+  border: 0 !important;
 }
 
 .ast-provider-menu-nvidiaOnDemand {

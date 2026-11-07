@@ -749,3 +749,12 @@ test("main supported sites stay first and the newer sites follow on a second row
   assert.equal((siteScript.match(/supportMoreLabel:/g) || []).length, 3);
   assert.match(siteHtml, /Supports Udemy course players, YouTube video pages, TED video pages, NVIDIA Academy courses, and Vimeo videos\./);
 });
+
+test("the options header links to the project website under the supported platforms line", () => {
+  const header = optionsHtml.slice(optionsHtml.indexOf('class="page-header"'), optionsHtml.indexOf("</header>"));
+  const platforms = header.indexOf('data-i18n="supportedPlatformsDescription"');
+  const link = header.indexOf('href="https://mungi.github.io/ai-subtitle-translator/"');
+  assert.ok(platforms > 0 && link > platforms);
+  assert.ok(header.includes('<a class="page-website-link" href="https://mungi.github.io/ai-subtitle-translator/" target="_blank" rel="noreferrer">'));
+  for (const language of ["en", "ko", "ja"]) assert.ok(localeMessages[language].websiteLabel.message);
+});

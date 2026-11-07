@@ -464,8 +464,12 @@ export const DEFAULT_SETTINGS = {
     linkedin: true,
     oreilly: true,
     nvidiaOnDemand: true,
-    deeplearningai: true
+    deeplearningai: true,
+    // Technical preview: HTML5 videos on other sites, only on sites added from the popup.
+    generic: true
   },
+  // Sites the user added to the generic player from the toolbar popup.
+  genericAllowedHosts: [],
   subtitleStyle: {
     positionX: 50,
     positionY: 78,

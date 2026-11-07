@@ -10,6 +10,7 @@ AST - AI Subtitle Translator is a Chrome extension that translates subtitles fro
 
 - Subtitle text and cue timing from Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, and DeepLearning.AI
 - URLs, video IDs, course IDs, lecture IDs, and subtitle language information needed to identify the current video or lecture
+- Sites the user adds to the generic video player (Technical Preview) list: the site address (host name), and information about video elements on that site's pages and those videos' subtitle text and timing
 - Translation provider API keys, endpoints, models, translation settings, and subtitle settings entered by the user
 - Cached translation results and encrypted settings backup files created by the user
 
@@ -37,7 +38,7 @@ This data is used only to retrieve subtitles, request translations, display tran
 
 - `storage`: Stores settings, encrypted API keys, and translation cache entries locally.
 - `scripting`: Runs a script from the start of YouTube pages to capture the player's caption responses. Only subtitle text, language, and timing data are passed to the extension, excluding cookies, authentication headers, and signed URLs.
-- Host permissions: The extension requests access to all sites (`<all_urls>`) once instead of listing each site, and the code limits what it actually does. The subtitle script is injected only into Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, and DeepLearning.AI pages, and network requests go only to those sites to retrieve subtitles and to the translation provider the user selects (its official HTTPS address or the Custom LLM address the user entered). The extension does not read or send page content from other sites.
+- Host permissions: The extension requests access to all sites (`<all_urls>`) once instead of listing each site, and the code limits what it actually does. The subtitle script is injected only into Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, and DeepLearning.AI pages, and network requests go only to those sites to retrieve subtitles and to the translation provider the user selects (its official HTTPS address or the Custom LLM address the user entered). The extension does not read or send page content from other sites. However, on sites the user adds to the generic video player (Technical Preview) list from the toolbar popup, a small video detection script runs, and the subtitle script is injected only into frames with a captioned video to request that video's caption files. When the extension requests caption files itself, it sends no cookies and does not request private-network or local addresses. It does not run on sites that are not on the list.
 
 ## Google API Limited Use
 

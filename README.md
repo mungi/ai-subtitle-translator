@@ -11,6 +11,7 @@ Chrome 102 or later is required.
 ## Key features
 
 - Collects subtitles from Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, and DeepLearning.AI and displays the original or translated subtitles.
+- Generic video player (Technical Preview): also finds and translates captions for HTML5 videos on other websites (`<track>` files, the player's caption tracks, and HLS subtitles). It is on by default but works only on sites you add to the generic player list with "Add" in the toolbar popup on a video page; listed sites show "Remove" in the same place.
 - Lets you choose a source subtitle language and translation style directly from the AST menu.
 - On YouTube, prioritizes native player caption responses and changes source words from dark gray to the configured text color as speech progresses. When word timing is unavailable, progress is estimated from cue timing. Translations use cue-level display, and AST subtitles are hidden during ads.
 - Supports Google Translate, DeepL, OpenAI, Anthropic, Google AI, OpenRouter, NVIDIA NIM, and Custom LLM.

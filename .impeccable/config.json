@@ -42,6 +42,18 @@
         "value": "youtube noto",
         "createdAt": "2026-11-07T06:17:48.793Z",
         "reason": "Provider menus deliberately mirror each host site's native UI font (ARCHITECTURE.md: menus follow each site's visual language); DESIGN.md typography covers the intro site only. Applied at user's request to clear the font warnings."
+      },
+      {
+        "rule": "design-system-font",
+        "value": "georgia",
+        "createdAt": "2026-11-07T08:32:30.423Z",
+        "reason": "Claude triage: tests/fixtures/generic-player uses Georgia only to imitate a page's hostile player CSS in the small-player check; not shipped UI"
+      },
+      {
+        "rule": "overused-font",
+        "value": "arial",
+        "createdAt": "2026-11-07T08:32:59.186Z",
+        "reason": "User confirmed (2026-11-07): provider menus mirror each host site's native UI font; the shared dark menu group has used Arial since before this change, the line only moved"
       }
     ]
   }
