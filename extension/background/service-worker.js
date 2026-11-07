@@ -13,6 +13,11 @@ import { benchmarkReasoningModes } from "../shared/reasoning-benchmark.js";
 import { fetchYoutubeCaptionTracks, fetchYoutubeTranscript } from "../platforms/youtube-captions.js";
 import { fetchUdemyCaptionTracks, fetchUdemyTranscript } from "../platforms/udemy-captions.js";
 import { fetchVimeoTranscript } from "../platforms/vimeo-captions.js";
+import { fetchCourseraTranscript } from "../platforms/coursera-captions.js";
+import { fetchLinkedinTranscript } from "../platforms/linkedin-captions.js";
+import { fetchOreillyTracks, fetchOreillyTranscript } from "../platforms/oreilly-captions.js";
+import { fetchNvidiaOnDemandTracks, fetchNvidiaOnDemandTranscript } from "../platforms/nvidia-ondemand-captions.js";
+import { fetchDeeplearningaiTranscript } from "../platforms/deeplearningai-captions.js";
 import { fetchTedCaptionTracks, fetchTedTranscript } from "../platforms/ted-captions.js";
 
 const TEST_SYSTEM_PROMPT = "You are a concise API connection tester. Reply with only the word OK.";
@@ -107,6 +112,10 @@ const SUPPORTED_VIDEO_TAB_URLS = [
   "https://vimeo.com/*",
   "https://www.vimeo.com/*",
   "https://player.vimeo.com/*",
+  "https://www.coursera.org/*",
+  "https://www.linkedin.com/learning/*",
+  "https://www.oreilly.com/videos/*",
+  "https://learn.deeplearning.ai/courses/*",
   // NVIDIA course URLs may omit the slash before the query; tabs without the player ignore the message.
   "https://www.nvidia.com/*"
 ];
@@ -708,6 +717,67 @@ export function dispatchBackgroundMessage(message, sender, sendResponse) {
       trackUrl: message.trackUrl,
       sourceLanguage: message.sourceLanguage,
       platform: message.platform
+    })
+      .then((document) => sendResponse({ ok: true, document }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.type === "captions.deeplearningai.fetchTranscript") {
+    fetchDeeplearningaiTranscript({
+      lessonId: message.lessonId,
+      trackUrl: message.trackUrl,
+      sourceLanguage: message.sourceLanguage
+    })
+      .then((document) => sendResponse({ ok: true, document }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.type === "captions.nvidiaOnDemand.listTracks") {
+    fetchNvidiaOnDemandTracks({ sessionId: message.sessionId })
+      .then((tracks) => sendResponse({ ok: true, tracks }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.type === "captions.nvidiaOnDemand.fetchTranscript") {
+    fetchNvidiaOnDemandTranscript({ sessionId: message.sessionId, sourceLanguage: message.sourceLanguage })
+      .then((document) => sendResponse({ ok: true, document }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.type === "captions.oreilly.listTracks") {
+    fetchOreillyTracks({ clipId: message.clipId })
+      .then((tracks) => sendResponse({ ok: true, tracks }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.type === "captions.oreilly.fetchTranscript") {
+    fetchOreillyTranscript({ clipId: message.clipId, sourceLanguage: message.sourceLanguage })
+      .then((document) => sendResponse({ ok: true, document }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.type === "captions.linkedin.fetchTranscript") {
+    fetchLinkedinTranscript({
+      videoId: message.videoId,
+      trackUrl: message.trackUrl,
+      sourceLanguage: message.sourceLanguage
+    })
+      .then((document) => sendResponse({ ok: true, document }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.type === "captions.coursera.fetchTranscript") {
+    fetchCourseraTranscript({
+      videoId: message.videoId,
+      trackUrl: message.trackUrl,
+      sourceLanguage: message.sourceLanguage
     })
       .then((document) => sendResponse({ ok: true, document }))
       .catch((error) => sendResponse({ ok: false, error: error.message }));

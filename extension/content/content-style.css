@@ -530,6 +530,11 @@
 }
 
 .ast-provider-menu-nvidia,
+.ast-provider-menu-coursera,
+.ast-provider-menu-linkedin,
+.ast-provider-menu-oreilly,
+.ast-provider-menu-nvidiaOnDemand,
+.ast-provider-menu-deeplearningai,
 .ast-provider-menu-vimeo,
 .ast-provider-menu-ted {
   --ast-source-caption-menu-background: rgba(15, 23, 42, 0.94);
@@ -550,6 +555,11 @@
 }
 
 .ast-provider-menu-nvidia .ast-provider-menu-item,
+.ast-provider-menu-coursera .ast-provider-menu-item,
+.ast-provider-menu-linkedin .ast-provider-menu-item,
+.ast-provider-menu-oreilly .ast-provider-menu-item,
+.ast-provider-menu-nvidiaOnDemand .ast-provider-menu-item,
+.ast-provider-menu-deeplearningai .ast-provider-menu-item,
 .ast-provider-menu-vimeo .ast-provider-menu-item,
 .ast-provider-menu-ted .ast-provider-menu-item {
   min-height: 36px;
@@ -570,7 +580,17 @@
 
 .ast-provider-menu-nvidia .ast-provider-menu-item:hover,
 .ast-provider-menu-nvidia .ast-provider-menu-item:focus-visible,
+.ast-provider-menu-coursera .ast-provider-menu-item:hover,
+.ast-provider-menu-linkedin .ast-provider-menu-item:hover,
+.ast-provider-menu-oreilly .ast-provider-menu-item:hover,
+.ast-provider-menu-nvidiaOnDemand .ast-provider-menu-item:hover,
+.ast-provider-menu-deeplearningai .ast-provider-menu-item:hover,
 .ast-provider-menu-vimeo .ast-provider-menu-item:hover,
+.ast-provider-menu-coursera .ast-provider-menu-item:focus-visible,
+.ast-provider-menu-linkedin .ast-provider-menu-item:focus-visible,
+.ast-provider-menu-oreilly .ast-provider-menu-item:focus-visible,
+.ast-provider-menu-nvidiaOnDemand .ast-provider-menu-item:focus-visible,
+.ast-provider-menu-deeplearningai .ast-provider-menu-item:focus-visible,
 .ast-provider-menu-vimeo .ast-provider-menu-item:focus-visible,
 .ast-provider-menu-ted .ast-provider-menu-item:hover,
 .ast-provider-menu-ted .ast-provider-menu-item:focus-visible {
@@ -578,9 +598,40 @@
 }
 
 .ast-provider-menu-nvidia .ast-provider-menu-separator,
+.ast-provider-menu-coursera .ast-provider-menu-separator,
+.ast-provider-menu-linkedin .ast-provider-menu-separator,
+.ast-provider-menu-oreilly .ast-provider-menu-separator,
+.ast-provider-menu-nvidiaOnDemand .ast-provider-menu-separator,
+.ast-provider-menu-deeplearningai .ast-provider-menu-separator,
 .ast-provider-menu-vimeo .ast-provider-menu-separator,
 .ast-provider-menu-ted .ast-provider-menu-separator {
   margin: 4px 8px;
+}
+
+/* Coursera's control bar is taller than Vimeo's; keep the menu above it. */
+.ast-provider-menu-deeplearningai {
+  bottom: 64px;
+}
+
+.ast-provider-menu-nvidiaOnDemand {
+  bottom: 64px;
+}
+
+.ast-provider-menu-oreilly {
+  bottom: 64px;
+}
+
+.ast-provider-menu-linkedin {
+  bottom: 64px;
+}
+
+.ast-provider-menu-coursera {
+  bottom: 96px;
+  background: rgba(15, 23, 42, 0.94);
+}
+
+.ast-provider-menu-coursera .ast-provider-menu-item {
+  min-height: 32px;
 }
 
 @keyframes ast-provider-spin {

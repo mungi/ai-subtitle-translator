@@ -173,10 +173,36 @@ export function parseWebVtt(vtt, { idPrefix = "vtt" } = {}) {
     }
   }
 
+  repairEmptyCueDurations(cues);
+
   const validation = validateCues(cues);
   if (!validation.ok) {
     throw new Error(validation.error);
   }
 
   return cues;
+}
+
+const EMPTY_CUE_FALLBACK_SECONDS = 0.5;
+
+// Some sources emit a cue whose end equals its start (LinkedIn Learning) or precedes it (DeepLearning.AI). Its text still
+// matters, so the cue is kept and shown until the next cue begins instead of failing the video.
+function repairEmptyCueDurations(cues) {
+  for (let index = 0; index < cues.length; index += 1) {
+    const cue = cues[index];
+    if (!(Number.isFinite(cue.start) && Number.isFinite(cue.end))) continue;
+    if (cue.end < cue.start) {
+      // A reversed cue (DeepLearning.AI's first cue: 5.713 --> 4.400) has a bad start; it can only
+      // have begun where the previous cue left off, or at 0 for the first one.
+      const previous = cues[index - 1];
+      const candidate = previous ? Math.min(previous.end, cue.end) : 0;
+      cue.start = Math.max(previous ? previous.start : 0, Math.min(candidate, cue.end - 0.001));
+      continue;
+    }
+    if (cue.end > cue.start) continue;
+    const nextStart = cues[index + 1]?.start;
+    cue.end = Number.isFinite(nextStart) && nextStart > cue.start
+      ? nextStart
+      : cue.start + EMPTY_CUE_FALLBACK_SECONDS;
+  }
 }

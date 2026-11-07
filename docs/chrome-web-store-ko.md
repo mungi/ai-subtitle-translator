@@ -5,6 +5,11 @@ AI를 활용해 다음 웹사이트 영상의 자막을 원하는 언어로 자�
   - YouTube: https://www.youtube.com/
   - Vimeo: https://vimeo.com/
   - TED: https://www.ted.com/
+  - Coursera: https://www.coursera.org/
+  - LinkedIn Learning: https://www.linkedin.com/learning/
+  - O'Reilly: https://www.oreilly.com/
+  - NVIDIA On-Demand: https://www.nvidia.com/en-us/on-demand/
+  - DeepLearning.AI: https://learn.deeplearning.ai/
 
 # 주요 특징
   - Google 번역으로 자막을 빠르게 번역하거나, LLM을 활용해 문맥을 고려한 자연스러운 번역을 제공합니다.
@@ -20,7 +25,7 @@ AI를 활용해 다음 웹사이트 영상의 자막을 원하는 언어로 자�
   - 무료 사용량과 제한 및 발생 비용은 각 LLM API 제공업체의 정책을 확인해 주세요.
 
 # 주요 기능
-  - Udemy, NVIDIA Academy, YouTube, TED, Vimeo 영상 자막 번역
+  - Udemy, NVIDIA Academy, YouTube, TED, Vimeo 영상 자막 번역 (그 외 Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI)
   - 원문 흐름을 고려한 AI 문맥 번역
   - Google 번역을 이용한 빠른 번역 기본 제공
   - LLM 번역이 준비되는 동안 임시 번역을 먼저 표시
@@ -98,7 +103,7 @@ AI를 활용해 다음 웹사이트 영상의 자막을 원하는 언어로 자�
       - 여러 번역 제공업체와 동영상 사이트의 자막 서버 주소를 사용자가 고른 설정에 따라 바로 쓸 수 있습니다.
       - Chrome의 사이트 접근 목록에 주소가 길게 나열되어 오히려 알아보기 어려웠던 문제를 정리했습니다.
     - 실제 사용 범위
-      - 자막 표시 스크립트는 지원하는 동영상 사이트(Udemy, NVIDIA Academy, YouTube, TED, Vimeo)에만 들어갑니다. 다른 웹사이트의 내용은 읽거나 바꾸지 않습니다.
+      - 자막 표시 스크립트는 지원하는 동영상 사이트(Udemy, NVIDIA Academy, YouTube, TED, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI)에만 들어갑니다. 다른 웹사이트의 내용은 읽거나 바꾸지 않습니다.
       - 네트워크 요청은 지원 사이트의 자막 조회와 사용자가 선택한 번역 제공업체로만 보냅니다. 요청 대상은 코드에서 다시 확인합니다.
   - storage: 설정, 암호화된 API 키, 번역 캐시를 브라우저에 저장합니다.
   - scripting: 지원 동영상 사이트에서 자막을 가져오는 스크립트를 실행합니다.

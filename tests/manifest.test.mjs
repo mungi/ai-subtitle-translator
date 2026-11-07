@@ -18,7 +18,7 @@ test("manifest asks for all-site access once instead of listing every host", () 
 });
 
 test("content scripts and page resources stay limited to supported video sites", () => {
-  const supportedSite = /^https:\/\/(?:[\w*-]+\.)?(?:udemy\.com|youtube\.com|ted\.com|nvidia\.com|vimeo\.com)\//;
+  const supportedSite = /^https:\/\/(?:[\w*-]+\.)?(?:udemy\.com|youtube\.com|ted\.com|nvidia\.com|vimeo\.com|coursera\.org|linkedin\.com|oreilly\.com|deeplearning\.ai)\//;
   const pagePatterns = [
     ...manifest.content_scripts.flatMap((item) => item.matches),
     ...manifest.web_accessible_resources.flatMap((item) => item.matches)

@@ -269,9 +269,14 @@ button.ghost {
 
 .supported-sites-toggles {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 24px;
+  gap: 10px 24px;
   margin-top: 16px;
+}
+
+.supported-sites-toggles + .supported-sites-toggles {
+  margin-top: 10px;
 }
 
 .supported-sites-toggles .checkbox-field {

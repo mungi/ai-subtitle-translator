@@ -6,7 +6,7 @@
     "message": "動画の文脈を生かした、自然な字幕翻訳を提供します。"
   },
   "supportedPlatformsDescription": {
-    "message": "対応プラットフォーム: Udemy, YouTube, TED, NVIDIA Academy, Vimeo"
+    "message": "対応プラットフォーム: Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI"
   },
   "testProvider": {
     "message": "接続をテスト"
@@ -818,6 +818,21 @@
   },
   "contentMissingNvidia": {
     "message": "NVIDIA Academy の字幕情報を見つけられませんでした。"
+  },
+  "contentMissingDeeplearningai": {
+    "message": "DeepLearning.AI の字幕情報を見つけられませんでした。"
+  },
+  "contentMissingNvidiaOnDemand": {
+    "message": "NVIDIA On-Demand の字幕情報を見つけられませんでした。"
+  },
+  "contentMissingOreilly": {
+    "message": "O'Reilly の字幕情報を見つけられませんでした。"
+  },
+  "contentMissingLinkedin": {
+    "message": "LinkedIn Learning の字幕情報を見つけられませんでした。"
+  },
+  "contentMissingCoursera": {
+    "message": "Coursera の字幕情報を見つけられませんでした。"
   },
   "contentMissingVimeo": {
     "message": "Vimeo の字幕情報を見つけられませんでした。"

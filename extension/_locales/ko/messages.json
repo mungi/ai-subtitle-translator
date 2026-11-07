@@ -6,7 +6,7 @@
     "message": "영상의 문맥을 살려, 자연스러운 자막 번역을 제공합니다."
   },
   "supportedPlatformsDescription": {
-    "message": "지원 플랫폼 : Udemy, YouTube, TED, NVIDIA Academy, Vimeo"
+    "message": "지원 플랫폼 : Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI"
   },
   "testProvider": {
     "message": "연결 테스트"
@@ -818,6 +818,21 @@
   },
   "contentMissingNvidia": {
     "message": "NVIDIA Academy 자막 정보를 찾지 못했습니다."
+  },
+  "contentMissingDeeplearningai": {
+    "message": "DeepLearning.AI 자막 정보를 찾지 못했습니다."
+  },
+  "contentMissingNvidiaOnDemand": {
+    "message": "NVIDIA On-Demand 자막 정보를 찾지 못했습니다."
+  },
+  "contentMissingOreilly": {
+    "message": "O'Reilly 자막 정보를 찾지 못했습니다."
+  },
+  "contentMissingLinkedin": {
+    "message": "LinkedIn Learning 자막 정보를 찾지 못했습니다."
+  },
+  "contentMissingCoursera": {
+    "message": "Coursera 자막 정보를 찾지 못했습니다."
   },
   "contentMissingVimeo": {
     "message": "Vimeo 자막 정보를 찾지 못했습니다."

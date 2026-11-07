@@ -23,6 +23,11 @@ test("NVIDIA Academy and Vimeo subtitle support are enabled by default", () => {
   assert.equal(normalizeSettings({ platforms: { vimeo: false } }).platforms.vimeo, false);
 });
 
+test("Coursera subtitle support is enabled by default", () => {
+  assert.equal(DEFAULT_SETTINGS.platforms.coursera, true);
+  assert.equal(normalizeSettings({ platforms: { coursera: false } }).platforms.coursera, false);
+});
+
 test("TED subtitle support is enabled by default", () => {
   assert.equal(DEFAULT_SETTINGS.platforms.ted, true);
   assert.equal(normalizeSettings({ platforms: { ted: false } }).platforms.ted, false);

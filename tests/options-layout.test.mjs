@@ -557,10 +557,15 @@ test("supported site toggles are shown in one row below the settings header, not
   assert.match(optionsHtml, /id="toggleYoutube" type="checkbox"/);
   assert.match(optionsHtml, /id="toggleNvidia" type="checkbox"/);
   assert.match(optionsHtml, /id="toggleVimeo" type="checkbox"/);
+  assert.match(optionsHtml, /id="toggleCoursera" type="checkbox"/);
+  assert.match(optionsHtml, /id="toggleLinkedin" type="checkbox"/);
+  assert.match(optionsHtml, /id="toggleOreilly" type="checkbox"/);
+  assert.match(optionsHtml, /id="toggleNvidiaOnDemand" type="checkbox"/);
+  assert.match(optionsHtml, /id="toggleDeeplearningai" type="checkbox"/);
   assert.match(optionsCss, /\.supported-sites-toggles\s*\{[\s\S]*display: flex/);
   assert.match(optionsJs, /Object\.entries\(platformToggleInputs\)\.forEach\(\(\[platform, input\]\) => \{/);
   assert.match(optionsJs, /\[platform\]: input\.checked[\s\S]*scheduleAutomaticSave\(\{ immediate: true \}\)/);
-  assert.doesNotMatch(popupHtml, /toggle(?:Udemy|Youtube|Nvidia|Vimeo)/);
+  assert.doesNotMatch(popupHtml, /toggle(?:Udemy|Youtube|Nvidia|Vimeo|Coursera|Linkedin)/);
   assert.doesNotMatch(popupJs, /savePlatformToggle/);
   assert.equal(message("ko", "supportedSites"), "지원 사이트");
 });
@@ -721,4 +726,26 @@ test("clearing the translation cache asks for confirmation first and can be canc
   assert.ok(handler.includes('if (!globalThis.confirm(t("clearCacheConfirm"))) return;'));
   for (const locale of ["ko", "en", "ja"]) assert.ok(message(locale, "clearCacheConfirm"), locale);
   assert.match(message("ko", "clearCacheConfirm"), /^번역 캐시를 삭제할까요\?/);
+});
+
+test("main supported sites stay first and the newer sites follow on a second row on the options page, and are listed under \"also supported\" on the intro site", () => {
+  const siteHtml = readFileSync(new URL("../site/index.html", import.meta.url), "utf8");
+  const siteScript = readFileSync(new URL("../site/script.js", import.meta.url), "utf8");
+  const mainEnd = optionsHtml.indexOf('class="supported-sites-toggles supported-sites-more"');
+  assert.ok(mainEnd > 0);
+  for (const id of ["toggleUdemy", "toggleYoutube", "toggleTed", "toggleNvidia", "toggleVimeo"]) {
+    const index = optionsHtml.indexOf(`id="${id}"`);
+    assert.ok(index > 0 && index < mainEnd, `${id} stays in the main group`);
+  }
+  for (const id of ["toggleCoursera", "toggleLinkedin", "toggleOreilly", "toggleNvidiaOnDemand", "toggleDeeplearningai"]) {
+    assert.ok(optionsHtml.indexOf(`id="${id}"`) > mainEnd, `${id} is in the additional group`);
+  }
+  assert.doesNotMatch(optionsHtml, /supportedSitesMore/);
+
+  const list = siteHtml.slice(siteHtml.indexOf('class="support-more-list"'));
+  for (const name of ["Coursera", "LinkedIn Learning", "O'Reilly", "NVIDIA On-Demand", "DeepLearning.AI"]) {
+    assert.ok(list.includes(`<li>${name}</li>`), `${name} is listed on the intro site`);
+  }
+  assert.equal((siteScript.match(/supportMoreLabel:/g) || []).length, 3);
+  assert.match(siteHtml, /Supports Udemy course players, YouTube video pages, TED video pages, NVIDIA Academy courses, and Vimeo videos\./);
 });

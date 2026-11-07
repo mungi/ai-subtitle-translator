@@ -22,6 +22,13 @@ const BACKGROUND_MESSAGE_TYPES = new Set([
   "captions.udemy.listTracks",
   "captions.udemy.fetchTranscript",
   "captions.vimeo.fetchTranscript",
+  "captions.coursera.fetchTranscript",
+  "captions.linkedin.fetchTranscript",
+  "captions.oreilly.listTracks",
+  "captions.oreilly.fetchTranscript",
+  "captions.nvidiaOnDemand.listTracks",
+  "captions.nvidiaOnDemand.fetchTranscript",
+  "captions.deeplearningai.fetchTranscript",
   "captions.ted.listTracks",
   "captions.ted.fetchTranscript",
   "platform.nvidia.isCoursePlayer",
@@ -58,6 +65,13 @@ const CONTENT_SCRIPT_MESSAGE_TYPES = new Set([
   "captions.udemy.listTracks",
   "captions.udemy.fetchTranscript",
   "captions.vimeo.fetchTranscript",
+  "captions.coursera.fetchTranscript",
+  "captions.linkedin.fetchTranscript",
+  "captions.oreilly.listTracks",
+  "captions.oreilly.fetchTranscript",
+  "captions.nvidiaOnDemand.listTracks",
+  "captions.nvidiaOnDemand.fetchTranscript",
+  "captions.deeplearningai.fetchTranscript",
   "captions.ted.listTracks",
   "captions.ted.fetchTranscript",
   "platform.nvidia.isCoursePlayer",
@@ -131,14 +145,30 @@ function isVimeoPageUrl(value) {
   }
 }
 
+function isOreillyVideoPageUrl(value) {
+  try {
+    const url = new URL(String(value || ""));
+    return url.protocol === "https:" && url.hostname === "www.oreilly.com" && url.pathname.startsWith("/videos/");
+  } catch {
+    return false;
+  }
+}
+
 function isSupportedContentUrl(value, tabUrl) {
   try {
     const url = new URL(String(value || ""));
+    // The O'Reilly player is an about:srcdoc frame inside a video page.
+    if (["about:srcdoc", "about:blank"].includes(url.href) && isOreillyVideoPageUrl(tabUrl)) return true;
     if (url.protocol !== "https:") return false;
     if (url.hostname === "www.youtube.com" || url.hostname === "udemy.com" || url.hostname.endsWith(".udemy.com")) {
       return true;
     }
     if (["ted.com", "www.ted.com"].includes(url.hostname) && url.pathname.startsWith("/talks/")) return true;
+    if (url.hostname === "www.coursera.org" && url.pathname.startsWith("/learn/")) return true;
+    if (url.hostname === "www.linkedin.com" && url.pathname.startsWith("/learning/")) return true;
+    if (url.hostname === "www.oreilly.com" && url.pathname.startsWith("/videos/")) return true;
+    if (url.hostname === "learn.deeplearning.ai" && url.pathname.startsWith("/courses/")) return true;
+    if (url.hostname === "www.nvidia.com" && /^\/[a-z]{2}-[a-z]{2}\/on-demand\/session\//i.test(url.pathname)) return true;
     if (isNvidiaAcademyCourseUrl(url.href)) return true;
     if (isVimeoPageUrl(url.href) && isVimeoPageUrl(tabUrl)) return true;
     return url.hostname === "player.vimeo.com"
@@ -221,7 +251,7 @@ export function validateBackgroundMessage(message) {
       if (!["dual", "source", "translated"].includes(message.mode)) error = "Unsupported subtitle display mode.";
       break;
     case "settings.setSourceCaptionLanguage":
-      if (!["youtube", "udemy", "ted", "nvidia", "vimeo"].includes(message.platform)) error = "Unsupported platform.";
+      if (!["youtube", "udemy", "ted", "nvidia", "vimeo", "coursera", "linkedin", "oreilly", "nvidiaOnDemand", "deeplearningai"].includes(message.platform)) error = "Unsupported platform.";
       else if (!/^[\w-]{1,35}$/.test(String(message.languageCode || ""))) error = "languageCode is invalid.";
       break;
     case "settings.setPreferYoutubeProvidedTranslation":
@@ -254,6 +284,31 @@ export function validateBackgroundMessage(message) {
       else if (message.platform !== undefined && !["nvidia", "vimeo"].includes(message.platform)) {
         error = "platform must be nvidia or vimeo.";
       }
+      break;
+    case "captions.deeplearningai.fetchTranscript":
+      if (!isNonEmptyValue(message.lessonId)) error = "lessonId is required.";
+      else if (!isNonEmptyValue(message.trackUrl)) error = "trackUrl is required.";
+      else if (!isOptionalString(message.sourceLanguage)) error = "sourceLanguage must be a string.";
+      break;
+    case "captions.nvidiaOnDemand.listTracks":
+    case "captions.nvidiaOnDemand.fetchTranscript":
+      if (!/^[\w.-]{1,120}$/.test(String(message.sessionId || ""))) error = "sessionId is invalid.";
+      else if (!isOptionalString(message.sourceLanguage)) error = "sourceLanguage must be a string.";
+      break;
+    case "captions.oreilly.listTracks":
+    case "captions.oreilly.fetchTranscript":
+      if (!/^[\w.-]{1,120}$/.test(String(message.clipId || ""))) error = "clipId is invalid.";
+      else if (!isOptionalString(message.sourceLanguage)) error = "sourceLanguage must be a string.";
+      break;
+    case "captions.linkedin.fetchTranscript":
+      if (!isNonEmptyValue(message.videoId)) error = "videoId is required.";
+      else if (!isNonEmptyValue(message.trackUrl)) error = "trackUrl is required.";
+      else if (!isOptionalString(message.sourceLanguage)) error = "sourceLanguage must be a string.";
+      break;
+    case "captions.coursera.fetchTranscript":
+      if (!isNonEmptyValue(message.videoId)) error = "videoId is required.";
+      else if (!isNonEmptyValue(message.trackUrl)) error = "trackUrl is required.";
+      else if (!isOptionalString(message.sourceLanguage)) error = "sourceLanguage must be a string.";
       break;
     case "captions.ted.listTracks":
       if (!isNonEmptyValue(message.videoId)) error = "videoId is required.";
@@ -288,7 +343,7 @@ export function validateBackgroundMessage(message) {
       break;
     case "translation.clearVideoCache":
       if (!isNonEmptyValue(message.platform)
-        || !["youtube", "udemy", "ted", "nvidia", "vimeo"].includes(message.platform)) {
+        || !["youtube", "udemy", "ted", "nvidia", "vimeo", "coursera", "linkedin", "oreilly", "nvidiaOnDemand", "deeplearningai"].includes(message.platform)) {
         error = "platform must be a supported video platform.";
       } else if (!isNonEmptyValue(message.videoId)) {
         error = "videoId is required.";

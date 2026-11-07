@@ -459,7 +459,12 @@ export const DEFAULT_SETTINGS = {
     youtube: true,
     ted: true,
     nvidia: true,
-    vimeo: true
+    vimeo: true,
+    coursera: true,
+    linkedin: true,
+    oreilly: true,
+    nvidiaOnDemand: true,
+    deeplearningai: true
   },
   subtitleStyle: {
     positionX: 50,

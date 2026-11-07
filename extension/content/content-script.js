@@ -149,6 +149,12 @@ function detectPlatform() {
   if (host.includes("youtube.com")) return "youtube";
   if (host.includes("udemy.com")) return "udemy";
   if ((host === "ted.com" || host === "www.ted.com") && location.pathname.startsWith("/talks/")) return "ted";
+  if (host === "www.coursera.org" || host === "coursera.org") return "coursera";
+  if (host === "www.linkedin.com" && location.pathname.startsWith("/learning/")) return "linkedin";
+  if (host === "www.nvidia.com" && getNvidiaOnDemandSessionId()) return "nvidiaOnDemand";
+  if (host === "learn.deeplearning.ai") return "deeplearningai";
+  // The O'Reilly player lives in a same-origin srcdoc iframe, so only that frame runs the platform.
+  if (getOreillyPagePath().startsWith("/videos/")) return "oreilly";
   if (host === "player.vimeo.com") return "vimeo";
   if ((host === "vimeo.com" || host === "www.vimeo.com") && getVimeoVideoId()) return "vimeo";
   return null;
@@ -241,6 +247,31 @@ async function getPublicSettings() {
 }
 
 function findToolbarTarget(platform, { allowFloatingToolbar = true } = {}) {
+  if (platform === "deeplearningai") {
+    return document.querySelector(DLAI_PLAY_BUTTON_SELECTOR)?.closest(".vds-controls-group")
+      || (allowFloatingToolbar ? ensureFloatingToolbar() : null);
+  }
+
+  if (platform === "nvidiaOnDemand") {
+    return document.querySelector(PLAYKIT_CONTROLS_SELECTOR)
+      || (allowFloatingToolbar ? ensureFloatingToolbar() : null);
+  }
+
+  if (platform === "oreilly") {
+    return document.querySelector(PLAYKIT_CONTROLS_SELECTOR)
+      || (allowFloatingToolbar ? ensureFloatingToolbar() : null);
+  }
+
+  if (platform === "linkedin") {
+    return document.querySelector(LINKEDIN_CONTROLS_SELECTOR)
+      || (allowFloatingToolbar ? ensureFloatingToolbar() : null);
+  }
+
+  if (platform === "coursera") {
+    return document.querySelector(COURSERA_CONTROLS_SELECTOR)
+      || (allowFloatingToolbar ? ensureFloatingToolbar() : null);
+  }
+
   if (platform === "udemy") {
     return document.querySelector('[data-purpose="video-controls"]')
       || findUdemyPlayerControls()
@@ -1200,6 +1231,36 @@ function updateOpenProviderMenuPhase() {
 }
 
 function findVideoElement(platform) {
+  if (platform === "deeplearningai") {
+    // The server-rendered page has a bare <video> that the Vidstack player replaces on load; wait
+    // until the player's own video has media so the overlay and time listeners stay attached.
+    const player = document.querySelector(DLAI_VIDEO_SELECTOR);
+    return player && (player.readyState >= 1 || player.currentSrc) ? player : null;
+  }
+
+  if (platform === "nvidiaOnDemand") {
+    // The page has other decorative <video> elements; use the Kaltura player's once it has media.
+    const player = document.querySelector(PLAYKIT_VIDEO_SELECTOR);
+    return player && (player.readyState >= 1 || player.currentSrc) ? player : null;
+  }
+
+  if (platform === "oreilly") {
+    // The Kaltura player mounts after the page; wait until its own video has media.
+    const player = document.querySelector(PLAYKIT_VIDEO_SELECTOR);
+    return player && (player.readyState >= 1 || player.currentSrc) ? player : null;
+  }
+
+  if (platform === "linkedin") {
+    // On a fresh page load the player mounts and swaps its <video> within the first moments, so
+    // an early element would lose the overlay and its time listeners. Wait until it has media.
+    const player = document.querySelector(LINKEDIN_VIDEO_SELECTOR);
+    return player && (player.readyState >= 1 || player.currentSrc) ? player : null;
+  }
+
+  if (platform === "coursera") {
+    return document.querySelector(COURSERA_VIDEO_SELECTOR) || document.querySelector("video");
+  }
+
   if (platform === "udemy") {
     return document.querySelector("video");
   }
@@ -1220,6 +1281,26 @@ function findVideoElement(platform) {
 }
 
 function findOverlayHost(platform, video) {
+  if (platform === "deeplearningai") {
+    return video?.closest("media-player") || video?.closest(".lesson-video-player") || video?.parentElement || null;
+  }
+
+  if (platform === "nvidiaOnDemand") {
+    return video?.closest(".playkit-player") || video?.parentElement || null;
+  }
+
+  if (platform === "oreilly") {
+    return video?.closest(".playkit-player") || video?.parentElement || null;
+  }
+
+  if (platform === "linkedin") {
+    return video?.closest(".video-js") || video?.parentElement || null;
+  }
+
+  if (platform === "coursera") {
+    return document.querySelector(COURSERA_PLAYER_HOST_SELECTOR) || video?.parentElement || null;
+  }
+
   if (platform === "youtube") {
     return document.querySelector("#movie_player") || video?.parentElement || null;
   }
@@ -1280,6 +1361,300 @@ function getYoutubeVideoId() {
 function getVimeoVideoId() {
   const match = location.pathname.match(/(?:^|\/)(\d+)(?:\/[a-zA-Z0-9_-]+)?\/?$/);
   return match?.[1] || null;
+}
+
+// Player markup (video.js lecture player, and the newer playerContainer player).
+const COURSERA_VIDEO_SELECTOR = ".vjs-tech, [data-testid=playerContainer] video";
+const COURSERA_CONTROLS_SELECTOR = ".vjs-control-bar, [data-testid=playerContainer] .icon-container";
+const COURSERA_PLAYER_HOST_SELECTOR = "[data-e2e='vlp-video-player'], [data-testid=playerContainer]";
+
+// O'Reilly video pages play Kaltura (playkit) videos; transcripts come from its clip API.
+const PLAYKIT_VIDEO_SELECTOR = ".playkit-player video";
+const PLAYKIT_CONTROLS_SELECTOR = ".playkit-bottom-bar .playkit-controls-container .playkit-right-controls";
+
+// DeepLearning.AI lessons play in a Vidstack player; the lesson page embeds its video in __NEXT_DATA__.
+const DLAI_VIDEO_SELECTOR = ".lesson-video-player video";
+const DLAI_PLAY_BUTTON_SELECTOR = ".lesson-video-player .vds-play-button";
+
+// https://learn.deeplearning.ai/courses/<course>/lesson/<lesson-id>/<lesson-name>
+function getDeeplearningaiLessonContext() {
+  const match = location.pathname.match(/^\/courses\/([^/]+)\/lesson\/([\w-]+)\/[^/]+\/?$/);
+  return match ? { courseSlug: decodeURIComponent(match[1]), lessonId: match[2] } : null;
+}
+
+function normalizeDeeplearningaiCaptionUrl(value) {
+  try {
+    const url = new URL(String(value || ""));
+    const valid = url.protocol === "https:"
+      && url.hostname === "video.deeplearning.ai"
+      && url.pathname.includes("/subtitle/")
+      && url.pathname.endsWith(".vtt");
+    return valid ? url.href : "";
+  } catch {
+    return "";
+  }
+}
+
+// The page's __NEXT_DATA__ carries the lesson video: { tracks: [{ kind, label, src, srcLang }], subtitle: "{...}" }.
+function parseDeeplearningaiTracksFromHtml(html) {
+  const match = String(html).match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+  if (!match) return [];
+  let data;
+  try {
+    data = JSON.parse(match[1]);
+  } catch {
+    return [];
+  }
+  const videoId = data?.props?.pageProps?.videoId;
+  const videos = [];
+  (function collect(node) {
+    if (!node || typeof node !== "object") return;
+    if (node.video && typeof node.video === "object" && (node.video.tracks || node.video.subtitle)) videos.push(node.video);
+    for (const child of Object.values(node)) collect(child);
+  })(data?.props?.pageProps);
+  const video = videos.find((item) => videoId !== undefined && String(item.videoId) === String(videoId)) || videos[0];
+  if (!video) return [];
+
+  const candidates = [];
+  for (const track of Array.isArray(video.tracks) ? video.tracks : []) {
+    if (["subtitles", "captions"].includes(track?.kind || "subtitles")) {
+      candidates.push({ languageCode: track.srcLang, label: track.label, src: track.src });
+    }
+  }
+  if (candidates.length === 0 && typeof video.subtitle === "string") {
+    try {
+      for (const [languageCode, entry] of Object.entries(JSON.parse(video.subtitle))) {
+        candidates.push({ languageCode, label: entry?.NAME, src: entry?.URI });
+      }
+    } catch {
+      // Ignore malformed subtitle maps.
+    }
+  }
+
+  const seen = new Set();
+  return candidates
+    .map((candidate) => {
+      const trackUrl = normalizeDeeplearningaiCaptionUrl(candidate.src);
+      const languageCode = String(candidate.languageCode || "");
+      if (!trackUrl || !languageCode || seen.has(trackUrl)) return null;
+      seen.add(trackUrl);
+      return { languageCode, label: String(candidate.label || languageCode), isAutoGenerated: false, trackUrl };
+    })
+    .filter(Boolean);
+}
+
+const deeplearningaiTrackCache = new Map();
+
+async function getDeeplearningaiTextTracks(context) {
+  if (!context) return [];
+  const key = `${context.courseSlug}/${context.lessonId}`;
+  if (deeplearningaiTrackCache.has(key)) return deeplearningaiTrackCache.get(key);
+  // The site is a single-page app, so the page's own data can be stale; the lesson URL's
+  // server-rendered HTML always carries that lesson's video.
+  const response = await fetch(location.pathname, { credentials: "same-origin", headers: { Accept: "text/html" } });
+  if (!response.ok) throw new Error(`DeepLearning.AI request failed (${response.status}).`);
+  const tracks = parseDeeplearningaiTracksFromHtml(await response.text());
+  if (tracks.length > 0) deeplearningaiTrackCache.set(key, tracks);
+  return tracks;
+}
+
+// https://www.nvidia.com/en-us/on-demand/session/<session-id>/
+function getNvidiaOnDemandSessionId() {
+  const match = location.pathname.match(/^\/[a-z]{2}-[a-z]{2}\/on-demand\/session\/([\w.-]+)\/?$/i);
+  return match ? match[1] : "";
+}
+
+// The player iframe is about:srcdoc with the page's origin (sandbox allow-same-origin), so the
+// parent page's path is readable and is the only place the clip id appears.
+function getOreillyPagePath() {
+  try {
+    if (location.protocol !== "about:" || window.parent === window) return "";
+    return window.parent.location.hostname === "www.oreilly.com" ? window.parent.location.pathname : "";
+  } catch {
+    return "";
+  }
+}
+
+// https://www.oreilly.com/videos/<title-slug>/<work-id>/<clip-id>/
+function getOreillyClipContext() {
+  const match = getOreillyPagePath().match(/^\/videos\/[^/]+\/[^/]+\/([\w.-]+)\/?$/);
+  return match ? { clipId: match[1] } : null;
+}
+
+// LinkedIn Learning uses a video.js player.
+const LINKEDIN_VIDEO_SELECTOR = ".video-js video.vjs-tech, video.vjs-tech";
+const LINKEDIN_CONTROLS_SELECTOR = ".video-js .vjs-control-bar";
+
+// https://www.linkedin.com/learning/<course-slug>/<video-slug>
+function getLinkedinVideoContext() {
+  const match = location.pathname.match(/^\/learning\/([^/]+)\/([^/?#]+)/);
+  return match ? { courseSlug: decodeURIComponent(match[1]), videoSlug: decodeURIComponent(match[2]) } : null;
+}
+
+function normalizeLinkedinCaptionUrl(value) {
+  try {
+    const url = new URL(String(value || ""));
+    const valid = url.protocol === "https:"
+      && url.hostname === "dms.licdn.com"
+      && url.pathname.startsWith("/playlist/vid/")
+      && url.pathname.includes("/video-captions-webvtt/");
+    return valid ? url.href : "";
+  } catch {
+    return "";
+  }
+}
+
+function decodeLinkedinHtmlEntities(text) {
+  return String(text).replace(/&quot;/g, '"').replace(/&#61;/g, "=").replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+}
+
+// The lecture page embeds the video's Voyager data as HTML-escaped JSON; its
+// `transcripts` array lists a caption file per language. Returns the array text.
+function extractLinkedinTranscriptsJson(text) {
+  const marker = '"transcripts":[';
+  const start = text.indexOf(marker);
+  if (start < 0) return "";
+  const arrayStart = start + marker.length - 1;
+  let depth = 0;
+  let inString = false;
+  for (let index = arrayStart; index < text.length; index += 1) {
+    const char = text[index];
+    if (inString) {
+      if (char === "\\") index += 1;
+      else if (char === '"') inString = false;
+    } else if (char === '"') inString = true;
+    else if (char === "[") depth += 1;
+    else if (char === "]") {
+      depth -= 1;
+      if (depth === 0) return text.slice(arrayStart, index + 1);
+    }
+  }
+  return "";
+}
+
+function parseLinkedinTranscriptTracks(html) {
+  const json = extractLinkedinTranscriptsJson(decodeLinkedinHtmlEntities(html));
+  if (!json) return [];
+  let transcripts;
+  try {
+    transcripts = JSON.parse(json);
+  } catch {
+    return [];
+  }
+  const seen = new Set();
+  return transcripts
+    .map((transcript) => {
+      const trackUrl = normalizeLinkedinCaptionUrl(transcript?.captionFile);
+      const language = String(transcript?.locale?.language || "");
+      if (!trackUrl || !language || seen.has(trackUrl)) return null;
+      seen.add(trackUrl);
+      const country = String(transcript?.locale?.country || "");
+      // Only the original language is human-made; the other languages are machine translations.
+      return {
+        languageCode: language,
+        label: country ? `${language}-${country}` : language,
+        isAutoGenerated: transcript.isAutogenerated === true,
+        trackUrl
+      };
+    })
+    .filter(Boolean);
+}
+
+const linkedinTrackCache = new Map();
+
+async function getLinkedinTextTracks(context) {
+  if (!context) return [];
+  const key = `${context.courseSlug}/${context.videoSlug}`;
+  if (linkedinTrackCache.has(key)) return linkedinTrackCache.get(key);
+  // The page is a single-page app, so the page's own data can be stale; the lecture URL's
+  // server-rendered HTML always carries that video's caption files.
+  const response = await fetch(location.pathname, { credentials: "same-origin", headers: { Accept: "text/html" } });
+  if (!response.ok) throw new Error(`LinkedIn Learning request failed (${response.status}).`);
+  const tracks = parseLinkedinTranscriptTracks(await response.text());
+  if (tracks.length > 0) linkedinTrackCache.set(key, tracks);
+  return tracks;
+}
+
+// https://www.coursera.org/learn/<course-slug>/lecture/<item-id>/<title>
+function getCourseraLectureContext() {
+  const match = location.pathname.match(/^\/learn\/([^/]+)\/lecture\/([^/?#]+)/);
+  return match ? { courseSlug: decodeURIComponent(match[1]), itemId: decodeURIComponent(match[2]) } : null;
+}
+
+const courseraCourseIdCache = new Map();
+
+function normalizeCourseraCaptionUrl(value) {
+  try {
+    const url = new URL(String(value || ""), location.origin);
+    const valid = url.protocol === "https:"
+      && (url.hostname === "www.coursera.org" || url.hostname === "coursera.org")
+      && url.pathname.startsWith("/api/subtitleAssetProxy.v1/")
+      && url.searchParams.get("fileExtension") === "vtt";
+    return valid ? url.href : "";
+  } catch {
+    return "";
+  }
+}
+
+function getCourseraTracksFromVideoData(videoData) {
+  const vtt = videoData?.subtitlesVtt;
+  if (!vtt || typeof vtt !== "object") return [];
+  return Object.entries(vtt)
+    .map(([languageCode, path]) => {
+      const trackUrl = normalizeCourseraCaptionUrl(path);
+      if (!trackUrl) return null;
+      // Most Coursera languages are machine translations of the original; the original is the source.
+      const isMachineTranslated = (videoData.subtitlesAssetTags?.[languageCode] || [])
+        .some((tag) => tag?.name === "machineTranslation" && String(tag.value) === "true");
+      return { languageCode, label: languageCode, isAutoGenerated: isMachineTranslated, trackUrl };
+    })
+    .filter(Boolean);
+}
+
+async function fetchCourseraJson(path) {
+  const response = await fetch(path, { credentials: "same-origin", headers: { Accept: "application/json" } });
+  if (!response.ok) throw new Error(`Coursera request failed (${response.status}).`);
+  return response.json();
+}
+
+async function getCourseraCourseId(courseSlug) {
+  if (courseraCourseIdCache.has(courseSlug)) return courseraCourseIdCache.get(courseSlug);
+  const data = await fetchCourseraJson(`/api/onDemandCourses.v1?q=slug&slug=${encodeURIComponent(courseSlug)}`);
+  const courseId = data?.elements?.[0]?.id || "";
+  if (courseId) courseraCourseIdCache.set(courseSlug, courseId);
+  return courseId;
+}
+
+function getCourseraTracksFromDom() {
+  return [...document.querySelectorAll("video track[src]")]
+    .filter((track) => ["subtitles", "captions", ""].includes(track.getAttribute("kind") || ""))
+    .map((track) => {
+      const trackUrl = normalizeCourseraCaptionUrl(track.getAttribute("src"));
+      const languageCode = track.getAttribute("srclang") || "";
+      return trackUrl && languageCode
+        ? { languageCode, label: track.getAttribute("label") || languageCode, isAutoGenerated: false, trackUrl }
+        : null;
+    })
+    .filter(Boolean);
+}
+
+async function getCourseraTextTracks(context) {
+  if (!context) return [];
+  try {
+    const courseId = await getCourseraCourseId(context.courseSlug);
+    if (courseId) {
+      const fields = "onDemandVideos.v1(subtitles,subtitlesVtt,subtitlesAssetTags)";
+      const data = await fetchCourseraJson(
+        `/api/onDemandLectureVideos.v1/${encodeURIComponent(courseId)}~${encodeURIComponent(context.itemId)}?includes=video&fields=${encodeURIComponent(fields)}`
+      );
+      const tracks = getCourseraTracksFromVideoData(data?.linked?.["onDemandVideos.v1"]?.[0]);
+      if (tracks.length > 0) return tracks;
+    }
+  } catch (error) {
+    console.warn("[AST] Failed to read Coursera caption tracks from the API:", error.message);
+  }
+  return getCourseraTracksFromDom();
 }
 
 function getTedTalkSlug() {
@@ -2049,6 +2424,11 @@ function getCurrentSessionKey(platform) {
   if (platform === "youtube") return getYoutubeVideoId();
   if (platform === "udemy") return getUdemyLectureId();
   if (platform === "ted") return getTedPlayerContext()?.sessionKey || getTedTalkSlug();
+  if (platform === "coursera") return getCourseraLectureContext()?.itemId || null;
+  if (platform === "linkedin") return getLinkedinVideoContext()?.videoSlug || null;
+  if (platform === "oreilly") return getOreillyClipContext()?.clipId || null;
+  if (platform === "nvidiaOnDemand") return getNvidiaOnDemandSessionId() || null;
+  if (platform === "deeplearningai") return getDeeplearningaiLessonContext()?.lessonId || null;
   if (isVimeoPlatform(platform)) return getVimeoVideoId();
   return null;
 }
@@ -2809,7 +3189,7 @@ function isCaptionsUnavailableError(value) {
   if (errorCode === "CAPTIONS_UNAVAILABLE") return true;
 
   const message = String(value?.error || value?.message || value || "").trim();
-  return /^No (?:usable )?(?:(?:YouTube|Udemy|TED|Vimeo) )?captions?(?: tracks?)?.*\b(?:available|found)\b/i
+  return /^No (?:usable )?(?:(?:YouTube|Udemy|TED|Vimeo|Coursera|LinkedIn Learning|O'Reilly|NVIDIA On-Demand|DeepLearning.AI) )?captions?(?: tracks?)?.*\b(?:available|found)\b/i
     .test(message);
 }
 
@@ -3356,6 +3736,27 @@ function mountToolbarButton(target, button, platform) {
 }
 
 function ensureButton(platform, options = {}) {
+  if (platform === "deeplearningai" && !getDeeplearningaiLessonContext()) {
+    document.getElementById(FLOATING_TOOLBAR_ID)?.remove();
+    return false;
+  }
+  if (platform === "nvidiaOnDemand" && !getNvidiaOnDemandSessionId()) {
+    document.getElementById(FLOATING_TOOLBAR_ID)?.remove();
+    return false;
+  }
+  if (platform === "oreilly" && !getOreillyClipContext()) {
+    document.getElementById(FLOATING_TOOLBAR_ID)?.remove();
+    return false;
+  }
+  if (platform === "linkedin" && !getLinkedinVideoContext()) {
+    document.getElementById(FLOATING_TOOLBAR_ID)?.remove();
+    return false;
+  }
+  if (platform === "coursera" && !getCourseraLectureContext()) {
+    // Course pages are a single-page app: leaving the lecture must not leave the button behind.
+    document.getElementById(FLOATING_TOOLBAR_ID)?.remove();
+    return false;
+  }
   const target = findToolbarTarget(platform, options);
   if (!target) return false;
 
@@ -3377,6 +3778,11 @@ function ensureButton(platform, options = {}) {
 }
 
 function shouldAllowFloatingToolbar(platform) {
+  if (platform === "coursera") return Boolean(getCourseraLectureContext() && document.querySelector("video"));
+  if (platform === "linkedin") return Boolean(getLinkedinVideoContext() && document.querySelector("video"));
+  if (platform === "oreilly") return Boolean(getOreillyClipContext() && document.querySelector("video"));
+  if (platform === "nvidiaOnDemand") return Boolean(getNvidiaOnDemandSessionId() && document.querySelector(PLAYKIT_VIDEO_SELECTOR));
+  if (platform === "deeplearningai") return Boolean(getDeeplearningaiLessonContext() && document.querySelector(DLAI_VIDEO_SELECTOR));
   if (platform === "udemy" || platform === "ted") return false;
   if (!isVimeoPlatform(platform)) return true;
   return location.hostname === "player.vimeo.com" || Boolean(document.querySelector("video"));
@@ -3385,7 +3791,7 @@ function shouldAllowFloatingToolbar(platform) {
 function watch(platform) {
   const allowFloatingToolbar = shouldAllowFloatingToolbar(platform);
   const installed = ensureButton(platform, { allowFloatingToolbar });
-  if (platform !== "udemy" && platform !== "ted" && !isVimeoPlatform(platform) && installed) return;
+  if (platform !== "udemy" && platform !== "ted" && platform !== "coursera" && platform !== "linkedin" && platform !== "oreilly" && platform !== "nvidiaOnDemand" && platform !== "deeplearningai" && !isVimeoPlatform(platform) && installed) return;
 
   const observer = new MutationObserver(() => {
     ensureButton(platform, { allowFloatingToolbar: shouldAllowFloatingToolbar(platform) });
@@ -4434,6 +4840,240 @@ const platformHandlers = {
           sourceLanguage: track.languageCode,
           trackUrl: track.trackUrl,
           platform: "nvidia"
+        }
+      };
+    }
+  },
+  deeplearningai: {
+    platform: "deeplearningai",
+    loadingMessage: contentText("contentTranslationPreparing"),
+    getSessionKey: () => getDeeplearningaiLessonContext()?.lessonId || null,
+    findVideo: () => findVideoElement("deeplearningai"),
+    async listCaptionTracks() {
+      return (await getDeeplearningaiTextTracks(getDeeplearningaiLessonContext()))
+        .map((track) => createSourceCaptionTrack(track, {
+          id: track.trackUrl,
+          languageCode: track.languageCode,
+          trackUrl: track.trackUrl
+        }))
+        .filter(Boolean);
+    },
+    async buildTranscriptRequest({ quietMissingPageData = false } = {}) {
+      const context = getDeeplearningaiLessonContext();
+      const video = this.findVideo();
+
+      if (!context || !video) {
+        if (!quietMissingPageData) {
+          console.warn("[AST] Missing DeepLearning.AI caption data:", {
+            lessonId: context?.lessonId || null,
+            hasVideo: Boolean(video),
+            url: location.href
+          });
+          if (video) showOverlayMessage(video, contentText("contentMissingDeeplearningai"), "error");
+        }
+        return null;
+      }
+      const track = requireCaptionTrack(
+        getSelectedSourceCaptionTrack(this.platform, context.lessonId)
+          || setSourceCaptionTracks(this.platform, context.lessonId, await this.listCaptionTracks())
+      );
+
+      return {
+        sessionKey: context.lessonId,
+        video,
+        message: {
+          type: "captions.deeplearningai.fetchTranscript",
+          lessonId: context.lessonId,
+          sourceLanguage: track.languageCode,
+          trackUrl: track.trackUrl
+        }
+      };
+    }
+  },
+  nvidiaOnDemand: {
+    platform: "nvidiaOnDemand",
+    loadingMessage: contentText("contentTranslationPreparing"),
+    getSessionKey: () => getNvidiaOnDemandSessionId() || null,
+    findVideo: () => findVideoElement("nvidiaOnDemand"),
+    async listCaptionTracks() {
+      const sessionId = getNvidiaOnDemandSessionId();
+      if (!sessionId) return [];
+      const response = await sendRuntimeMessage({ type: "captions.nvidiaOnDemand.listTracks", sessionId });
+      if (!response?.ok) throw new Error(response?.error || "Could not load NVIDIA On-Demand caption tracks.");
+      return (response.tracks || [])
+        .map((track) => createSourceCaptionTrack(track, {
+          id: `${sessionId}:${track.languageCode}`,
+          languageCode: track.languageCode
+        }))
+        .filter(Boolean);
+    },
+    async buildTranscriptRequest({ quietMissingPageData = false } = {}) {
+      const sessionId = getNvidiaOnDemandSessionId();
+      const video = this.findVideo();
+
+      if (!sessionId || !video) {
+        if (!quietMissingPageData) {
+          console.warn("[AST] Missing NVIDIA On-Demand caption data:", {
+            sessionId: sessionId || null,
+            hasVideo: Boolean(video),
+            url: location.href
+          });
+          if (video) showOverlayMessage(video, contentText("contentMissingNvidiaOnDemand"), "error");
+        }
+        return null;
+      }
+      const track = requireCaptionTrack(
+        getSelectedSourceCaptionTrack(this.platform, sessionId)
+          || setSourceCaptionTracks(this.platform, sessionId, await this.listCaptionTracks())
+      );
+
+      return {
+        sessionKey: sessionId,
+        video,
+        message: {
+          type: "captions.nvidiaOnDemand.fetchTranscript",
+          sessionId,
+          sourceLanguage: track.languageCode
+        }
+      };
+    }
+  },
+  oreilly: {
+    platform: "oreilly",
+    loadingMessage: contentText("contentTranslationPreparing"),
+    getSessionKey: () => getOreillyClipContext()?.clipId || null,
+    findVideo: () => findVideoElement("oreilly"),
+    async listCaptionTracks() {
+      const context = getOreillyClipContext();
+      if (!context) return [];
+      const response = await sendRuntimeMessage({ type: "captions.oreilly.listTracks", clipId: context.clipId });
+      if (!response?.ok) throw new Error(response?.error || "Could not load O'Reilly caption tracks.");
+      return (response.tracks || [])
+        .map((track) => createSourceCaptionTrack(track, {
+          id: `${context.clipId}:${track.languageCode}`,
+          languageCode: track.languageCode
+        }))
+        .filter(Boolean);
+    },
+    async buildTranscriptRequest({ quietMissingPageData = false } = {}) {
+      const context = getOreillyClipContext();
+      const video = this.findVideo();
+
+      if (!context || !video) {
+        if (!quietMissingPageData) {
+          console.warn("[AST] Missing O'Reilly caption data:", {
+            clipId: context?.clipId || null,
+            hasVideo: Boolean(video),
+            url: location.href
+          });
+          if (video) showOverlayMessage(video, contentText("contentMissingOreilly"), "error");
+        }
+        return null;
+      }
+      const track = requireCaptionTrack(
+        getSelectedSourceCaptionTrack(this.platform, context.clipId)
+          || setSourceCaptionTracks(this.platform, context.clipId, await this.listCaptionTracks())
+      );
+
+      return {
+        sessionKey: context.clipId,
+        video,
+        message: {
+          type: "captions.oreilly.fetchTranscript",
+          clipId: context.clipId,
+          sourceLanguage: track.languageCode
+        }
+      };
+    }
+  },
+  linkedin: {
+    platform: "linkedin",
+    loadingMessage: contentText("contentTranslationPreparing"),
+    getSessionKey: () => getLinkedinVideoContext()?.videoSlug || null,
+    findVideo: () => findVideoElement("linkedin"),
+    async listCaptionTracks() {
+      return (await getLinkedinTextTracks(getLinkedinVideoContext()))
+        .map((track) => createSourceCaptionTrack(track, {
+          id: track.trackUrl,
+          languageCode: track.languageCode,
+          trackUrl: track.trackUrl
+        }))
+        .filter(Boolean);
+    },
+    async buildTranscriptRequest({ quietMissingPageData = false } = {}) {
+      const context = getLinkedinVideoContext();
+      const video = this.findVideo();
+
+      if (!context || !video) {
+        if (!quietMissingPageData) {
+          console.warn("[AST] Missing LinkedIn Learning caption data:", {
+            videoSlug: context?.videoSlug || null,
+            hasVideo: Boolean(video),
+            url: location.href
+          });
+          if (video) showOverlayMessage(video, contentText("contentMissingLinkedin"), "error");
+        }
+        return null;
+      }
+      const track = requireCaptionTrack(
+        getSelectedSourceCaptionTrack(this.platform, context.videoSlug)
+          || setSourceCaptionTracks(this.platform, context.videoSlug, await this.listCaptionTracks())
+      );
+
+      return {
+        sessionKey: context.videoSlug,
+        video,
+        message: {
+          type: "captions.linkedin.fetchTranscript",
+          videoId: context.videoSlug,
+          sourceLanguage: track.languageCode,
+          trackUrl: track.trackUrl
+        }
+      };
+    }
+  },
+  coursera: {
+    platform: "coursera",
+    loadingMessage: contentText("contentTranslationPreparing"),
+    getSessionKey: () => getCourseraLectureContext()?.itemId || null,
+    findVideo: () => findVideoElement("coursera"),
+    async listCaptionTracks() {
+      return (await getCourseraTextTracks(getCourseraLectureContext()))
+        .map((track) => createSourceCaptionTrack(track, {
+          id: track.trackUrl,
+          languageCode: track.languageCode,
+          trackUrl: track.trackUrl
+        }))
+        .filter(Boolean);
+    },
+    async buildTranscriptRequest({ quietMissingPageData = false } = {}) {
+      const context = getCourseraLectureContext();
+      const video = this.findVideo();
+
+      if (!context || !video) {
+        if (!quietMissingPageData) {
+          console.warn("[AST] Missing Coursera caption data:", {
+            itemId: context?.itemId || null,
+            hasVideo: Boolean(video),
+            url: location.href
+          });
+          if (video) showOverlayMessage(video, contentText("contentMissingCoursera"), "error");
+        }
+        return null;
+      }
+      const track = requireCaptionTrack(
+        getSelectedSourceCaptionTrack(this.platform, context.itemId)
+          || setSourceCaptionTracks(this.platform, context.itemId, await this.listCaptionTracks())
+      );
+
+      return {
+        sessionKey: context.itemId,
+        video,
+        message: {
+          type: "captions.coursera.fetchTranscript",
+          videoId: context.itemId,
+          sourceLanguage: track.languageCode,
+          trackUrl: track.trackUrl
         }
       };
     }

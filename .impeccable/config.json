@@ -30,6 +30,18 @@
         "value": "sourcefontfamily",
         "createdAt": "2026-11-06T15:05:32.140Z",
         "reason": "Claude triage: options.js fontSlots maps settings key names (\"sourceFontFamily\"), not a CSS font"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "arial",
+        "createdAt": "2026-11-07T06:17:48.409Z",
+        "reason": "Provider menus deliberately mirror each host site's native UI font (ARCHITECTURE.md: menus follow each site's visual language); DESIGN.md typography covers the intro site only. Applied at user's request to clear the font warnings."
+      },
+      {
+        "rule": "design-system-font",
+        "value": "youtube noto",
+        "createdAt": "2026-11-07T06:17:48.793Z",
+        "reason": "Provider menus deliberately mirror each host site's native UI font (ARCHITECTURE.md: menus follow each site's visual language); DESIGN.md typography covers the intro site only. Applied at user's request to clear the font warnings."
       }
     ]
   }

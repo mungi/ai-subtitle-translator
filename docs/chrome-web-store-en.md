@@ -6,6 +6,11 @@ Naturally translate subtitles from videos on the following websites into your pr
   - YouTube: https://www.youtube.com/
   - Vimeo: https://vimeo.com/
   - TED: https://www.ted.com/
+  - Coursera: https://www.coursera.org/
+  - LinkedIn Learning: https://www.linkedin.com/learning/
+  - O'Reilly: https://www.oreilly.com/
+  - NVIDIA On-Demand: https://www.nvidia.com/en-us/on-demand/
+  - DeepLearning.AI: https://learn.deeplearning.ai/
 
 # Key Highlights
   - Translate subtitles quickly with Google Translate, or connect an LLM for natural translations that consider context.
@@ -21,7 +26,7 @@ Naturally translate subtitles from videos on the following websites into your pr
   - Check each LLM API provider's policy for free allowances, limits, and any applicable charges.
 
 # Main Features
-  - Subtitle translation for Udemy, NVIDIA Academy, YouTube, TED, and Vimeo videos
+  - Subtitle translation for Udemy, NVIDIA Academy, YouTube, TED, and Vimeo videos (plus Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, and DeepLearning.AI)
   - Context-aware AI translation that considers the flow of the source subtitles
   - Fast translation with Google Translate included by default
   - Fast translation is displayed first while LLM translation is being prepared
@@ -99,7 +104,7 @@ Naturally translate subtitles from videos on the following websites into your pr
       - Subtitle servers of video sites and the endpoints of the translation providers you choose work right away.
       - Chrome's site access list showed a long list of addresses that was hard to read.
     - What it is actually used for
-      - The subtitle script runs only on supported video sites (Udemy, NVIDIA Academy, YouTube, TED, Vimeo). It does not read or change other websites.
+      - The subtitle script runs only on supported video sites (Udemy, NVIDIA Academy, YouTube, TED, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI). It does not read or change other websites.
       - Network requests go only to supported sites for subtitles and to the translation provider you select. Request targets are checked again in code.
   - storage: stores settings, encrypted API keys, and the translation cache in your browser.
   - scripting: runs the script that fetches subtitles on supported video sites.

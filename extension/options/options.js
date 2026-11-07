@@ -271,7 +271,12 @@ const platformToggleInputs = {
   youtube: document.getElementById("toggleYoutube"),
   ted: document.getElementById("toggleTed"),
   nvidia: document.getElementById("toggleNvidia"),
-  vimeo: document.getElementById("toggleVimeo")
+  vimeo: document.getElementById("toggleVimeo"),
+  coursera: document.getElementById("toggleCoursera"),
+  linkedin: document.getElementById("toggleLinkedin"),
+  oreilly: document.getElementById("toggleOreilly"),
+  nvidiaOnDemand: document.getElementById("toggleNvidiaOnDemand"),
+  deeplearningai: document.getElementById("toggleDeeplearningai")
 };
 let backupPasswordResolver = null;
 let backupPasswordMode = "backup";

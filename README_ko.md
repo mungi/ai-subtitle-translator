@@ -2,7 +2,7 @@
 
 [English](README.md) · [한국어](README_ko.md) · [日本語](README_ja.md)
 
-Udemy, YouTube, TED, NVIDIA Academy, Vimeo의 자막을 번역하여 영상 위에 표시하는 Chrome Manifest V3 확장 프로그램입니다. Google Translate를 바로 사용하거나, 원하는 LLM 제공업체를 연결해 문맥을 반영한 번역을 이용할 수 있습니다.
+Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI의 자막을 번역하여 영상 위에 표시하는 Chrome Manifest V3 확장 프로그램입니다. Google Translate를 바로 사용하거나, 원하는 LLM 제공업체를 연결해 문맥을 반영한 번역을 이용할 수 있습니다.
 
 소개 웹사이트: <https://mungi.github.io/ai-subtitle-translator/>
 
@@ -10,7 +10,7 @@ Chrome 102 이상이 필요합니다.
 
 ## 주요 기능
 
-- Udemy, YouTube, TED, NVIDIA Academy, Vimeo의 자막을 수집하여 원문 또는 번역 자막으로 표시합니다.
+- Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI의 자막을 수집하여 원문 또는 번역 자막으로 표시합니다.
 - AST 메뉴에서 영상이 제공하는 원문 자막 언어와 번역 스타일을 바로 선택할 수 있습니다.
 - YouTube에서는 실제 플레이어의 자막 응답을 우선 활용하고, 발화 진행에 따라 원문 글자색이 어두운 회색에서 설정한 색으로 바뀝니다. 단어 시간이 없으면 자막 시간으로 진행을 추정하며, 번역문은 문장 단위로 표시합니다. 광고 중에는 AST 자막을 숨깁니다.
 - Google Translate, DeepL, OpenAI, Anthropic, Google AI, OpenRouter, NVIDIA NIM, Custom LLM을 지원합니다.
@@ -41,7 +41,7 @@ YouTube 자막 수집기를 적용하려면 확장 프로그램을 다시 로드
 
 ## 사용 방법
 
-1. 자막이 있는 Udemy 강의, YouTube 영상, TED 영상, NVIDIA Academy 강의 또는 Vimeo 영상을 엽니다.
+1. 자막이 있는 Udemy 강의, YouTube 영상, TED 영상, NVIDIA Academy 강의, Vimeo 영상, Coursera 강의, LinkedIn Learning 강의, O'Reilly 영상, NVIDIA On-Demand 세션 또는 DeepLearning.AI 강의를 엽니다.
 2. 영상 도구 모음의 AST 아이콘을 눌러 메뉴를 엽니다.
 3. 메뉴에서 원문 자막 언어, 번역 제공업체, 번역 스타일을 선택하거나 설정 화면을 엽니다.
 4. `자막 표시` 하위 메뉴에서 `이중 자막`, `원문 자막`, `번역 자막`을 선택합니다. 기본값은 `번역 자막`이며, `원문 자막`은 선택한 원본 언어로, `이중 자막`은 원문을 위에, 번역을 아래에 표시합니다. 번역 대기 또는 실패 시에는 원문을 유지합니다. 표시 모드는 사이트 간 공유되고 다음 사용에도 유지됩니다.

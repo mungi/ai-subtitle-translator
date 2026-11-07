@@ -6,7 +6,7 @@
     "message": "Natural subtitle translations that preserve the video's context."
   },
   "supportedPlatformsDescription": {
-    "message": "Supported platforms: Udemy, YouTube, TED, NVIDIA Academy, Vimeo"
+    "message": "Supported platforms: Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI"
   },
   "testProvider": {
     "message": "Test connection"
@@ -818,6 +818,21 @@
   },
   "contentMissingNvidia": {
     "message": "Could not find NVIDIA Academy caption information."
+  },
+  "contentMissingDeeplearningai": {
+    "message": "Could not find DeepLearning.AI caption information."
+  },
+  "contentMissingNvidiaOnDemand": {
+    "message": "Could not find NVIDIA On-Demand caption information."
+  },
+  "contentMissingOreilly": {
+    "message": "Could not find O'Reilly caption information."
+  },
+  "contentMissingLinkedin": {
+    "message": "Could not find LinkedIn Learning caption information."
+  },
+  "contentMissingCoursera": {
+    "message": "Could not find Coursera caption information."
   },
   "contentMissingVimeo": {
     "message": "Could not find Vimeo caption information."
