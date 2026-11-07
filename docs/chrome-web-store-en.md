@@ -91,12 +91,7 @@ Naturally translate subtitles of educational content (online courses, lectures, 
   - Improved video retranslation, retries after translation errors, and cancellation of previous requests when switching models.
   - Improved font loading and Korean, English, and Japanese interface text and guidance.
 
-  [ v0.1.3 (2026-08-03) ]
-  - Added support for ted.com.
-  - Improved API key visibility controls, fallback translation notices, and the stability of subtitle and provider-menu behavior.
-
-  [ v0.1.2 (2026-07-19) ]
-  - Added Simple Settings mode.
+  ※ For the change history of earlier versions, see GitHub Releases: https://github.com/mungi/ai-subtitle-translator/releases
 
 # Project Information
   - License: MIT License
