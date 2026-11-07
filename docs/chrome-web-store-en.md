@@ -1,17 +1,7 @@
 # AST - AI Subtitle Translator
 
-Naturally translate subtitles of educational content (online courses, lectures, and tutorial videos) on the following websites into your preferred language using LLM-based AI. Learning without a language barrier also makes video content more accessible.
-  - Udemy: https://www.udemy.com/
-  - NVIDIA Academy: https://www.nvidia.com/en-us/training/academy/
-  - YouTube: https://www.youtube.com/
-  - Vimeo: https://vimeo.com/
-  - TED: https://www.ted.com/
-  - Coursera: https://www.coursera.org/
-  - LinkedIn Learning: https://www.linkedin.com/learning/
-  - O'Reilly: https://www.oreilly.com/
-  - NVIDIA On-Demand: https://www.nvidia.com/en-us/on-demand/
-  - DeepLearning.AI: https://learn.deeplearning.ai/
-  - edX: https://learning.edx.org/
+Naturally translate subtitles of educational content (online courses, lectures, and tutorial videos) on major online learning and video sites such as Udemy and YouTube into your preferred language using LLM-based AI. Learning without a language barrier also makes video content more accessible.
+See the introduction website for the full list of supported sites: https://mungi.github.io/ai-subtitle-translator/
 
 # Key Highlights
   - Bring your own API key. Enter your own key from providers such as OpenAI, Anthropic, or Google AI, or connect any OpenAI-compatible server or local LLM (such as Ollama or LM Studio) through Custom LLM and translate with the model you choose.
@@ -54,7 +44,7 @@ Naturally translate subtitles of educational content (online courses, lectures, 
   1. Install the extension, then click the `Get API key` link at the bottom of Simple Settings to create a Google AI API key.
   2. Enter the free API key in the `Google AI API key` field in Settings, then click `Check API key`. After verification succeeds, the Google AI provider and the `gemini-3.1-flash-lite` model are configured automatically.
 
-  See the introduction website's [LLM selection guide](https://mungi.github.io/ai-subtitle-translator/#llm-selection-guide) for first-time model recommendations.
+See the introduction website's [LLM selection guide](https://mungi.github.io/ai-subtitle-translator/#llm-selection-guide) for first-time model recommendations.
 
   ## Advanced Settings
   - To use a provider that requires an API key, enter the key issued by that provider, then click `Test connection`.
@@ -64,7 +54,7 @@ Naturally translate subtitles of educational content (online courses, lectures, 
 
 # Major Changes
   [ v0.2.2 (2026-11-08) ]
-  - Added support for Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI, and edX.
+  - Added support for 6 more sites.
   - Added a generic video player (technical preview): add a site from the toolbar popup to translate subtitles of standard HTML5 videos.
   - Custom LLM now allows HTTP on private network addresses (RFC 1918) and .local names, and adds reasoning, JSON response, and extra header settings.
   - Added subtitle font size controls, cleaned up the popup and Settings, and made YouTube caption capture more stable.
@@ -109,7 +99,7 @@ Naturally translate subtitles of educational content (online courses, lectures, 
       - Chrome's site access list showed a long list of addresses that was hard to read.
       - Generic video player (Technical Preview): the extension registers a small video detection script only on sites the user adds to the generic player list from the toolbar popup, and injects the subtitle script only into frames with a captioned video to translate that video's captions. Because the user chooses the sites, they cannot be listed as permissions in advance.
     - What it is actually used for
-      - The subtitle script runs only on supported video sites (Udemy, NVIDIA Academy, YouTube, TED, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI, edX). It does not read or change other websites.
+      - The subtitle script runs only on supported video sites. It does not read or change other websites.
       - Network requests go only to supported sites for subtitles and to the translation provider you select. Request targets are checked again in code.
   - storage: stores settings, encrypted API keys, and the translation cache in your browser.
   - scripting: runs the script that fetches subtitles on supported video sites.

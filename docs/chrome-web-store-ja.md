@@ -1,17 +1,7 @@
 # AST - AI Subtitle Translator
 
-次のウェブサイトの教育コンテンツ（オンライン講座、講義、チュートリアル動画）の字幕を、LLM ベースの AI で希望する言語へ自然に翻訳します。言語の壁なく学べるため、字幕のアクセシビリティも高まります。
-  - Udemy: https://www.udemy.com/
-  - NVIDIA Academy: https://www.nvidia.com/en-us/training/academy/
-  - YouTube: https://www.youtube.com/
-  - Vimeo: https://vimeo.com/
-  - TED: https://www.ted.com/
-  - Coursera: https://www.coursera.org/
-  - LinkedIn Learning: https://www.linkedin.com/learning/
-  - O'Reilly: https://www.oreilly.com/
-  - NVIDIA On-Demand: https://www.nvidia.com/en-us/on-demand/
-  - DeepLearning.AI: https://learn.deeplearning.ai/
-  - edX: https://learning.edx.org/
+Udemy や YouTube など主要なオンライン学習・動画サイトの教育コンテンツ（オンライン講座、講義、チュートリアル動画）の字幕を、LLM ベースの AI で希望する言語へ自然に翻訳します。言語の壁なく学べるため、字幕のアクセシビリティも高まります。
+対応サイトの一覧は紹介ウェブサイトで確認できます: https://mungi.github.io/ai-subtitle-translator/
 
 # 主な特徴
   - ご自身の API キーを使えます。OpenAI、Anthropic、Google AI などお好みのプロバイダーの API キーを入力するか、Custom LLM で OpenAI 互換サーバーやローカル LLM（Ollama、LM Studio など）を接続して、好きなモデルで翻訳できます。
@@ -64,7 +54,7 @@
 
 # 主な変更
   [ v0.2.2 (2026-11-08) ]
-  - Coursera、LinkedIn Learning、O'Reilly、NVIDIA On-Demand、DeepLearning.AI、edX に対応しました。
+  - 対応サイトを 6 つ追加しました。
   - 汎用動画プレイヤー（テクニカルプレビュー）を追加しました。ツールバーのポップアップからサイトを追加すると、一般的な HTML5 動画の字幕を翻訳できます。
   - Custom LLM でプライベートネットワークアドレス（RFC 1918）と .local 名への HTTP 接続を許可し、推論・JSON 応答・追加ヘッダーの設定を追加しました。
   - 字幕の文字サイズ調整を追加し、ポップアップと設定画面を整理し、YouTube 字幕の取得を安定化しました。
@@ -109,7 +99,7 @@
       - Chrome のサイトアクセス一覧にアドレスが長く並び、かえって分かりにくかった問題を整理しました。
       - 汎用動画プレーヤー（テクニカルプレビュー）: ユーザーがツールバーのポップアップから汎用プレーヤーの対応リストに追加したサイトにのみ動画検出用の小さなスクリプトを登録し、字幕付き動画のあるフレームにのみ字幕スクリプトを挿入してその動画の字幕を翻訳します。サイトはユーザーが選ぶため、サイトごとの権限を事前に列挙できません。
     - 実際の利用範囲
-      - 字幕表示スクリプトは対応動画サイト（Udemy、NVIDIA Academy、YouTube、TED、Vimeo、Coursera、LinkedIn Learning、O'Reilly、NVIDIA On-Demand、DeepLearning.AI、edX）にのみ挿入します。その他のウェブサイトの内容を読み取ったり変更したりしません。
+      - 字幕表示スクリプトは対応動画サイトにのみ挿入します。その他のウェブサイトの内容を読み取ったり変更したりしません。
       - ネットワーク要求は、対応サイトでの字幕取得とユーザーが選択した翻訳プロバイダーにのみ送信します。要求先はコードで再確認します。
   - storage: 設定、暗号化された API キー、翻訳キャッシュをブラウザに保存します。
   - scripting: 対応動画サイトで字幕を取得するスクリプトを実行します。

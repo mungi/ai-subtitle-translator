@@ -1,16 +1,6 @@
 # AST - AI Subtitle Translator
-AI를 활용해 다음 웹사이트의 교육 콘텐츠(온라인 강의, 강연, 튜토리얼 영상) 자막을 원하는 언어로 자연스럽게 번역합니다. 언어의 장벽 없이 학습할 수 있어 자막 접근성도 높아집니다.
-  - Udemy: https://www.udemy.com/
-  - NVIDIA Academy: https://www.nvidia.com/en-us/training/academy/
-  - YouTube: https://www.youtube.com/
-  - Vimeo: https://vimeo.com/
-  - TED: https://www.ted.com/
-  - Coursera: https://www.coursera.org/
-  - LinkedIn Learning: https://www.linkedin.com/learning/
-  - O'Reilly: https://www.oreilly.com/
-  - NVIDIA On-Demand: https://www.nvidia.com/en-us/on-demand/
-  - DeepLearning.AI: https://learn.deeplearning.ai/
-  - edX: https://learning.edx.org/
+AI를 활용해 Udemy, YouTube 등 주요 온라인 강의·영상 사이트의 교육 콘텐츠(온라인 강의, 강연, 튜토리얼 영상) 자막을 원하는 언어로 자연스럽게 번역합니다. 언어의 장벽 없이 학습할 수 있어 자막 접근성도 높아집니다.
+지원 사이트 전체 목록은 소개 웹사이트에서 확인하세요: https://mungi.github.io/ai-subtitle-translator/
 
 # 주요 특징
   - 내 API 키를 직접 사용합니다. OpenAI, Anthropic, Google AI 등 원하는 제공업체의 API 키를 입력하거나, Custom LLM으로 OpenAI 호환 서버·로컬 LLM(Ollama, LM Studio 등)을 연결해 원하는 모델로 번역할 수 있습니다.
@@ -63,7 +53,7 @@ AI를 활용해 다음 웹사이트의 교육 콘텐츠(온라인 강의, 강연
 
 # 주요 변경
   [ v0.2.2 (2026-11-08) ]
-  - Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI, edX 지원 추가
+  - 지원 사이트 6곳 추가
   - 범용 동영상 플레이어(테크니컬 프리뷰) 추가: 툴바 팝업에서 사이트를 추가해 일반 HTML5 동영상 자막 번역
   - Custom LLM에서 사설망 주소(RFC 1918)와 .local 이름의 HTTP 연결 허용, 추론·JSON 응답·추가 헤더 설정 추가
   - 자막 글자 크기 조절, 팝업·설정 화면 정리, YouTube 자막 수집 안정화
@@ -108,7 +98,7 @@ AI를 활용해 다음 웹사이트의 교육 콘텐츠(온라인 강의, 강연
       - Chrome의 사이트 접근 목록에 주소가 길게 나열되어 오히려 알아보기 어려웠던 문제를 정리했습니다.
       - 범용 동영상 플레이어(테크니컬 프리뷰): 사용자가 툴바 팝업에서 범용 플레이어 지원 목록에 추가한 사이트에만 동영상 감지용 작은 스크립트를 등록하고, 자막이 있는 동영상이 있는 프레임에만 자막 스크립트를 주입해 그 동영상 자막을 번역합니다. 사이트가 사용자의 선택으로 정해지므로 사이트별 권한을 미리 나열할 수 없습니다.
     - 실제 사용 범위
-      - 자막 표시 스크립트는 지원하는 동영상 사이트(Udemy, NVIDIA Academy, YouTube, TED, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI, edX)에만 들어갑니다. 다른 웹사이트의 내용은 읽거나 바꾸지 않습니다.
+      - 자막 표시 스크립트는 지원하는 동영상 사이트에만 들어갑니다. 다른 웹사이트의 내용은 읽거나 바꾸지 않습니다.
       - 네트워크 요청은 지원 사이트의 자막 조회와 사용자가 선택한 번역 제공업체로만 보냅니다. 요청 대상은 코드에서 다시 확인합니다.
   - storage: 설정, 암호화된 API 키, 번역 캐시를 브라우저에 저장합니다.
   - scripting: 지원 동영상 사이트에서 자막을 가져오는 스크립트를 실행합니다.
