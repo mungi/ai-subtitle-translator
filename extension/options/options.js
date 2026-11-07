@@ -1037,7 +1037,7 @@ function renderGeneralSettings() {
   cacheTranslationsInput.checked = Boolean(settings.cacheTranslations);
   preferYoutubeProvidedTranslationInput.checked = settings.preferYoutubeProvidedTranslation !== false;
   phraseSegmentationInput.checked = settings.phraseSegmentation !== false;
-  phraseSegmentationSkipYoutubeManualInput.checked = settings.phraseSegmentationSkipYoutubeManual === true;
+  phraseSegmentationSkipYoutubeManualInput.checked = settings.phraseSegmentationSkipYoutubeManual !== false;
   // The YouTube exception only matters while phrase segmentation is on.
   phraseSegmentationSkipYoutubeManualInput.disabled = !phraseSegmentationInput.checked;
   wordProgressHighlightInput.checked = settings.wordProgressHighlight !== false;

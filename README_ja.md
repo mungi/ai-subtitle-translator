@@ -55,7 +55,7 @@ LLM プロバイダーを選択すると、現在の再生位置付近の字幕�
 
 ## Custom LLM の設定
 
-Custom LLM は、ローカル LLM とユーザーが運用する OpenAI 互換 `chat/completions` サーバーの両方に対応します。最終リクエスト URL の `/chat/completions` より前の部分だけを Base URL に入力します。`localhost` と `127.0.0.1` は HTTP または HTTPS を使用でき、外部のカスタムサーバーは HTTPS のみ使用できます。字幕テキストと、入力した場合は API キーがそのサーバーへ直接送信されます。
+Custom LLM は、ローカル LLM とユーザーが運用する OpenAI 互換 `chat/completions` サーバーの両方に対応します。最終リクエスト URL の `/chat/completions` より前の部分だけを Base URL に入力します。`localhost`、`127.0.0.1`、プライベートネットワークアドレス（RFC 1918: `10.x.x.x`、`172.16〜31.x.x`、`192.168.x.x`）、`.local` 名は HTTP または HTTPS を使用でき、それ以外の外部カスタムサーバーは HTTPS のみ使用できます。HTTP は暗号化されないため、信頼できるローカルネットワークでのみ使用してください。字幕テキストと、入力した場合は API キーがそのサーバーへ直接送信されます。
 
 ```text
 Base URL: http://localhost:1234/v1

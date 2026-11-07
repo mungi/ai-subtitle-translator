@@ -1,6 +1,6 @@
 # AST - AI Subtitle Translator
 
-Naturally translate subtitles from videos on the following websites into your preferred language using LLM-based AI.
+Naturally translate subtitles of educational content (online courses, lectures, and tutorial videos) on the following websites into your preferred language using LLM-based AI. Learning without a language barrier also makes video content more accessible.
   - Udemy: https://www.udemy.com/
   - NVIDIA Academy: https://www.nvidia.com/en-us/training/academy/
   - YouTube: https://www.youtube.com/
@@ -14,8 +14,10 @@ Naturally translate subtitles from videos on the following websites into your pr
   - edX: https://learning.edx.org/
 
 # Key Highlights
+  - Bring your own API key. Enter your own key from providers such as OpenAI, Anthropic, or Google AI, or connect any OpenAI-compatible server or local LLM (such as Ollama or LM Studio) through Custom LLM and translate with the model you choose.
   - Translate subtitles quickly with Google Translate, or connect an LLM for natural translations that consider context.
-  - Watch with dual subtitles: the original and the translation shown together.
+  - Watch with dual subtitles: the original and the translation shown together, so you can follow educational content in your own language while picking up the original expressions.
+  - Generic video player (technical preview): add a site that is not in the list above to the supported list from the toolbar popup, and translate the subtitles of standard HTML5 videos that have caption tracks.
   - Use prompts to specify a translation style.
   - Customize the subtitle display style directly.
   - Supports multiple LLM providers, including commercial AI APIs, OpenAI-compatible APIs, and local servers. Choose providers, models, and API keys in Settings; see the Chrome Web Store settings screenshot for the full list of supported providers.
@@ -27,7 +29,7 @@ Naturally translate subtitles from videos on the following websites into your pr
   - Check each LLM API provider's policy for free allowances, limits, and any applicable charges.
 
 # Main Features
-  - Subtitle translation for Udemy, NVIDIA Academy, YouTube, TED, and Vimeo videos (plus Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI, and edX)
+  - AI subtitle translation for videos on the major supported sites
   - Context-aware AI translation that considers the flow of the source subtitles
   - Fast translation with Google Translate included by default
   - Fast translation is displayed first while LLM translation is being prepared
@@ -61,6 +63,12 @@ Naturally translate subtitles from videos on the following websites into your pr
   - If you have a DeepL API key, you can use DeepL for fast translation (Free or Pro plan).
 
 # Major Changes
+  [ v0.2.2 (2026-11-08) ]
+  - Added support for Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI, and edX.
+  - Added a generic video player (technical preview): add a site from the toolbar popup to translate subtitles of standard HTML5 videos.
+  - Custom LLM now allows HTTP on private network addresses (RFC 1918) and .local names, and adds reasoning, JSON response, and extra header settings.
+  - Added subtitle font size controls, cleaned up the popup and Settings, and made YouTube caption capture more stable.
+
   [ v0.2.1 (2026-11-07) ]
   - Added downloads for AI-translated subtitles and summaries.
   - Improved subtitle styles and the subtitle box.
@@ -119,5 +127,5 @@ Naturally translate subtitles from videos on the following websites into your pr
 - Storage access is restricted to trusted extension contexts, and API keys are not exposed to content scripts.
 - The extension does not store API keys on its own server or in an external database.
 - API keys are sent directly to the selected provider when needed for authentication.
-- Hosted providers are limited to their official HTTPS origins. Custom LLM can use HTTP or HTTPS on `localhost` or `127.0.0.1`, plus a custom HTTPS origin the user enters; redirect responses are not followed automatically.
+- Hosted providers are limited to their official HTTPS origins. Custom LLM can use HTTP or HTTPS on `localhost`, `127.0.0.1`, private network addresses (RFC 1918), or `.local` names, plus a custom HTTPS origin the user enters; redirect responses are not followed automatically.
 - Host access is requested once for all sites, but the subtitle script is injected only into supported video sites, and network requests go only to those sites for subtitles and to the translation provider the user selects.

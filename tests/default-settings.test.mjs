@@ -219,14 +219,14 @@ test("YouTube-provided subtitles are preferred by default and can be turned off"
   assert.equal(normalizeSettings({ preferYoutubeProvidedTranslation: "off" }).preferYoutubeProvidedTranslation, true);
 });
 
-test("phrase segmentation and word progress are on by default; the YouTube exception is off", () => {
+test("phrase segmentation, word progress, and the YouTube uploaded-subtitle exception are on by default", () => {
   const settings = normalizeSettings();
   assert.equal(settings.phraseSegmentation, true);
-  assert.equal(settings.phraseSegmentationSkipYoutubeManual, false);
+  assert.equal(settings.phraseSegmentationSkipYoutubeManual, true);
   assert.equal(settings.wordProgressHighlight, true);
-  const changed = normalizeSettings({ phraseSegmentation: false, phraseSegmentationSkipYoutubeManual: true, wordProgressHighlight: false });
+  const changed = normalizeSettings({ phraseSegmentation: false, phraseSegmentationSkipYoutubeManual: false, wordProgressHighlight: false });
   assert.equal(changed.phraseSegmentation, false);
-  assert.equal(changed.phraseSegmentationSkipYoutubeManual, true);
+  assert.equal(changed.phraseSegmentationSkipYoutubeManual, false);
   assert.equal(changed.wordProgressHighlight, false);
 });
 

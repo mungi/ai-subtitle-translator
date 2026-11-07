@@ -98,7 +98,7 @@
         <section aria-labelledby="security-en">
           <span class="policy-number">07</span>
           <h2 id="security-en">Security</h2>
-          <p>All remote provider requests use HTTPS. Custom LLM supports both a local LLM running on the user's computer and a user-configured server. A local LLM may use an HTTP endpoint on <code>localhost</code> or <code>127.0.0.1</code>; a custom server requires HTTPS and the user's runtime domain-access approval. Base URLs for hosted providers are restricted to each provider's official HTTPS origin, and redirect responses are not followed automatically.</p>
+          <p>All remote provider requests use HTTPS. Custom LLM supports both a local LLM running on the user's computer and a user-configured server. A local LLM may use an HTTP endpoint on <code>localhost</code>, <code>127.0.0.1</code>, a private network address (RFC 1918: <code>10.x.x.x</code>, <code>172.16–31.x.x</code>, <code>192.168.x.x</code>), or a <code>.local</code> name (HTTP is not encrypted, so use it only on a trusted local network); any other custom server requires HTTPS and the user's runtime domain-access approval. Base URLs for hosted providers are restricted to each provider's official HTTPS origin, and redirect responses are not followed automatically.</p>
         </section>
 
         <section aria-labelledby="contact-en">

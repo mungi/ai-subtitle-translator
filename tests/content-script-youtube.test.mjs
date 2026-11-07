@@ -4753,7 +4753,11 @@ test("YouTube manual captions can be excluded while auto-generated ones are stil
   const manual = await startSegmentedYoutube({ phraseSegmentationSkipYoutubeManual: true }, manualDocument);
   assert.deepEqual([...manual.video.astSubtitleCues.map((cue) => cue.text)], ["This caption was split", "in the middle."]);
 
-  const included = await startSegmentedYoutube({}, manualDocument);
+  // On by default: without the setting, uploaded captions are kept as they are.
+  const byDefault = await startSegmentedYoutube({}, manualDocument);
+  assert.deepEqual([...byDefault.video.astSubtitleCues.map((cue) => cue.text)], ["This caption was split", "in the middle."]);
+
+  const included = await startSegmentedYoutube({ phraseSegmentationSkipYoutubeManual: false }, manualDocument);
   assert.deepEqual([...included.video.astSubtitleCues.map((cue) => cue.text)], ["This caption was split in the middle."]);
 
   const automatic = await startSegmentedYoutube({ phraseSegmentationSkipYoutubeManual: true });

@@ -46,7 +46,7 @@ The use of information received from Google APIs will adhere to the [Chrome Web 
 
 ## Security
 
-All remote provider requests use HTTPS. Custom LLM supports both a local LLM and a user-operated custom server. A local LLM running on the user's own computer may use an HTTP endpoint on `localhost` or `127.0.0.1`; a custom server requires HTTPS and the user's runtime approval for its domain. Base URLs for hosted providers are restricted to each provider's official HTTPS origin, and redirect responses are not followed automatically.
+All remote provider requests use HTTPS. Custom LLM supports both a local LLM and a user-operated custom server. A local LLM may use an HTTP endpoint on `localhost`, `127.0.0.1`, a private network address (RFC 1918: `10.x.x.x`, `172.16–31.x.x`, `192.168.x.x`), or a `.local` name (HTTP is not encrypted, so use it only on a trusted local network); any other custom server requires HTTPS and the user's runtime approval for its domain. Base URLs for hosted providers are restricted to each provider's official HTTPS origin, and redirect responses are not followed automatically.
 
 ## Contact and changes
 

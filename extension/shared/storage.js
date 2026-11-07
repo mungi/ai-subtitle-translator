@@ -179,7 +179,7 @@ export function normalizeSettings(settings = {}) {
     preferYoutubeProvidedTranslation: settings.preferYoutubeProvidedTranslation !== false,
     phraseSegmentation: settings.phraseSegmentation !== false,
     sourceCaptionLanguages: normalizeSourceCaptionLanguages(settings.sourceCaptionLanguages),
-    phraseSegmentationSkipYoutubeManual: settings.phraseSegmentationSkipYoutubeManual === true,
+    phraseSegmentationSkipYoutubeManual: settings.phraseSegmentationSkipYoutubeManual !== false,
     wordProgressHighlight: settings.wordProgressHighlight !== false,
     customSystemPrompt: extractStyleSystemPrompt(settings.customSystemPrompt || defaults.customSystemPrompt || buildDefaultCustomStyleSystemPrompt(targetLanguage)),
     custom2SystemPrompt: extractStyleSystemPrompt(settings.custom2SystemPrompt || defaults.custom2SystemPrompt || buildDefaultCustom2StyleSystemPrompt()),

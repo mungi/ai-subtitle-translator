@@ -98,7 +98,7 @@
         <section aria-labelledby="security-ko">
           <span class="policy-number">07</span>
           <h2 id="security-ko">보안</h2>
-          <p>모든 원격 제공업체 요청은 HTTPS를 사용합니다. Custom LLM은 사용자의 컴퓨터에서 실행하는 로컬 LLM과 사용자 지정 서버를 함께 지원합니다. 로컬 LLM은 <code>localhost</code> 또는 <code>127.0.0.1</code>의 HTTP 엔드포인트를 사용할 수 있고, 사용자 지정 서버는 HTTPS와 사용자의 실행 시 도메인 접근 승인이 필요합니다. 공식 제공업체의 Base URL은 해당 제공업체의 공식 HTTPS 오리진으로 제한하고 리디렉션 응답을 자동으로 추적하지 않습니다.</p>
+          <p>모든 원격 제공업체 요청은 HTTPS를 사용합니다. Custom LLM은 사용자의 컴퓨터에서 실행하는 로컬 LLM과 사용자 지정 서버를 함께 지원합니다. 로컬 LLM은 <code>localhost</code>, <code>127.0.0.1</code>, 사설망 주소(RFC 1918: <code>10.x.x.x</code>, <code>172.16~31.x.x</code>, <code>192.168.x.x</code>), <code>.local</code> 이름의 HTTP 엔드포인트를 사용할 수 있고(HTTP는 암호화되지 않으므로 신뢰할 수 있는 내부망에서만 사용하세요), 그 밖의 사용자 지정 서버는 HTTPS와 사용자의 실행 시 도메인 접근 승인이 필요합니다. 공식 제공업체의 Base URL은 해당 제공업체의 공식 HTTPS 오리진으로 제한하고 리디렉션 응답을 자동으로 추적하지 않습니다.</p>
         </section>
 
         <section aria-labelledby="contact-ko">

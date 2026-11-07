@@ -219,7 +219,53 @@ test("Custom LLM requests reject user-supplied HTTP origins", () => {
   }, {
     systemPrompt: "Translate",
     input: "Hello"
-  }), /Custom LLM Base URL must use HTTPS unless it uses localhost or 127\.0\.0\.1/);
+  }), /Custom LLM Base URL must use HTTPS unless it uses localhost, 127\.0\.0\.1, a private network address/);
+
+  for (const baseUrl of [
+    "http://172.15.0.1/v1",
+    "http://172.32.0.1/v1",
+    "http://192.169.0.1/v1",
+    "http://11.0.0.1/v1",
+    "http://8.8.8.8/v1",
+    "http://local/v1",
+    "http://evil-local.example.com/v1",
+    "http://my-mac.local.example.com/v1",
+    "http://my-mac.local./v1"
+  ]) {
+    assert.throws(() => buildProviderRequest({
+      id: "local",
+      apiStyle: "openai-chat",
+      baseUrl,
+      apiKey: "",
+      model: "local-model"
+    }, {
+      systemPrompt: "Translate",
+      input: "Hello"
+    }), /must use HTTPS/, baseUrl);
+  }
+});
+
+test("Custom LLM requests allow HTTP on RFC 1918 addresses and .local names", () => {
+  for (const baseUrl of [
+    "http://10.0.0.5:11434/v1",
+    "http://10.255.255.255/v1",
+    "http://172.16.0.1:1234/v1",
+    "http://172.31.255.254/v1",
+    "http://192.168.0.10:1234/v1",
+    "http://my-mac.local:1234/v1",
+    "http://My-Mac.local:1234/v1"
+  ]) {
+    assert.doesNotThrow(() => buildProviderRequest({
+      id: "local",
+      apiStyle: "openai-chat",
+      baseUrl,
+      apiKey: "",
+      model: "local-model"
+    }, {
+      systemPrompt: "Translate",
+      input: "Hello"
+    }), baseUrl);
+  }
 });
 
 test("machine translation requests reject cross-origin redirects", async () => {

@@ -36,7 +36,7 @@ Supporting facts the owner asked the intro site to highlight (2026-11-06): no mo
 
 ## Capabilities and Constraints
 
-- Providers: Google Translate (no key), DeepL, OpenAI, Anthropic, Google AI, OpenRouter, NVIDIA NIM, and Custom LLM. Custom LLM allows HTTP only for `localhost` and `127.0.0.1`; external servers must use HTTPS.
+- Providers: Google Translate (no key), DeepL, OpenAI, Anthropic, Google AI, OpenRouter, NVIDIA NIM, and Custom LLM. Custom LLM allows HTTP only for `localhost`, `127.0.0.1`, RFC 1918 private addresses, and `.local` names; all other servers must use HTTPS.
 - Display modes: translated, source, or dual subtitles. Translation styles: Natural, Lecture, Technical, and two custom prompts with editable labels.
 - On YouTube it can show YouTube's own human subtitles in the target language, or YouTube's auto-translation, instead of translating; this can be turned off.
 - Subtitle appearance (position, size, width, fonts, weights, colors, outline, shadow, background) is user-adjustable.

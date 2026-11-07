@@ -937,7 +937,7 @@
     "message": "Uses NVIDIA NIM's OpenAI-compatible chat/completions API. Create an API key on the NVIDIA API keys page. NVIDIA API Catalog provides free endpoints for development and prototyping; usage limits may apply by model and account."
   },
   "providerGuideLocal": {
-    "message": "Uses the OpenAI-compatible chat/completions format. localhost and 127.0.0.1 can use HTTP or HTTPS; custom servers must use HTTPS. For a custom HTTPS server, approve access to that domain when you fetch models or test the connection. Subtitle text and the API key, if entered, are sent directly to this server. In Base URL, enter only the part before /chat/completions. Example: http://localhost:1234/v1"
+    "message": "Uses the OpenAI-compatible chat/completions format. localhost, 127.0.0.1, private network addresses (RFC 1918: 10.x.x.x, 172.16–31.x.x, 192.168.x.x), and .local names can use HTTP or HTTPS; all other custom servers must use HTTPS. For a custom HTTPS server, approve access to that domain when you fetch models or test the connection. Subtitle text and the API key, if entered, are sent directly to this server. In Base URL, enter only the part before /chat/completions. Example: http://localhost:1234/v1"
   },
   "contentSubtitleDisplay": {
     "message": "Subtitle display"

@@ -98,7 +98,7 @@
         <section aria-labelledby="security-ja">
           <span class="policy-number">07</span>
           <h2 id="security-ja">セキュリティ</h2>
-          <p>すべてのリモートプロバイダーリクエストは HTTPS を使用します。Custom LLM は、ユーザーのコンピューターで実行するローカル LLM とユーザー指定サーバーの両方に対応します。ローカル LLM は <code>localhost</code> または <code>127.0.0.1</code> の HTTP エンドポイントを使用でき、ユーザー指定サーバーには HTTPS とユーザーの実行時のドメインへのアクセス許可が必要です。ホスト型プロバイダーの Base URL は各プロバイダーの公式 HTTPS オリジンに制限し、リダイレクト応答を自動追跡しません。</p>
+          <p>すべてのリモートプロバイダーリクエストは HTTPS を使用します。Custom LLM は、ユーザーのコンピューターで実行するローカル LLM とユーザー指定サーバーの両方に対応します。ローカル LLM は <code>localhost</code>、<code>127.0.0.1</code>、プライベートネットワークアドレス（RFC 1918: <code>10.x.x.x</code>、<code>172.16〜31.x.x</code>、<code>192.168.x.x</code>）、<code>.local</code> 名の HTTP エンドポイントを使用でき（HTTP は暗号化されないため、信頼できるローカルネットワークでのみ使用してください）、それ以外のユーザー指定サーバーには HTTPS とユーザーの実行時のドメインへのアクセス許可が必要です。ホスト型プロバイダーの Base URL は各プロバイダーの公式 HTTPS オリジンに制限し、リダイレクト応答を自動追跡しません。</p>
         </section>
 
         <section aria-labelledby="contact-ja">

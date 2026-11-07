@@ -441,7 +441,7 @@ export const DEFAULT_SETTINGS = {
   preferYoutubeProvidedTranslation: true,
   phraseSegmentation: true,
   sourceCaptionLanguages: {},
-  phraseSegmentationSkipYoutubeManual: false,
+  phraseSegmentationSkipYoutubeManual: true,
   wordProgressHighlight: true,
   customSystemPrompt: DEFAULT_CUSTOM_STYLE_SYSTEM_PROMPT,
   custom2SystemPrompt: DEFAULT_CUSTOM_2_STYLE_SYSTEM_PROMPT,

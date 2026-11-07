@@ -89,7 +89,7 @@ const subtitleState = {
   translationFailed: false,
   youtubeProvidedTranslationPending: false,
   phraseSegmentation: true,
-  phraseSegmentationSkipYoutubeManual: false,
+  phraseSegmentationSkipYoutubeManual: true,
   wordProgressHighlight: true,
   currentSourceDocument: null,
   sourceCaptionLanguages: null,
@@ -4490,7 +4490,7 @@ function startProviderTranslation(document, platform, sessionKey, video, provide
 function applyCaptionDisplaySettings(settings = {}) {
   const before = [subtitleState.phraseSegmentation, subtitleState.phraseSegmentationSkipYoutubeManual];
   subtitleState.phraseSegmentation = settings.phraseSegmentation !== false;
-  subtitleState.phraseSegmentationSkipYoutubeManual = settings.phraseSegmentationSkipYoutubeManual === true;
+  subtitleState.phraseSegmentationSkipYoutubeManual = settings.phraseSegmentationSkipYoutubeManual !== false;
   const highlight = settings.wordProgressHighlight !== false;
   if (highlight !== subtitleState.wordProgressHighlight) {
     subtitleState.wordProgressHighlight = highlight;

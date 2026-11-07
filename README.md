@@ -55,7 +55,7 @@ See [Chrome built-in translation and Google Translate comparison](docs/translati
 
 ## Custom LLM setup
 
-Custom LLM supports both local LLMs and user-operated OpenAI-compatible `chat/completions` servers. Enter only the part of the final request URL before `/chat/completions` as the Base URL. `localhost` and `127.0.0.1` can use HTTP or HTTPS; external custom servers must use HTTPS. Subtitle text and the API key, if entered, are sent directly to that server.
+Custom LLM supports both local LLMs and user-operated OpenAI-compatible `chat/completions` servers. Enter only the part of the final request URL before `/chat/completions` as the Base URL. `localhost`, `127.0.0.1`, private network addresses (RFC 1918: `10.x.x.x`, `172.16–31.x.x`, `192.168.x.x`), and `.local` names can use HTTP or HTTPS; all other external custom servers must use HTTPS. HTTP is not encrypted, so use it only on a trusted local network. Subtitle text and the API key, if entered, are sent directly to that server.
 
 ```text
 Base URL: http://localhost:1234/v1
