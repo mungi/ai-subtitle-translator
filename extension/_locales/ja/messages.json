@@ -5,9 +5,6 @@
   "subtitle": {
     "message": "動画の文脈を生かした、自然な字幕翻訳を提供します。"
   },
-  "supportedPlatformsDescription": {
-    "message": "対応プラットフォーム: Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI, edX"
-  },
   "websiteLabel": {
     "message": "ウェブサイト:"
   },

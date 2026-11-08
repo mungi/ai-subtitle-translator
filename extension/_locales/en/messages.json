@@ -5,9 +5,6 @@
   "subtitle": {
     "message": "Natural subtitle translations that preserve the video's context."
   },
-  "supportedPlatformsDescription": {
-    "message": "Supported platforms: Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI, edX"
-  },
   "websiteLabel": {
     "message": "Website:"
   },

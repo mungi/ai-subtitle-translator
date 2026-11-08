@@ -5,9 +5,6 @@
   "subtitle": {
     "message": "영상의 문맥을 살려, 자연스러운 자막 번역을 제공합니다."
   },
-  "supportedPlatformsDescription": {
-    "message": "지원 플랫폼 : Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI, edX"
-  },
   "websiteLabel": {
     "message": "웹사이트 :"
   },
