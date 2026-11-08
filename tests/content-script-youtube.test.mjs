@@ -4131,7 +4131,7 @@ test("AST translation language selection persists, cancels old work, and restart
   const { context, controls, moviePlayer, sentMessages } = createYoutubeHarness({
     settings: {
       targetLanguage: "ko",
-      targetLanguages: [{ code: "ko", label: "한국어" }, { code: "ja", label: "日本語" }]
+      targetLanguages: [{ code: "ko", label: "한국어" }, { code: "ja", label: "日本語" }, { code: "he", label: "עברית" }]
     }
   });
   context.document.documentElement.innerHTML = '<script>var ytInitialPlayerResponse = ' + JSON.stringify({
@@ -4150,6 +4150,12 @@ test("AST translation language selection persists, cancels old work, and restart
   assert.equal(menu.children[sourceIndex + 1], languageMenu);
   assert.equal(menu.children[sourceIndex + 2].className, "ast-translation-style-submenu");
   assert.equal(languageMenu.children[0].children[0].textContent, "목표 언어: 한국어");
+  // Each list item shows "native name (code)" and carries its own `lang`, without forcing RTL on the row.
+  const hebrewItem = languageMenu.children[1].children[2];
+  assert.equal(hebrewItem.children[0].textContent, "עברית (he)");
+  assert.equal(hebrewItem.getAttribute("lang"), "he");
+  assert.equal(hebrewItem.getAttribute("dir"), null);
+  assert.equal(languageMenu.children[1].children[0].children[0].textContent, "한국어 (ko)");
   const count = sentMessages.filter((message) => message.type === "translation.translateDocument").length;
   languageMenu.children[1].children[1].dispatchEvent({ type: "click", stopPropagation: () => {} });
   await flushPromises();

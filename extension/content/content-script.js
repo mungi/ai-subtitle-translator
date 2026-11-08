@@ -518,7 +518,9 @@ function renderTargetLanguageMenu(menu, platform) {
   list.setAttribute("aria-label", contentText("targetLanguage"));
   for (const language of subtitleState.targetLanguages) {
     const languageCode = language.code;
-    const item = createProviderMenuButton("ast-provider-menu-item ast-target-language-item", language.label);
+    const item = createProviderMenuButton("ast-provider-menu-item ast-target-language-item", `${language.label} (${languageCode})`);
+    // The native name is in its own language, so screen readers and font selection need `lang`.
+    item.setAttribute("lang", languageCode);
     const isSelected = languageCode === selectedLanguage;
     item.setAttribute("role", "menuitemradio");
     item.setAttribute("aria-checked", String(isSelected));

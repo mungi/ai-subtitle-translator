@@ -1083,7 +1083,9 @@ function renderTargetLanguageSelect() {
   targetLanguageSelect.innerHTML = languageOptions
     .map((language) => {
       const label = getTargetLanguageLabel(language, uiLanguage);
-      return `<option dir="auto" value="${escapeHtml(language.code)}">${escapeHtml(label)} (${escapeHtml(language.code)})</option>`;
+      // Native names are in their own language; a custom code is labeled in the UI language, so it gets no `lang`.
+      const langAttribute = language.nativeLabel ? ` lang="${escapeHtml(language.code)}"` : "";
+      return `<option dir="ltr"${langAttribute} value="${escapeHtml(language.code)}">${escapeHtml(label)} (${escapeHtml(language.code)})</option>`;
     })
     .join("");
   targetLanguageSelect.value = selectedCode;
