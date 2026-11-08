@@ -4694,6 +4694,43 @@ test("YouTube auto-translation keeps its own translation style wording", async (
   assert.equal(shown.phase, "youtube-provided");
 });
 
+test("picking a translation style while YouTube's captions are shown translates in that style, keeping the cache", async () => {
+  const { harness } = createHumanCaptionHarness({
+    settings: { activeProvider: "openai" }, targetCaption: autoTranslation(["안녕", "세상"])
+  });
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
+  await flushPromises();
+  await clickAstToggle(harness.controls.querySelector("#ast-toolbar-button"));
+  await flushPromises();
+  await flushPromises();
+  assert.equal(vm.runInNewContext("getDisplayedPhase()", harness.context), "youtube-provided");
+  assert.equal(vm.runInNewContext("subtitleState.activeProviderId", harness.context), "openai");
+  const sent = (type) => harness.sentMessages.filter((message) => message.type === type);
+  const translationsBefore = sent("translation.translateDocument").length;
+
+  await vm.runInNewContext('selectTranslationStyle("youtube", "lecture")', harness.context);
+  await flushPromises();
+  await flushPromises();
+  assert.equal(sent("settings.setTranslationStyle").at(-1).translationStyle, "lecture");
+  // Unlike the retranslate button, a translation made before in that style is used again.
+  assert.equal(sent("translation.clearVideoCache").length, 0);
+  const requests = sent("translation.translateDocument").slice(translationsBefore);
+  assert.ok(requests.length > 0);
+  assert.equal(requests.some((message) => message.forceNoCache && message.mode === "final"), false);
+  assert.notEqual(vm.runInNewContext("getDisplayedPhase()", harness.context), "youtube-provided");
+
+  // Another style, or the same one again, stays with our translation instead of going back to YouTube's.
+  for (const styleId of ["technical", "technical"]) {
+    const before = sent("translation.translateDocument").length;
+    await vm.runInNewContext(`selectTranslationStyle("youtube", "${styleId}")`, harness.context);
+    await flushPromises();
+    await flushPromises();
+    assert.ok(sent("translation.translateDocument").length > before, styleId);
+    assert.notEqual(vm.runInNewContext("getDisplayedPhase()", harness.context), "youtube-provided", styleId);
+  }
+  assert.equal(sent("translation.clearVideoCache").length, 0);
+});
+
 test("YouTube falls back to normal translation when no human captions exist", async () => {
   const { harness, targetRequests } = createHumanCaptionHarness({ targetCaption: null });
   vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);

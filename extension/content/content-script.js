@@ -1145,7 +1145,9 @@ function renderProviderMenu(platform = detectPlatform()) {
   updateProviderMenuStatus();
 }
 
-async function retranslateCurrentVideo(platform) {
+// The retranslate button starts over with an empty cache; other callers (a style picked while
+// YouTube's captions are shown) keep it, so a translation made before is used again.
+async function retranslateCurrentVideo(platform, { keepCache = false } = {}) {
   if (subtitleState.retranslatingCurrentVideo || !subtitleState.currentDocument
     || subtitleState.currentPlatform !== platform
     || !subtitleState.currentSessionKey
@@ -1154,12 +1156,14 @@ async function retranslateCurrentVideo(platform) {
   subtitleState.retranslatingCurrentVideo = true;
   renderProviderMenu(platform);
   try {
-    const response = await sendRuntimeMessage({
-      type: "translation.clearVideoCache",
-      platform,
-      videoId: subtitleState.currentVideoId
-    });
-    if (!response?.ok) throw new Error(response?.error || "Could not clear this video's translation cache.");
+    if (!keepCache) {
+      const response = await sendRuntimeMessage({
+        type: "translation.clearVideoCache",
+        platform,
+        videoId: subtitleState.currentVideoId
+      });
+      if (!response?.ok) throw new Error(response?.error || "Could not clear this video's translation cache.");
+    }
 
     const configuredProviders = await getTranslationProviderIds();
     const providerId = subtitleState.activeProviderId || configuredProviders.activeProviderId || "googleTranslate";
@@ -4904,6 +4908,13 @@ async function selectTranslationStyle(platform, styleId) {
     && subtitleState.currentSessionKey === handler?.getSessionKey();
   renderProviderMenu(platform);
 
+  // While YouTube's own captions are shown, no style is in use; picking one asks for our translation
+  // in that style instead, as the retranslate button does, but a cached one is used if there is one.
+  if (subtitleState.enabled && reusableDocument && getDisplayedPhase() === "youtube-provided") {
+    await retranslateCurrentVideo(platform, { keepCache: true });
+    return;
+  }
+
   if (subtitleState.enabled
     && reusableDocument
     && !isMachineTranslationProvider(subtitleState.activeProviderId)) {
@@ -4913,7 +4924,9 @@ async function selectTranslationStyle(platform, styleId) {
       subtitleState.currentSessionKey,
       subtitleState.currentVideo,
       subtitleState.activeProviderId,
-      subtitleState.defaultProviderId
+      subtitleState.defaultProviderId,
+      // A picked style means that style's translation, never a way back to YouTube's captions.
+      { skipYoutubeProvidedTranslation: true }
     );
   }
 }
