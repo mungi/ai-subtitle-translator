@@ -99,6 +99,24 @@
     return originalOpen.apply(this, args);
   };
 
+  // Shorts play in their own player (#shorts-player); the watch player stays on the page behind them.
+  // The one showing the requested video is used, else the one for the current page.
+  function findPlayer(videoId) {
+    const ids = location.pathname?.startsWith("/shorts/") ? ["shorts-player", "movie_player"] : ["movie_player", "shorts-player"];
+    const players = ids.map((id) => document.getElementById(id)).filter(Boolean);
+    return players.find((player) => {
+      try { return player.getPlayerResponse?.()?.videoDetails?.videoId === videoId; } catch { return false; }
+    }) || players[0] || null;
+  }
+
+  // A Short's player has no control bar and so no captions button to read; its selected track
+  // then tells whether captions are on, as YouTube's own Shorts captions button does.
+  function captionsOn(player) {
+    const button = player.querySelector?.(".ytp-subtitles-button");
+    if (button) return button.getAttribute("aria-pressed") === "true";
+    try { return Boolean(player.getOption?.("captions", "track")?.displayName); } catch { return false; }
+  }
+
   function matchesTargetLanguage(trackLanguage, targetLanguage) {
     const track = String(trackLanguage || "").toLowerCase();
     const target = String(targetLanguage || "").toLowerCase();
@@ -119,7 +137,7 @@
   // Human captions in the target language come first; YouTube's machine translation of the
   // source track (tlang) is the fallback. Both reuse a signed URL the player already requested.
   async function fetchTargetCaption(request) {
-    const player = document.getElementById("movie_player");
+    const player = findPlayer(request.videoId);
     const response = player?.getPlayerResponse?.();
     if (response?.videoDetails?.videoId !== request.videoId) return null;
     const renderer = response.captions?.playerCaptionsTracklistRenderer;
@@ -174,7 +192,7 @@
 
   // Right after switching videos the player still describes the previous one; wait briefly for it.
   function whenPlayerShows(videoId, callback, attempts = PLAYER_WAIT_ATTEMPTS) {
-    const player = document.getElementById("movie_player");
+    const player = findPlayer(videoId);
     let response = null;
     try { response = player?.getPlayerResponse?.(); } catch { /* The player may be navigating. */ }
     if (response?.videoDetails?.videoId === videoId) {
@@ -251,7 +269,7 @@
         return;
       }
       restorePlayer?.finish();
-      const wasOn = player.querySelector(".ytp-subtitles-button")?.getAttribute("aria-pressed") === "true";
+      const wasOn = captionsOn(player);
       const previousTrack = player.getOption?.("captions", "track");
       let timeout;
       let activationTimeout;
@@ -263,14 +281,14 @@
         restorePlayer = null;
         if (player.getPlayerResponse()?.videoDetails?.videoId !== request.videoId) return;
         if (previousTrack?.languageCode) player.setOption("captions", "track", previousTrack);
-        const isOn = player.querySelector(".ytp-subtitles-button")?.getAttribute("aria-pressed") === "true";
+        const isOn = captionsOn(player);
         if (isOn !== wasOn) player.toggleSubtitles();
       };
       restorePlayer = { request, finish };
       timeout = setTimeout(finish, 6000);
       const activate = () => {
         if (player.getPlayerResponse()?.videoDetails?.videoId !== request.videoId) return;
-        if (player.querySelector(".ytp-subtitles-button")?.getAttribute("aria-pressed") !== "true") player.toggleSubtitles();
+        if (!captionsOn(player)) player.toggleSubtitles();
         player.setOption("captions", "track", track);
       };
       retryTimeout = setTimeout(() => {

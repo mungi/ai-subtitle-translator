@@ -292,7 +292,9 @@ function findToolbarTarget(platform, { allowFloatingToolbar = true } = {}) {
   }
 
   if (platform === "youtube") {
-    return document.querySelector("#movie_player .ytp-right-controls");
+    return isYoutubeShortsPage()
+      ? findYoutubeShortsControls()
+      : document.querySelector("#movie_player .ytp-right-controls");
   }
 
   if (platform === "ted") {
@@ -307,6 +309,16 @@ function findToolbarTarget(platform, { allowFloatingToolbar = true } = {}) {
   }
 
   return null;
+}
+
+// Shorts have their own player (#shorts-player, built without YouTube's control bar) and draw
+// their controls above it: a pill at the top right with the captions, menu and fullscreen buttons.
+// Every Short in the feed has that markup, so the one holding the player is the one on screen.
+function findYoutubeShortsControls() {
+  const selector = "ytd-shorts-player-controls #right-controls";
+  return document.querySelector("#shorts-player")?.closest("#player-container")?.querySelector(selector)
+    || document.querySelector(`[is-active] ${selector}`)
+    || null;
 }
 
 function findVimeoPlayerControls() {
@@ -370,7 +382,8 @@ function getProviderMenuHost(platform) {
     return document.fullscreenElement || document.body;
   }
   if (platform === "youtube") {
-    return document.querySelector("#movie_player");
+    // A Short's player is narrow and clips what overflows it, so its menu is placed on the page.
+    return isYoutubeShortsPage() ? document.fullscreenElement || document.body : document.querySelector("#movie_player");
   }
   if (platform === "ted") {
     return document.querySelector("#video-player-container")
@@ -1182,10 +1195,16 @@ function makePositionedHost(host, platform = subtitleState.currentPlatform || de
   if (getComputedStyle(host).position === "static") host.style.position = "relative";
 }
 
+// A menu placed on the page under its button by script, where a small player cannot clip it.
+function isFloatingProviderMenu(platform) {
+  return platform === "generic" || (platform === "youtube" && isYoutubeShortsPage());
+}
+
 function ensureProviderMenu(platform) {
   const host = getProviderMenuHost(platform);
   if (!host) return null;
-  if (platform !== "generic") makePositionedHost(host, platform);
+  const floating = isFloatingProviderMenu(platform);
+  if (!floating) makePositionedHost(host, platform);
   let menu = document.getElementById(PROVIDER_MENU_ID);
   if (!menu) {
     menu = document.createElement("div");
@@ -1201,6 +1220,10 @@ function ensureProviderMenu(platform) {
     menu.addEventListener("mousedown", (event) => {
       event.stopPropagation();
     });
+    // A click on a Short's player pauses it; one inside the menu is not meant for the player.
+    menu.addEventListener("click", (event) => {
+      event.stopPropagation?.();
+    });
     const cancelAutoClose = () => clearProviderMenuAutoCloseTimer();
     menu.addEventListener("pointerover", cancelAutoClose);
     menu.addEventListener("pointerleave", scheduleProviderMenuAutoClose);
@@ -1214,8 +1237,17 @@ function ensureProviderMenu(platform) {
     menu.className = `ast-provider-menu ast-provider-menu-${platform}`;
     menu.dataset.platform = platform;
   }
+  menu.classList.toggle("ast-provider-menu-floating", floating);
+  if (floating) {
+    menu.dataset.floating = "true";
+  } else if (menu.dataset.floating) {
+    // Back in a player (a Short left for a watch page): its stylesheet places it again.
+    delete menu.dataset.floating;
+    menu.style.top = "";
+    menu.style.right = "";
+  }
   if (menu.parentElement !== host) host.append(menu);
-  if (platform === "generic") watchGenericProviderMenuPosition(menu);
+  if (floating) watchGenericProviderMenuPosition(menu);
   return menu;
 }
 
@@ -1226,7 +1258,7 @@ const GENERIC_SUBMENU_ROOM_PX = 420;
 // Places the generic menu under its button, right-aligned to it, kept inside the viewport.
 // If there is no room below, it opens above the button instead.
 function positionGenericProviderMenu(menu = document.getElementById(PROVIDER_MENU_ID)) {
-  if (!menu || menu.hidden || menu.dataset.platform !== "generic") return;
+  if (!menu || menu.hidden || menu.dataset.floating !== "true") return;
   const button = document.getElementById(BUTTON_ID);
   const anchor = button?.getBoundingClientRect();
   if (!anchor || (anchor.width === 0 && anchor.height === 0)) return;
@@ -1259,7 +1291,8 @@ function watchGenericProviderMenuPosition(menu) {
   window.addEventListener("resize", reposition, { passive: true });
   window.addEventListener("scroll", reposition, { passive: true, capture: true });
   document.addEventListener("fullscreenchange", () => {
-    const host = getProviderMenuHost("generic");
+    if (menu.dataset.floating !== "true") return;
+    const host = getProviderMenuHost(menu.dataset.platform);
     if (host && menu.parentElement !== host) host.append(menu);
     reposition();
   });
@@ -1311,7 +1344,7 @@ async function toggleProviderMenu(platform) {
   }
   renderProviderMenu(platform);
   menu.hidden = false;
-  if (platform === "generic") positionGenericProviderMenu(menu);
+  if (menu.dataset.floating === "true") positionGenericProviderMenu(menu);
   document.getElementById(BUTTON_ID)?.setAttribute("aria-expanded", "true");
   void setProviderMenuVisibility(true);
   scheduleProviderMenuAutoClose();
@@ -1436,7 +1469,10 @@ function findVideoElement(platform) {
   }
 
   if (platform === "youtube") {
-    return document.querySelector("#movie_player video, video");
+    // A Shorts page keeps the hidden watch player and preloads other Shorts, so only its own player counts.
+    return isYoutubeShortsPage()
+      ? document.querySelector("#shorts-player video")
+      : document.querySelector("#movie_player video, video");
   }
 
   if (platform === "ted") {
@@ -1480,7 +1516,7 @@ function findOverlayHost(platform, video) {
   }
 
   if (platform === "youtube") {
-    return document.querySelector("#movie_player") || video?.parentElement || null;
+    return document.querySelector(getYoutubePlayerSelector()) || video?.parentElement || null;
   }
 
   if (platform === "ted") {
@@ -1500,7 +1536,7 @@ function findOverlay(video, platform = subtitleState.currentPlatform || detectPl
 
 function isYoutubeAdPlaying() {
   if ((subtitleState.currentPlatform || detectPlatform()) !== "youtube") return false;
-  const player = document.querySelector("#movie_player");
+  const player = document.querySelector(getYoutubePlayerSelector());
   return Boolean(player?.classList.contains("ad-showing") || player?.classList.contains("ad-interrupting"));
 }
 
@@ -1530,10 +1566,16 @@ function getYoutubeVideoId() {
     // Fall through to pathname parsing.
   }
 
-  // Shorts play in their own player without the caption controls this extension drives, so a
-  // Shorts page is not a session: the watch video's subtitles stay as they were for the way back.
-  const pathMatch = location.pathname.match(/^\/embed\/([a-zA-Z0-9_-]{11})/);
+  const pathMatch = location.pathname.match(/^\/(?:embed|shorts)\/([a-zA-Z0-9_-]{11})(?:[/?#]|$)/);
   return pathMatch?.[1] || null;
+}
+
+function isYoutubeShortsPage() {
+  return /^\/shorts\/[a-zA-Z0-9_-]{11}(?:[/?#]|$)/.test(location.pathname);
+}
+
+function getYoutubePlayerSelector() {
+  return isYoutubeShortsPage() ? "#shorts-player" : "#movie_player";
 }
 
 function getVimeoVideoId() {
@@ -2772,9 +2814,13 @@ function getOverlayScale(overlay) {
   const parentRect = getOverlayFrameRect(overlay);
   if (!parentRect?.width || !parentRect?.height) return 1;
 
-  const widthScale = parentRect.width / OVERLAY_REFERENCE_WIDTH_PX;
-  const heightScale = parentRect.height / OVERLAY_REFERENCE_HEIGHT_PX;
-  return clampNumber(Math.min(widthScale, heightScale), 0.35, 3, 1);
+  // A portrait player (a Short) is measured against the reference turned upright, so its narrow
+  // width does not shrink the text: the long side is compared with 1280 and the short with 720.
+  const longSide = Math.max(parentRect.width, parentRect.height);
+  const shortSide = Math.min(parentRect.width, parentRect.height);
+  const longScale = longSide / OVERLAY_REFERENCE_WIDTH_PX;
+  const shortScale = shortSide / OVERLAY_REFERENCE_HEIGHT_PX;
+  return clampNumber(Math.min(longScale, shortScale), 0.35, 3, 1);
 }
 
 function scalePx(value, scale, min = 0) {
@@ -3453,10 +3499,25 @@ function markCaptionsUnavailable(video, platform, sessionKey) {
   subtitleState.loading = false;
   subtitleState.captionsUnavailable = sessionKey ? { platform, sessionKey } : null;
   invalidateTranslationRequests();
+  // Nothing of the previous video's translation applies here, YouTube's own captions included.
+  subtitleState.youtubeProvidedTranslationLanguage = "";
+  subtitleState.youtubeProvidedTranslationSource = "";
+  subtitleState.youtubeProvidedTranslationPending = false;
   setTranslationPhase("off");
+  // Players reuse one <video> from video to video (every Short does), and its renderer shows a
+  // status message again on the next timeupdate, or the previous video's lines once it is gone.
+  // So the "preparing" message and those lines go, not only the box.
+  for (const target of new Set([video, subtitleState.currentVideo].filter(Boolean))) {
+    target.astSubtitleCues = [];
+    target.astSubtitleRenderedCue = null;
+  }
   // Only hidden, not marked disabled: AST is still on and the next video's lines must show.
   const overlay = findOverlay(video);
-  if (overlay) overlay.hidden = true;
+  if (overlay) {
+    clearElement(overlay);
+    delete overlay.dataset.status;
+    overlay.hidden = true;
+  }
   removeUdemyTranscriptTranslationElements();
 }
 
@@ -3964,6 +4025,13 @@ function getDirectToolbarChild(target, descendant) {
 }
 
 function mountToolbarButton(target, button, platform) {
+  if (platform === "youtube" && target.id === "right-controls") {
+    // In a Short's control pill: after the captions button, before the menu and fullscreen buttons.
+    const next = [...(target.children || [])].find((child) => child.id === "menu-button" || child.id === "fullscreen-button-shape");
+    if (next && target.insertBefore) target.insertBefore(button, next);
+    else target.append(button);
+    return;
+  }
   if (platform !== "ted") {
     target.append(button);
     return;
@@ -4045,7 +4113,9 @@ function shouldAllowFloatingToolbar(platform) {
 function watch(platform) {
   const allowFloatingToolbar = shouldAllowFloatingToolbar(platform);
   const installed = ensureButton(platform, { allowFloatingToolbar });
-  if (platform !== "udemy" && platform !== "ted" && platform !== "coursera" && platform !== "linkedin" && platform !== "oreilly" && platform !== "nvidiaOnDemand" && platform !== "deeplearningai" && platform !== "edx" && !isVimeoPlatform(platform) && installed) return;
+  // YouTube keeps watching: Shorts redraw their controls for every Short, and moving between a
+  // watch page and Shorts moves the button between the two players.
+  if (platform !== "youtube" && platform !== "udemy" && platform !== "ted" && platform !== "coursera" && platform !== "linkedin" && platform !== "oreilly" && platform !== "nvidiaOnDemand" && platform !== "deeplearningai" && platform !== "edx" && !isVimeoPlatform(platform) && installed) return;
 
   const observer = new MutationObserver(() => {
     ensureButton(platform, { allowFloatingToolbar: shouldAllowFloatingToolbar(platform) });
@@ -5853,8 +5923,19 @@ function watchPlatformChanges(handler) {
     }
     const sessionKey = handler.getSessionKey();
     if (!sessionKey || (subtitleState.currentPlatform === handler.platform && sessionKey === subtitleState.currentSessionKey)) return;
-    // A video already found to have no captions is not asked for again.
-    if (isMarkedCaptionsUnavailable(handler.platform, sessionKey)) return;
+    // A video already found to have no captions is not asked for again. Coming back to it after
+    // another video loaded (or was loading) its lines, those lines go: the player reuses its <video>
+    // (every Short does), so they would play over this one. That video loads again when revisited.
+    if (isMarkedCaptionsUnavailable(handler.platform, sessionKey)) {
+      if (subtitleState.currentSessionKey || subtitleState.loading) {
+        subtitleState.subtitleLoadGeneration += 1;
+        subtitleState.currentSessionKey = "";
+        subtitleState.loadingSessionKey = "";
+        markCaptionsUnavailable(handler.findVideo(), handler.platform, sessionKey);
+        setButtonState(subtitleState.enabled, false);
+      }
+      return;
+    }
 
     subtitleState.loading = true;
     setButtonState(true, true);

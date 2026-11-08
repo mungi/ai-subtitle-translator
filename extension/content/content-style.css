@@ -121,6 +121,26 @@
   margin: 0;
 }
 
+/* Shorts: the button joins the pill at the top right of the Short. The pill's wrapper ignores the
+   pointer and each of YouTube's buttons takes it back, so this one does too. */
+#right-controls > .ast-toolbar-button[data-platform="youtube"] {
+  position: relative;
+  flex: none;
+  min-width: 48px;
+  height: 100%;
+  border-radius: 28px;
+  pointer-events: all;
+}
+
+#right-controls > .ast-toolbar-button[data-platform="youtube"]:hover::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 28px;
+  background-color: rgba(255, 255, 255, 0.1);
+  pointer-events: none;
+}
+
 .ast-vimeo-toolbar-button {
   width: 32px;
   height: 32px;
@@ -737,6 +757,23 @@
 .ast-provider-menu-vimeo .ast-provider-menu-separator,
 .ast-provider-menu-ted .ast-provider-menu-separator {
   margin: 4px 8px;
+}
+
+/* On Shorts the menu sits on the page under the button at the top of the Short (placed by script),
+   so its submenus open downward. */
+.ast-provider-menu.ast-provider-menu-youtube.ast-provider-menu-floating {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: auto;
+  left: auto;
+  max-width: calc(100vw - 16px);
+}
+
+.ast-provider-menu-youtube.ast-provider-menu-floating :is(.ast-source-caption-list, .ast-subtitle-display-list,
+  .ast-subtitle-download-list, .ast-target-language-list, .ast-translation-style-list) {
+  top: 0;
+  bottom: auto;
 }
 
 /* Coursera's control bar is taller than Vimeo's; keep the menu above it. */

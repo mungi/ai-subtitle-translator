@@ -1917,6 +1917,95 @@ test("a blocked translation request keeps source captions visible and reports th
   assert.match(harness.context.document.getElementById("ast-toast").textContent, /번역하지 못했습니다[\s\S]*Network request blocked/);
 });
 
+test("moving on to a video without captions clears the preparing message and the previous lines for good", async () => {
+  const harness = createYoutubeHarness({
+    settings: { subtitleDisplayMode: "source" },
+    sendMessage(message, { transcriptDocument }) {
+      if (message.type === "captions.youtube.fetchTranscript") {
+        if (message.videoId === "zyx987wvu65") return { ok: false, error: "No YouTube captions are available for this video." };
+        return { ok: true, document: transcriptDocument };
+      }
+      return { ok: true };
+    }
+  });
+  const { context, moviePlayer, video } = harness;
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), context);
+  await flushPromises();
+  await flushPromises();
+  const overlay = moviePlayer.querySelector("#ast-subtitle-overlay");
+  assert.equal(overlay.textContent, "Hello world");
+  vm.runInNewContext(`subtitleState.youtubeProvidedTranslationLanguage = "ko";
+    subtitleState.youtubeProvidedTranslationSource = "auto";`, context);
+
+  // The same <video> plays the next one, as every Short does.
+  Object.assign(context.location, { href: "https://www.youtube.com/watch?v=zyx987wvu65", search: "?v=zyx987wvu65" });
+  harness.intervalCallbacks.at(-1)();
+  await flushPromises();
+  await flushPromises();
+  assert.equal(vm.runInNewContext("getTranslationStatus().text", context), "이 영상에는 자막이 없습니다");
+  assert.equal(overlay.hidden, true);
+
+  // The player keeps playing: its next frames must not bring the message or the old lines back.
+  for (const time of [0, 1, 3]) {
+    video.currentTime = time;
+    video.dispatchEvent({ type: "timeupdate" });
+    assert.equal(overlay.hidden, true, `hidden at ${time}s`);
+    assert.equal(overlay.textContent, "");
+  }
+  // Nor does the menu keep naming the previous video's YouTube translation.
+  assert.equal(vm.runInNewContext("getDisplayedPhase()", context), "off");
+});
+
+test("coming back to a video without captions does not show the lines of the video watched in between", async () => {
+  const harness = createYoutubeHarness({
+    settings: { subtitleDisplayMode: "source" },
+    sendMessage(message, { transcriptDocument }) {
+      if (message.type === "captions.youtube.fetchTranscript") {
+        if (message.videoId === "zyx987wvu65") return { ok: false, error: "No YouTube captions are available for this video." };
+        return { ok: true, document: transcriptDocument };
+      }
+      return { ok: true };
+    }
+  });
+  const { context, moviePlayer, video, sentMessages } = harness;
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), context);
+  await flushPromises();
+  await flushPromises();
+  const overlay = moviePlayer.querySelector("#ast-subtitle-overlay");
+  const goTo = async (videoId) => {
+    Object.assign(context.location, { href: `https://www.youtube.com/watch?v=${videoId}`, search: `?v=${videoId}` });
+    harness.intervalCallbacks.at(-1)();
+    await flushPromises();
+    await flushPromises();
+  };
+  const fetches = (videoId) => sentMessages.filter((message) => message.type === "captions.youtube.fetchTranscript"
+    && message.videoId === videoId).length;
+
+  await goTo("zyx987wvu65");
+  await goTo("abc123def45");
+  video.dispatchEvent({ type: "timeupdate" });
+  assert.equal(overlay.textContent, "Hello world");
+
+  // Back on the captionless video (the same <video> plays it): not asked for again, and nothing shown.
+  await goTo("zyx987wvu65");
+  assert.equal(fetches("zyx987wvu65"), 1);
+  for (const time of [0, 1, 3]) {
+    video.currentTime = time;
+    video.dispatchEvent({ type: "timeupdate" });
+    assert.equal(overlay.hidden, true, `hidden at ${time}s`);
+    assert.equal(overlay.textContent, "");
+  }
+  assert.equal(vm.runInNewContext("getTranslationStatus().text", context), "이 영상에는 자막이 없습니다");
+
+  // The video with captions loads its lines again when visited once more.
+  const before = fetches("abc123def45");
+  await goTo("abc123def45");
+  assert.equal(fetches("abc123def45"), before + 1);
+  video.currentTime = 0;
+  video.dispatchEvent({ type: "timeupdate" });
+  assert.equal(overlay.textContent, "Hello world");
+});
+
 test("videos without captions keep AST on, say so in the status line only, and do not retry", async () => {
   const harness = createYoutubeHarness({
     settings: { subtitleDisplayMode: "source" },
@@ -2796,6 +2885,15 @@ test("subtitle visual size scales relative to the current player size", async ()
   assert.equal(small.overlay.style.padding, "4px 7px");
   assert.equal(small.overlay.style.webkitTextStroke, "1px #000000");
   assert.equal(small.overlay.style.paintOrder, "stroke fill");
+});
+
+test("a portrait player (a Short) sizes subtitles like the same player turned landscape", async () => {
+  const portrait = await loadYoutubeOverlay({ playerRect: { width: 360, height: 640 } });
+  // Measured by its narrow width alone this would shrink to the 0.35 floor (about 11px).
+  assert.equal(portrait.overlay.style.fontSize, "15px");
+  assert.equal(portrait.overlay.style.padding, "4px 7px");
+  // The box still fits the narrow player.
+  assert.ok(Number.parseFloat(portrait.overlay.style.maxWidth) <= 360);
 });
 
 test("thick subtitle outlines are drawn as round shadow rings instead of a wide mitered stroke", async () => {
@@ -5199,27 +5297,102 @@ test("a translated sentence shared by two source cues is split between them, not
   assert.equal(`${aligned[0].text} ${aligned[1].text}`, "그리고 오늘 가장 중요한 팁은, 사실뿐 아니라 감정에도 반응하라는 것입니다.");
 });
 
-test("a Shorts page leaves the watch video's subtitles alone", async () => {
+function mountShortsPlayer(harness) {
+  const document = harness.context.document;
+  const playerContainer = new FakeElement("div");
+  playerContainer.id = "player-container";
+  const controls = new FakeElement("ytd-shorts-player-controls");
+  const pill = new FakeElement("div");
+  pill.id = "right-controls";
+  const pillButtons = ["closed-captioning-button-container", "menu-button", "fullscreen-button-shape"].map((id) => {
+    const element = new FakeElement("div");
+    element.id = id;
+    return element;
+  });
+  pill.append(...pillButtons);
+  controls.append(pill);
+  const shortsPlayer = new FakeElement("div");
+  shortsPlayer.id = "shorts-player";
+  const shortsVideo = new FakeElement("video");
+  shortsVideo.currentTime = 0;
+  shortsPlayer.append(shortsVideo);
+  playerContainer.append(controls, shortsPlayer);
+  document.body.append(playerContainer);
+  const containerQuery = playerContainer.querySelector.bind(playerContainer);
+  playerContainer.querySelector = (selector) => selector === "ytd-shorts-player-controls #right-controls"
+    ? pill : containerQuery(selector);
+  const documentQuery = document.querySelector;
+  document.querySelector = (selector) => {
+    if (selector === "#shorts-player") return shortsPlayer;
+    if (selector === "#shorts-player video") return shortsVideo;
+    return documentQuery(selector);
+  };
+  return { pill, pillButtons, shortsPlayer, shortsVideo };
+}
+
+function goToShort(harness, videoId) {
+  Object.assign(harness.context.location, {
+    href: `https://www.youtube.com/shorts/${videoId}`, pathname: `/shorts/${videoId}`, search: ""
+  });
+}
+
+test("a Short is its own session, read from its own player", async () => {
   const harness = createYoutubeHarness({ settings: { subtitleDisplayMode: "source" } });
   vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
   await flushPromises();
   await flushPromises();
-  const overlay = harness.context.document.getElementById("ast-subtitle-overlay");
-  assert.equal(overlay.textContent, "Hello world");
-  const fetchesBefore = harness.sentMessages.filter((message) => message.type === "captions.youtube.fetchTranscript").length;
+  const shorts = mountShortsPlayer(harness);
 
-  Object.assign(harness.context.location, { href: "https://www.youtube.com/shorts/yeyUL913ctU", pathname: "/shorts/yeyUL913ctU", search: "" });
+  goToShort(harness, "yDLv-bNfrSI");
+  assert.equal(vm.runInNewContext("getYoutubeVideoId()", harness.context), "yDLv-bNfrSI");
+  assert.equal(vm.runInNewContext("isYoutubeShortsPage()", harness.context), true);
+  assert.equal(vm.runInNewContext("findVideoElement('youtube')", harness.context), shorts.shortsVideo);
+  assert.equal(vm.runInNewContext("findOverlayHost('youtube', null)", harness.context), shorts.shortsPlayer);
+
+  harness.intervalCallbacks.at(-1)();
+  await flushPromises();
+  await flushPromises();
+  const fetches = harness.sentMessages.filter((message) => message.type === "captions.youtube.fetchTranscript");
+  assert.equal(fetches.at(-1).videoId, "yDLv-bNfrSI");
+  assert.ok(shorts.shortsPlayer.querySelector("#ast-subtitle-overlay"));
+
+  // A Shorts channel tab or a malformed path is not a Short.
+  Object.assign(harness.context.location, { href: "https://www.youtube.com/@channel/shorts", pathname: "/@channel/shorts", search: "" });
+  assert.equal(vm.runInNewContext("isYoutubeShortsPage()", harness.context), false);
   assert.equal(vm.runInNewContext("getYoutubeVideoId()", harness.context), null);
-  harness.intervalCallbacks.at(-1)();
-  await flushPromises();
-  assert.equal(harness.sentMessages.filter((message) => message.type === "captions.youtube.fetchTranscript").length, fetchesBefore);
+});
 
-  // Coming back finds the same video and its lines untouched.
-  Object.assign(harness.context.location, { href: "https://www.youtube.com/watch?v=abc123def45", pathname: "/watch", search: "?v=abc123def45" });
-  harness.intervalCallbacks.at(-1)();
+test("on a Short the button joins the control pill before the menu button and moves back on a watch page", async () => {
+  const harness = createYoutubeHarness();
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
   await flushPromises();
-  assert.equal(overlay.textContent, "Hello world");
-  assert.equal(vm.runInNewContext("subtitleState.loading", harness.context), false);
+  await flushPromises();
+  const shorts = mountShortsPlayer(harness);
+  shorts.pill.insertBefore = (node, reference) => {
+    node.remove?.();
+    node.parentElement = shorts.pill;
+    shorts.pill.children.splice(shorts.pill.children.indexOf(reference), 0, node);
+  };
+
+  goToShort(harness, "yDLv-bNfrSI");
+  assert.equal(vm.runInNewContext("ensureButton('youtube')", harness.context), true);
+  assert.deepEqual(shorts.pill.children.map((child) => child.id),
+    ["closed-captioning-button-container", "ast-toolbar-button", "menu-button", "fullscreen-button-shape"]);
+
+  // The menu is placed on the page under the button, where the narrow Short cannot clip it.
+  harness.context.window ||= { addEventListener() {} };
+  const menu = vm.runInNewContext("ensureProviderMenu('youtube')", harness.context);
+  assert.equal(menu.parentElement, harness.context.document.body);
+  assert.equal(menu.dataset.floating, "true");
+
+  Object.assign(harness.context.location, { href: "https://www.youtube.com/watch?v=abc123def45", pathname: "/watch", search: "?v=abc123def45" });
+  assert.equal(vm.runInNewContext("ensureButton('youtube')", harness.context), true);
+  const watchControls = harness.context.document.querySelector("#movie_player .ytp-right-controls");
+  assert.ok(watchControls.querySelector("#ast-toolbar-button"));
+  assert.equal(shorts.pill.querySelector("#ast-toolbar-button"), null);
+  const watchMenu = vm.runInNewContext("ensureProviderMenu('youtube')", harness.context);
+  assert.equal(watchMenu.parentElement, harness.context.document.querySelector("#movie_player"));
+  assert.equal(watchMenu.dataset.floating, undefined);
 });
 
 test("going back to a video while another video's captions are still loading reloads it", async () => {
