@@ -910,6 +910,42 @@ test("Persian dual subtitles isolate source and translation directions even with
   assert.match(contentCss, /\.ast-subtitle-line\s*\{[^}]*unicode-bidi: isolate;/);
 });
 
+test("Hebrew dual subtitles isolate source and translation directions even with a leading English term", async () => {
+  const harness = createYoutubeHarness({ settings: { subtitleDisplayMode: "dual", targetLanguage: "he" } });
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
+  await flushPromises();
+  await clickAstToggle(harness.controls.querySelector("#ast-toolbar-button"));
+  await flushPromises();
+  const text = "API גרסה 2 נבדקת (test).";
+  harness.context.applyTranslatedCues(harness.video, [{ id: "yt-0", text }]);
+  const overlay = harness.context.document.getElementById("ast-subtitle-overlay");
+  const lines = overlay.querySelectorAll(".ast-subtitle-line");
+  assert.equal(lines.length, 2);
+  assert.equal(lines[0].getAttribute("dir"), "ltr");
+  assert.equal(lines[0].getAttribute("lang"), "en");
+  assert.equal(lines[1].getAttribute("dir"), "rtl");
+  assert.equal(lines[1].getAttribute("lang"), "he");
+  assert.equal(overlay.textContent, `Hello world\n${text}`);
+});
+
+test("Hebrew Udemy transcript translation has RTL direction", async () => {
+  const harness = createUdemyHarness({
+    settings: { targetLanguage: "he" },
+    sendMessage(message, { transcriptDocument }) {
+      if (message.type === "captions.udemy.fetchTranscript") return { ok: true, document: transcriptDocument };
+      if (message.type === "translation.translateDocument") return new Promise(() => {});
+      return { ok: true };
+    }
+  });
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
+  await flushPromises();
+  await clickAstToggle(harness.controls.querySelector("#ast-toolbar-button"));
+  harness.context.applyTranslatedCues(harness.currentVideo, [{ id: "udemy-0", text: "API גרסה 2 נבדקת." }]);
+  const translation = harness.transcriptCueContainers[0].querySelector(".ast-udemy-transcript-translation");
+  assert.equal(translation.getAttribute("dir"), "rtl");
+  assert.equal(translation.getAttribute("lang"), "he");
+});
+
 test("Persian Udemy transcript translation has RTL direction and logical start alignment", async () => {
   const harness = createUdemyHarness({
     settings: { targetLanguage: "fa" },

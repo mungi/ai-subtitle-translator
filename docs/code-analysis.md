@@ -187,7 +187,7 @@ CST에서 AST로 명칭을 바꾼 현재 초기 개발 단계에서는 storage n
 - 현재 video time에 맞는 cue 렌더링
 - 겹치는 cue는 가장 최근에 시작한 활성 cue를 선택하고, 지원 브라우저에서는 영상 프레임 시각으로 자막 경계를 갱신합니다.
 - `자막 표시` 메뉴는 원문 자막, 번역 자막(기본값), 이중 자막(원문 위·번역 아래)을 제공합니다. 번역은 원문 cue의 시간과 `sourceText`를 보존하며, 표시 모드는 검증된 `settings.setSubtitleDisplayMode` 메시지로 저장하고 지원 사이트에 공유합니다.
-- 원문과 번역은 별도 줄 요소로 렌더링하고 언어별 `dir`·`lang` 및 `unicode-bidi: isolate`를 적용합니다. 페르시아어·아랍어는 RTL, 영상 자막은 가운데 정렬, Udemy 대본 번역은 `text-align: start`로 표시합니다.
+- 원문과 번역은 별도 줄 요소로 렌더링하고 언어별 `dir`·`lang` 및 `unicode-bidi: isolate`를 적용합니다. 페르시아어·아랍어·히브리어는 RTL, 영상 자막은 가운데 정렬, Udemy 대본 번역은 `text-align: start`로 표시합니다.
 - 번역 상태별 버튼 class와 overlay 배경색 적용
 - overlay 드래그 위치 저장
 - overlay 폭 resize와 높이 자동 제한

@@ -47,7 +47,7 @@ After reloading the extension, also refresh any open YouTube pages to activate c
 3. Choose a source subtitle language, translation provider, and translation style from the menu, or open the settings page.
 4. Under **Subtitle display**, choose **Dual subtitles**, **Source subtitles**, or **Translated subtitles**. **Translated subtitles** is the default. **Source subtitles** shows the selected source language, and **Dual subtitles** shows the source above its translation. The source remains visible while translation is pending or if it fails. The display mode is shared across supported sites and saved for future use.
 
-Persian and Arabic subtitles use right-to-left text direction. Dual subtitles handle the source and translation directions independently while remaining centered over the video. Translations in the Udemy transcript align to the start of their language's text direction.
+Persian, Arabic, and Hebrew subtitles use right-to-left text direction. Dual subtitles handle the source and translation directions independently while remaining centered over the video. Translations in the Udemy transcript align to the start of their language's text direction.
 
 When you select an LLM provider, the extension translates subtitles near the current playback position first, then processes the remainder. You can continue viewing the original or temporary translated subtitles while translation is in progress.
 

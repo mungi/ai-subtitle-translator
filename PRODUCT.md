@@ -69,5 +69,5 @@ Supporting facts the owner asked the intro site to highlight (2026-11-06): no mo
 
 ## Accessibility & Inclusion
 
-- Right-to-left subtitle languages (such as Persian and Arabic) are rendered with correct text direction, including in dual mode.
+- Right-to-left subtitle languages (such as Persian, Arabic, and Hebrew) are rendered with correct text direction, including in dual mode.
 - Subtitle size, color, outline, and background are adjustable for readability over any video.

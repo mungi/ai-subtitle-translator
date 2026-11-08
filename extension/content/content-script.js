@@ -4155,7 +4155,7 @@ function setSubtitleTextDirection(element, language) {
   const languageCode = String(language || "").replace(/_/g, "-");
   const baseLanguage = languageCode.split("-")[0].toLowerCase();
   const direction = !baseLanguage || ["auto", "und"].includes(baseLanguage)
-    ? "auto" : ["ar", "fa"].includes(baseLanguage) ? "rtl" : "ltr";
+    ? "auto" : ["ar", "fa", "he"].includes(baseLanguage) ? "rtl" : "ltr";
   if (element.getAttribute("dir") !== direction) element.setAttribute("dir", direction);
   if (element.getAttribute("lang") !== languageCode) element.setAttribute("lang", languageCode);
 }
