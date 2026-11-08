@@ -29,7 +29,7 @@ test("Custom LLM settings default to auto reasoning, JSON mode off and no extra 
 });
 
 test("a chosen reasoning value is sent and is the only one the connection test tries", () => {
-  assert.deepEqual(getReasoningProbeModes(local), ["none", "minimal", "low", "omit"]);
+  assert.deepEqual(getReasoningProbeModes(local), ["low", "minimal", "none", "omit"]);
   for (const effort of ["none", "minimal", "low", "medium", "high"]) {
     const provider = { ...local, reasoningEffort: effort };
     assert.deepEqual(getReasoningProbeModes(provider), [effort]);
@@ -42,7 +42,7 @@ test("a chosen reasoning value is sent and is the only one the connection test t
   const chosen = { ...local, reasoningEffort: "high", reasoningProfile: { model: "qwen3-8b", apiStyle: "openai-chat", baseUrl: local.baseUrl, mode: "none" } };
   assert.equal(send(chosen).body.reasoning_effort, "high");
   // Other providers keep their own reasoning handling.
-  assert.deepEqual(getReasoningProbeModes({ ...local, id: "openai", reasoningEffort: "high" }), ["none", "minimal", "low", "omit"]);
+  assert.deepEqual(getReasoningProbeModes({ ...local, id: "openai", reasoningEffort: "high" }), ["low", "minimal", "none", "omit"]);
 });
 
 test("JSON mode adds response_format to translation requests only", () => {

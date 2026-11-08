@@ -208,7 +208,7 @@ test("hosted LLM providers default to the configured recommended models", () => 
   assert.equal(PROVIDERS.anthropic.model, "claude-haiku-5-5");
   assert.equal(PROVIDERS.openrouter.model, "deepseek/deepseek-v4-flash:nitro");
   assert.equal(PROVIDERS.openrouter.nitro, true);
-  assert.equal(PROVIDERS.openrouter.disableReasoning, true);
+  assert.equal(PROVIDERS.openrouter.disableReasoning, undefined);
   assert.equal(PROVIDERS.nvidiaNim.model, "openai/gpt-oss-120b");
 });
 

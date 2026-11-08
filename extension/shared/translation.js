@@ -1,6 +1,6 @@
 import { buildSentenceGroups, distributeGroupTranslation } from "./sentence-groups.js";
 import { classifyProviderLimit, providerRetryDelay } from "./provider-limits.js";
-import { buildProviderRequest, createReasoningProfile, extractText, shouldRetryOpenRouterWithoutReasoning } from "./provider-request.js";
+import { buildProviderRequest, createReasoningProfile, extractText, getReasoningFallbackMode } from "./provider-request.js";
 import { assertProviderEndpoint } from "./provider-security.js";
 import { getCustomSystemPromptSettingKey, getDeepLEndpoint, isCustomTranslationStyle, buildSystemPromptFromSettings, buildStyleSystemPrompt, extractStyleSystemPrompt, normalizeLlmParallelRequests } from "./defaults.js";
 import { getSettings } from "./storage.js";
@@ -781,9 +781,10 @@ async function fetchLlmChunkTranslations(provider, settings, chunk, contextBefor
     const text = await fetchLlmChunkTextWithRetry(requestJson, request, requestController);
     return parseTranslationResponse(text);
   } catch (error) {
-    if (!shouldRetryOpenRouterWithoutReasoning(provider, error)) throw error;
+    const fallbackMode = getReasoningFallbackMode(provider, error);
+    if (!fallbackMode) throw error;
 
-    provider.reasoningProfile = createReasoningProfile(provider, "omit");
+    provider.reasoningProfile = createReasoningProfile(provider, fallbackMode);
     const compatibleRequest = buildProviderRequest(provider, requestOptions);
     const text = await fetchLlmChunkTextWithRetry(requestJson, compatibleRequest, requestController);
     return parseTranslationResponse(text);

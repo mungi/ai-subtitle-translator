@@ -63,7 +63,7 @@ test("connection test saves the lowest reasoning mode accepted by the selected m
     if (!String(url).endsWith("/chat/completions")) return { ok: false, status: 404, json: async () => ({}) };
     const mode = JSON.parse(init.body).reasoning_effort;
     requestModes.push(mode);
-    return mode === "low"
+    return mode === "none"
       ? { ok: true, json: async () => ({ choices: [{ message: { content: "OK" } }] }) }
       : {
           ok: false,
@@ -76,8 +76,8 @@ test("connection test saves the lowest reasoning mode accepted by the selected m
   try {
     const { testActiveProvider } = await import("../extension/background/service-worker.js");
     const result = await testActiveProvider("local");
-    assert.deepEqual(requestModes, ["none", "minimal", "low"]);
-    assert.equal(result.reasoningProfile.mode, "low");
+    assert.deepEqual(requestModes, ["low", "minimal", "none"]);
+    assert.equal(result.reasoningProfile.mode, "none");
     assert.equal(result.reasoningProfile.model, "test-model");
     assert.equal(result.text, "OK");
     assert.equal(result.contextProfile, null);

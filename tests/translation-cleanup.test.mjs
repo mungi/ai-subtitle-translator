@@ -540,7 +540,7 @@ test("OpenRouter retries once without reasoning when a model rejects the option"
         ok: false,
         status: 400,
         statusText: "Bad Request",
-        json: async () => ({ error: { message: "reasoning effort none is not supported" } })
+        json: async () => ({ error: { message: "reasoning effort low is not supported" } })
       };
     }
 
@@ -564,8 +564,8 @@ test("OpenRouter retries once without reasoning when a model rejects the option"
   try {
     const translated = await translateSubtitleDocument(sourceDocument);
     assert.equal(requestBodies.length, 2);
-    assert.equal(requestBodies[0].reasoning.effort, "none");
-    assert.equal(requestBodies[1].reasoning, undefined);
+    assert.equal(requestBodies[0].reasoning.effort, "low");
+    assert.equal(requestBodies[1].reasoning.effort, "none");
     assert.equal(translated.cues[0].text, "호환 번역");
   } finally {
     globalThis.chrome = originalChrome;

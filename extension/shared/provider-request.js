@@ -24,7 +24,7 @@ export const ANTHROPIC_DIRECT_BROWSER_ACCESS_HEADER = "anthropic-dangerous-direc
 
 function defaultReasoningMode(provider, model) {
   if (provider.id === "openai" || provider.id === "openrouter") {
-    return provider.id === "openrouter" && provider.disableReasoning === false ? "omit" : "none";
+    return provider.id === "openrouter" && provider.disableReasoning === false ? "omit" : "low";
   }
   if (provider.id === "nvidiaNim") return "low";
   if (provider.apiStyle === "google-generate-content") {
@@ -79,7 +79,8 @@ export function getReasoningProbeModes(provider) {
   const chosenEffort = getChosenReasoningEffort(provider);
   if (chosenEffort) return [chosenEffort];
   if (provider.id === "local" || provider.id === "openai" || provider.id === "openrouter") {
-    return ["none", "minimal", "low", "omit"];
+    // Start with "low" for natural translations; step down to turning reasoning off only on an error.
+    return ["low", "minimal", "none", "omit"];
   }
   return ["omit"];
 }
@@ -150,10 +151,12 @@ export function isReasoningOptionError(error) {
     .test(`${error?.message || ""} ${error?.details || ""}`);
 }
 
-export function shouldRetryOpenRouterWithoutReasoning(provider, error) {
-  if (provider?.id !== "openrouter"
-    || resolveReasoningMode(provider, resolveProviderModel(provider)) === "omit") return false;
-  return isReasoningOptionError(error);
+// After a reasoning option error: turn reasoning off first, then stop sending the option at all.
+export function getReasoningFallbackMode(provider, error) {
+  if (provider?.id !== "openrouter" && provider?.id !== "openai") return null;
+  const current = resolveReasoningMode(provider, resolveProviderModel(provider));
+  if (current === "omit" || !isReasoningOptionError(error)) return null;
+  return current === "none" ? "omit" : "none";
 }
 
 function resolveProviderModel(provider) {

@@ -62,7 +62,6 @@ export const PROVIDERS = {
     apiKey: "",
     model: "deepseek/deepseek-v4-flash:nitro",
     nitro: true,
-    disableReasoning: true,
     siteUrl: "",
     appTitle: "AST - AI Subtitle Translator",
     temperature: 0.2,

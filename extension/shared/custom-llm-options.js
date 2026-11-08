@@ -2,7 +2,7 @@
 // translation requests, and up to three extra HTTP headers sent with every request to the server.
 
 export const CUSTOM_LLM_PROVIDER_ID = "local";
-// "auto" probes from the lowest value at the connection test; "omit" leaves reasoning_effort out.
+// "auto" probes from "low" and steps down to "none" on an error at the connection test; "omit" leaves reasoning_effort out.
 export const CUSTOM_LLM_REASONING_OPTIONS = ["auto", "none", "minimal", "low", "medium", "high", "omit"];
 // "json_object" asks for any JSON object; "json_schema" also gives the exact translation shape.
 export const CUSTOM_LLM_JSON_MODES = ["off", "json_object", "json_schema"];

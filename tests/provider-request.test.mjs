@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { PROVIDERS } from "../extension/shared/defaults.js";
-import { buildProviderRequest, createReasoningProfile, extractText, getReasoningProbeModes, isReasoningOptionError } from "../extension/shared/provider-request.js";
+import { buildProviderRequest, createReasoningProfile, extractText, getReasoningFallbackMode, getReasoningProbeModes, isReasoningOptionError } from "../extension/shared/provider-request.js";
 
 test("connection tests probe the lowest reasoning modes supported by each API", () => {
-  assert.deepEqual(getReasoningProbeModes(PROVIDERS.openai), ["none", "minimal", "low", "omit"]);
+  assert.deepEqual(getReasoningProbeModes(PROVIDERS.openai), ["low", "minimal", "none", "omit"]);
   assert.deepEqual(getReasoningProbeModes(PROVIDERS.anthropic), ["low", "omit"]);
   assert.deepEqual(getReasoningProbeModes(PROVIDERS.google), ["minimal", "low", "omit"]);
   assert.deepEqual(getReasoningProbeModes({ ...PROVIDERS.google, model: "gemini-2.5-pro" }), ["budget:128", "omit"]);
-  assert.deepEqual(getReasoningProbeModes(PROVIDERS.local), ["none", "minimal", "low", "omit"]);
+  assert.deepEqual(getReasoningProbeModes(PROVIDERS.local), ["low", "minimal", "none", "omit"]);
 });
 
 test("a detected reasoning mode applies only to the tested model and endpoint", () => {
@@ -19,7 +19,7 @@ test("a detected reasoning mode applies only to the tested model and endpoint", 
   };
   const options = { systemPrompt: "Translate.", input: "Hello" };
   assert.equal(JSON.parse(buildProviderRequest(provider, options).init.body).reasoning.effort, "minimal");
-  assert.equal(JSON.parse(buildProviderRequest({ ...provider, model: "gpt-5.5" }, options).init.body).reasoning.effort, "none");
+  assert.equal(JSON.parse(buildProviderRequest({ ...provider, model: "gpt-5.5" }, options).init.body).reasoning.effort, "low");
 
   const local = { ...PROVIDERS.local, reasoningProfile: createReasoningProfile(PROVIDERS.local, "none") };
   assert.equal(JSON.parse(buildProviderRequest(local, options).init.body).reasoning_effort, "none");
@@ -31,6 +31,18 @@ test("only reasoning-related request validation errors trigger a lower-effort pr
   assert.equal(isReasoningOptionError({ status: 422, message: "output_config.effort is not supported" }), true);
   assert.equal(isReasoningOptionError({ status: 401, message: "reasoning effort denied" }), false);
   assert.equal(isReasoningOptionError({ status: 400, message: "API key is invalid" }), false);
+});
+
+test("a reasoning option error falls back to reasoning off, then to omitting the option", () => {
+  const error = { status: 400, message: "reasoning effort low is not supported" };
+  const openrouter = { ...PROVIDERS.openrouter, model: "test/model" };
+  assert.equal(getReasoningFallbackMode(openrouter, error), "none");
+  const off = { ...openrouter, reasoningProfile: createReasoningProfile(openrouter, "none") };
+  assert.equal(getReasoningFallbackMode(off, error), "omit");
+  const omitted = { ...openrouter, reasoningProfile: createReasoningProfile(openrouter, "omit") };
+  assert.equal(getReasoningFallbackMode(omitted, error), null);
+  assert.equal(getReasoningFallbackMode(openrouter, { status: 401, message: "reasoning denied" }), null);
+  assert.equal(getReasoningFallbackMode(PROVIDERS.local, error), null);
 });
 
 test("NVIDIA NIM uses the OpenAI-compatible chat completions endpoint", () => {
@@ -67,7 +79,7 @@ test("NVIDIA NIM extracts text from OpenAI-compatible chat completions response"
   );
 });
 
-test("OpenRouter requests strict JSON translations with reasoning disabled by default", () => {
+test("OpenRouter requests strict JSON translations with low reasoning by default", () => {
   const request = buildProviderRequest({
     ...PROVIDERS.openrouter,
     apiKey: "or-test-key",
@@ -86,7 +98,7 @@ test("OpenRouter requests strict JSON translations with reasoning disabled by de
   assert.equal(body.response_format.type, "json_schema");
   assert.equal(body.response_format.json_schema.strict, true);
   assert.equal(body.response_format.json_schema.schema.required.includes("translations"), true);
-  assert.equal(body.reasoning.effort, "none");
+  assert.equal(body.reasoning.effort, "low");
   assert.equal(body.reasoning_effort, undefined);
   assert.equal(body.include_reasoning, undefined);
   assert.equal(body.verbosity, undefined);
@@ -108,7 +120,7 @@ test("OpenRouter connection tests can skip translation JSON schema", () => {
   const body = JSON.parse(request.init.body);
   assert.equal(body.max_tokens, 32);
   assert.equal(body.response_format, undefined);
-  assert.equal(body.reasoning.effort, "none");
+  assert.equal(body.reasoning.effort, "low");
   assert.equal(body.reasoning_effort, undefined);
 });
 
@@ -171,7 +183,7 @@ test("OpenAI-compatible chat text extraction supports content arrays", () => {
   );
 });
 
-test("OpenAI Responses requests disable reasoning and use low verbosity by default", () => {
+test("OpenAI Responses requests use low reasoning and low verbosity by default", () => {
   const request = buildProviderRequest({
     ...PROVIDERS.openai,
     apiKey: "openai-test-key",
@@ -183,7 +195,7 @@ test("OpenAI Responses requests disable reasoning and use low verbosity by defau
 
   assert.equal(request.url, "https://api.openai.com/v1/responses");
   const body = JSON.parse(request.init.body);
-  assert.equal(body.reasoning.effort, "none");
+  assert.equal(body.reasoning.effort, "low");
   assert.equal(body.text.verbosity, "low");
   assert.equal(body.text.format.type, "json_schema");
   assert.equal(body.text.format.strict, true);
