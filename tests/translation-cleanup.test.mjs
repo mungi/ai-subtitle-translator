@@ -730,16 +730,20 @@ test("LLM completes the priority chunk first and keeps two later chunks in paral
 });
 
 test("LLM rate limit controller backs off exponentially and stops on the fourth 429", async () => {
-  const delays = [];
+  const cooldowns = [];
   const controller = translationInternals.createLlmRequestController({
-    waitForRateLimit: async (delayMs) => delays.push(delayMs)
+    waitForRateLimit: async () => {},
+    now: () => 0
   });
   const error = Object.assign(new Error("HTTP 429: Rate limit exceeded"), { status: 429 });
 
   await controller.recordRateLimitError(error);
+  cooldowns.push(controller.nextAllowedAt);
   await controller.recordRateLimitError(error);
+  cooldowns.push(controller.nextAllowedAt);
   await controller.recordRateLimitError(error);
-  assert.deepEqual(delays, [1000, 2000, 4000]);
+  cooldowns.push(controller.nextAllowedAt);
+  assert.deepEqual(cooldowns, [1000, 2000, 4000]);
   await assert.rejects(Promise.resolve(controller.recordRateLimitError(error)), /HTTP 429/);
 
   assert.equal(controller.concurrentRequestLimit, 1);

@@ -144,7 +144,7 @@
     "message": "Concurrent LLM translations"
   },
   "llmParallelRequestsGuide": {
-    "message": "Process 1–8 LLM chunks concurrently in advanced settings (default: 3). Simple settings always use 1. Changes apply to the next translation job. Higher values may reach API rate limits sooner."
+    "message": "Process 1–8 LLM chunks concurrently in advanced settings (default: 3). Simple settings always use 1. Changes apply to the next translation job. Higher values may reach API rate limits sooner. After a rate limit (429) it is lowered automatically and remembered for the same model until you change this value."
   },
   "chunkDuration": {
     "message": "Maximum chunk duration (minutes)"

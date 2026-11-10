@@ -25,10 +25,15 @@ test("structured daily limits and exhausted credit are distinguished from minute
 
 test("rate limit backoff respects the longest server delay", async () => {
   const delays = [];
-  const controller = translationInternals.createLlmRequestController({ waitForRateLimit: async (delay) => delays.push(delay) });
+  const controller = translationInternals.createLlmRequestController({
+    waitForRateLimit: async (delay) => delays.push(delay),
+    now: () => 0
+  });
   const error = { status: 429, retryAfterMs: 12000, providerErrorDetails: [{ retryDelay: "23.5s" }] };
   assert.equal(providerRetryDelay(error), 23500);
   await controller.recordRateLimitError(error);
+  assert.equal(controller.nextAllowedAt, 23500);
+  assert.equal(await controller.run(async () => "ok"), "ok");
   assert.deepEqual(delays, [23500]);
   assert.equal(providerRetryDelay({ providerErrorDetails: [{ retryDelay: "invalid" }] }), undefined);
 });

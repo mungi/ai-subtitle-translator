@@ -31,6 +31,13 @@ const INITIAL_LLM_CHUNK_MAX_DURATION_SECONDS = 60;
 const INITIAL_LLM_CHUNK_MAX_CHARS = 1500;
 const LLM_RATE_LIMIT_FALLBACK_THRESHOLD = 4;
 const LLM_RATE_LIMIT_RETRY_BASE_DELAY_MS = 1000;
+// A provider-wide limit (e.g. EXAONE "service limit(600) exceeded per minute") says nothing about this
+// user's usage, so it neither lowers concurrency nor uses up the user rate-limit budget above.
+const LLM_SERVICE_LIMIT_FALLBACK_THRESHOLD = 6;
+const LLM_LEARNED_LIMITS_STORAGE_KEY = "llmLearnedLimits";
+const LLM_LEARNED_LIMITS_TTL_MS = 6 * 60 * 60 * 1000;
+// Request starts are spaced at least this far apart. Tests lower it to keep fake requests fast.
+export const llmRequestTiming = { minIntervalMs: 1000 };
 const LLM_TRANSIENT_RETRY_MAX_ATTEMPTS = 5;
 const LLM_TRANSIENT_RETRY_BASE_DELAY_MS = 1000;
 const LLM_TRANSIENT_RETRY_MAX_AFTER_MS = 30000;
@@ -586,9 +593,11 @@ async function createGroupCache(document, settings, provider) {
   };
 }
 
-async function fetchProviderJson(provider, payload, signal) {
+async function fetchProviderJson(provider, payload, signal, onRateLimitHeaders) {
   throwIfAborted(signal);
   const response = await fetch(payload.url, { ...payload.init, signal });
+  const rateLimitHeaders = readRateLimitHeaders(response.headers);
+  onRateLimitHeaders?.(rateLimitHeaders);
   const body = await response.json().catch(() => ({}));
 
   if (!response.ok) {
@@ -599,11 +608,114 @@ async function fetchProviderJson(provider, payload, signal) {
     error.providerErrorType = body.error?.type;
     error.providerErrorCode = body.error?.code;
     error.providerErrorDetails = Array.isArray(body.error?.details) ? body.error.details : [];
-    error.retryAfterMs = parseRetryAfterHeader(response.headers?.get?.("retry-after"));
+    error.retryAfterMs = rateLimitHeaders.retryAfterMs ?? parseRetryAfterHeader(response.headers?.get?.("retry-after"));
+    error.rateLimitRemaining = rateLimitHeaders.remaining;
     throw error;
   }
 
   return extractText(provider, body).trim();
+}
+
+function readHeaderNumber(headers, name) {
+  const value = headers?.get?.(name);
+  if (value === null || value === undefined || value === "") return undefined;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : undefined;
+}
+
+// Reads the per-second/minute/day limits some OpenAI-compatible providers (e.g. EXAONE) send.
+function readRateLimitHeaders(headers) {
+  const retryAfterMs = readHeaderNumber(headers, "retry-after-ms");
+  const remaining = {};
+  for (const [key, name] of [
+    ["second", "x-second-rate-limit-remaining"],
+    ["minute", "x-minute-rate-limit-remaining"],
+    ["day", "x-day-rate-limit-remaining"],
+    ["requests", "x-ratelimit-remaining-requests"],
+    ["tokens", "x-ratelimit-remaining-tokens"]
+  ]) {
+    const value = readHeaderNumber(headers, name);
+    if (value !== undefined) remaining[key] = value;
+  }
+  return {
+    secondLimit: readHeaderNumber(headers, "x-second-rate-limit"),
+    minuteLimit: readHeaderNumber(headers, "x-minute-rate-limit"),
+    retryAfterMs: retryAfterMs !== undefined && retryAfterMs >= 0 ? retryAfterMs : undefined,
+    remaining
+  };
+}
+
+function getRateLimitIntervalMs({ secondLimit, minuteLimit } = {}) {
+  return Math.max(
+    secondLimit > 0 ? Math.ceil(1000 / secondLimit) : 0,
+    minuteLimit > 0 ? Math.ceil(60000 / minuteLimit) : 0
+  );
+}
+
+// A 429 is provider-wide when the provider says so, or when every limit it reports for this user still has room.
+function isServiceWideRateLimit(error) {
+  if (/\bservice limit\b/i.test(String(error?.message || ""))) return true;
+  const remaining = Object.values(error?.rateLimitRemaining || {});
+  return remaining.length > 0 && remaining.every((value) => value > 0);
+}
+
+const learnedLlmLimits = new Map();
+let learnedLlmLimitsLoaded = false;
+
+function getLlmLimitKey(provider) {
+  return [provider?.id, provider?.baseUrl, provider?.model].map((part) => String(part || "")).join("|");
+}
+
+function getSessionStorage() {
+  return globalThis.chrome?.storage?.session;
+}
+
+async function loadLearnedLlmLimits() {
+  if (learnedLlmLimitsLoaded) return;
+  learnedLlmLimitsLoaded = true;
+  try {
+    const stored = (await getSessionStorage()?.get?.(LLM_LEARNED_LIMITS_STORAGE_KEY))?.[LLM_LEARNED_LIMITS_STORAGE_KEY];
+    for (const [key, entry] of Object.entries(stored || {})) {
+      if (!learnedLlmLimits.has(key)) learnedLlmLimits.set(key, entry);
+    }
+  } catch (error) {
+    console.warn("[AST] Could not read learned LLM limits:", error?.message);
+  }
+}
+
+// Limits learned for one configured parallel value; changing that setting starts over.
+async function readLearnedLlmLimit(provider, configuredConcurrency, now = Date.now()) {
+  await loadLearnedLlmLimits();
+  const key = getLlmLimitKey(provider);
+  const entry = learnedLlmLimits.get(key);
+  if (!entry) return null;
+  if (entry.configuredConcurrency !== configuredConcurrency || !(entry.expiresAt > now)) {
+    learnedLlmLimits.delete(key);
+    return null;
+  }
+  return entry;
+}
+
+async function rememberLearnedLlmLimit(provider, configuredConcurrency, update, now = Date.now()) {
+  const key = getLlmLimitKey(provider);
+  const previous = learnedLlmLimits.get(key);
+  const base = previous?.configuredConcurrency === configuredConcurrency ? previous : {};
+  learnedLlmLimits.set(key, {
+    ...base,
+    ...update,
+    configuredConcurrency,
+    expiresAt: now + LLM_LEARNED_LIMITS_TTL_MS
+  });
+  try {
+    await getSessionStorage()?.set?.({ [LLM_LEARNED_LIMITS_STORAGE_KEY]: Object.fromEntries(learnedLlmLimits) });
+  } catch (error) {
+    console.warn("[AST] Could not save learned LLM limits:", error?.message);
+  }
+}
+
+function resetLearnedLlmLimits() {
+  learnedLlmLimits.clear();
+  learnedLlmLimitsLoaded = false;
 }
 
 function parseRetryAfterHeader(value) {
@@ -658,16 +770,54 @@ function createLlmRequestController({
   maxConcurrentRequests = LLM_PARALLEL_CHUNK_LIMIT,
   rateLimitFallbackThreshold = LLM_RATE_LIMIT_FALLBACK_THRESHOLD,
   waitForRateLimit = (delayMs, signal) => waitForAbortableDelay(delayMs, signal),
+  serviceLimitFallbackThreshold = LLM_SERVICE_LIMIT_FALLBACK_THRESHOLD,
   serverBusyFallbackThreshold = LLM_SERVER_BUSY_FALLBACK_THRESHOLD,
+  minRequestIntervalMs = llmRequestTiming.minIntervalMs,
+  now = () => Date.now(),
+  onLimitsLearned,
   onServerBusy,
   signal
 } = {}) {
   let concurrentRequestLimit = Math.max(1, Number(maxConcurrentRequests) || 1);
   let activeRequestCount = 0;
+  let startedRequestCount = 0;
   let rateLimitErrorCount = 0;
+  let serviceLimitErrorCount = 0;
   let serverBusyErrorCount = 0;
   let terminalError = null;
+  // Shared by every request: a 429 pushes it forward so queued requests wait too.
+  let nextAllowedAt = 0;
+  let lastStartAt = -Infinity;
+  let requestIntervalMs = Math.max(0, Number(minRequestIntervalMs) || 0);
+  const minimumIntervalMs = requestIntervalMs;
+  let startGate = Promise.resolve();
   const waiters = [];
+
+  // Starts are granted one at a time, so a cooldown ends with spaced requests rather than a burst.
+  const waitForStartTurn = () => {
+    const turn = startGate.then(async () => {
+      while (true) {
+        throwIfAborted(signal);
+        if (terminalError) throw terminalError;
+        const delayMs = Math.max(nextAllowedAt, lastStartAt + requestIntervalMs) - now();
+        if (delayMs <= 0) break;
+        const plannedAllowedAt = nextAllowedAt;
+        await waitForRateLimit(delayMs, signal);
+        if (nextAllowedAt <= plannedAllowedAt) break;
+      }
+      if (terminalError) throw terminalError;
+      lastStartAt = now();
+    });
+    startGate = turn.catch(() => {});
+    return turn;
+  };
+
+  const observeRateLimitHeaders = (headers) => {
+    const intervalMs = Math.max(minimumIntervalMs, getRateLimitIntervalMs(headers));
+    if (intervalMs <= requestIntervalMs) return;
+    requestIntervalMs = intervalMs;
+    onLimitsLearned?.({ requestIntervalMs });
+  };
 
   const rejectWaitingRequests = (error) => {
     while (waiters.length > 0) {
@@ -703,11 +853,26 @@ function createLlmRequestController({
   return {
     async run(request) {
       await acquire();
+      let started = false;
       try {
-        throwIfAborted(signal);
-        if (terminalError) throw terminalError;
-        return await request();
+        await waitForStartTurn();
+        started = true;
+        startedRequestCount += 1;
+        const result = await request(observeRateLimitHeaders);
+        // Only consecutive 429s point to a lasting limit.
+        rateLimitErrorCount = 0;
+        serviceLimitErrorCount = 0;
+        return result;
+      } catch (error) {
+        if (started && Number(error?.status) === 429) {
+          if (error.inFlightRequests === undefined) error.inFlightRequests = startedRequestCount;
+          // Set before the slot is released: a queued request would otherwise start before the retry logic sees this 429.
+          const cooldownMs = Math.max(providerRetryDelay(error) || 0, LLM_RATE_LIMIT_RETRY_BASE_DELAY_MS);
+          nextAllowedAt = Math.max(nextAllowedAt, now() + cooldownMs);
+        }
+        throw error;
       } finally {
+        if (started) startedRequestCount -= 1;
         activeRequestCount = Math.max(0, activeRequestCount - 1);
         releaseWaitingRequests();
       }
@@ -716,17 +881,37 @@ function createLlmRequestController({
       terminalError = error;
       rejectWaitingRequests(error);
     },
+    // Retries wait in run() for the shared cooldown set here.
     async recordRateLimitError(error) {
-      concurrentRequestLimit = 1;
-      rateLimitErrorCount += 1;
+      if (terminalError) throw terminalError;
+      const serviceWide = isServiceWideRateLimit(error);
+      let attempt;
+      let threshold;
+      if (serviceWide) {
+        serviceLimitErrorCount += 1;
+        attempt = serviceLimitErrorCount;
+        threshold = serviceLimitFallbackThreshold;
+      } else {
+        rateLimitErrorCount += 1;
+        attempt = rateLimitErrorCount;
+        threshold = rateLimitFallbackThreshold;
+        // N requests in flight were too many: keep one fewer from now on.
+        const inFlight = Number(error?.inFlightRequests);
+        const reducedLimit = Number.isFinite(inFlight) && inFlight > 1 ? inFlight - 1 : 1;
+        if (reducedLimit < concurrentRequestLimit) {
+          concurrentRequestLimit = reducedLimit;
+          onLimitsLearned?.({ concurrency: concurrentRequestLimit });
+        }
+      }
 
-      if (rateLimitErrorCount >= rateLimitFallbackThreshold) {
+      const delayMs = Math.max(providerRetryDelay(error) || 0, LLM_RATE_LIMIT_RETRY_BASE_DELAY_MS * (2 ** (attempt - 1)));
+      nextAllowedAt = Math.max(nextAllowedAt, now() + delayMs);
+
+      if (attempt >= threshold) {
         terminalError = error;
         rejectWaitingRequests(error);
         throw error;
       }
-
-      await waitForRateLimit(Math.max(providerRetryDelay(error) || 0, LLM_RATE_LIMIT_RETRY_BASE_DELAY_MS * (2 ** (rateLimitErrorCount - 1))), signal);
     },
     isServerBusyError(error) {
       if (error?.serverBusy) return true;
@@ -760,6 +945,15 @@ function createLlmRequestController({
     get rateLimitErrorCount() {
       return rateLimitErrorCount;
     },
+    get serviceLimitErrorCount() {
+      return serviceLimitErrorCount;
+    },
+    get nextAllowedAt() {
+      return nextAllowedAt;
+    },
+    get requestIntervalMs() {
+      return requestIntervalMs;
+    },
     get serverBusyErrorCount() {
       return serverBusyErrorCount;
     },
@@ -784,7 +978,7 @@ async function fetchLlmChunkTranslations(provider, settings, chunk, contextBefor
   };
   const request = buildProviderRequest(provider, requestOptions);
   const requestJson = (payload) => requestController
-    ? requestController.run(() => fetchProviderJson(provider, payload, requestController.signal))
+    ? requestController.run((onRateLimitHeaders) => fetchProviderJson(provider, payload, requestController.signal, onRateLimitHeaders))
     : fetchProviderJson(provider, payload);
 
   try {
@@ -933,9 +1127,13 @@ async function translateLlmChunksWithPriority(provider, settings, document, chun
   const parallelLimit = settings.settingsMode === "advanced"
     ? normalizeLlmParallelRequests(settings.llmParallelRequests) : LLM_PARALLEL_CHUNK_LIMIT;
   let completedChunkCount = 0;
+  const learnedLimit = await readLearnedLlmLimit(provider, parallelLimit);
+  const startConcurrency = Math.max(1, Math.min(parallelLimit, Number(learnedLimit?.concurrency) || parallelLimit));
   const requestController = createLlmRequestController({
     signal,
-    maxConcurrentRequests: parallelLimit,
+    maxConcurrentRequests: startConcurrency,
+    minRequestIntervalMs: Math.max(llmRequestTiming.minIntervalMs, Number(learnedLimit?.requestIntervalMs) || 0),
+    onLimitsLearned: (update) => rememberLearnedLlmLimit(provider, parallelLimit, update),
     // Tell the page right away; the fallback notice only comes once retries are used up.
     onServerBusy: () => onProgress?.({
       chunkIndex: -1,
@@ -1025,7 +1223,7 @@ async function translateLlmChunksWithPriority(provider, settings, document, chun
       await translateChunkAt(index);
     }
   };
-  const workerCount = Math.min(parallelLimit, chunks.length - 1);
+  const workerCount = Math.min(startConcurrency, chunks.length - 1);
   const results = await Promise.allSettled(Array.from({ length: workerCount }, worker));
   const failed = results.find((result) => result.status === "rejected");
   if (failed) throw failed.reason;
@@ -1433,6 +1631,10 @@ export const translationInternals = {
   parseLooseTranslations,
   validateChunkTranslations,
   createLlmRequestController,
+  isServiceWideRateLimit,
+  readRateLimitHeaders,
+  readLearnedLlmLimit,
+  resetLearnedLlmLimits,
   translateLlmChunkWithRetry,
   translateLlmChunksWithPriority,
   parseGoogleTranslateBody,
