@@ -5927,3 +5927,38 @@ test("a menu taller than the room above its button scrolls, and its side lists s
   assert.equal(menu.style.maxHeight, "");
   assert.equal(menu.classList.contains("ast-provider-menu-scrollable"), false);
 });
+
+test("retranslating shows a quick translation of the playing part while the LLM translates again", async () => {
+  const pendingFinalResponse = new Promise(() => {});
+  const harness = createYoutubeHarness({
+    settings: {
+      activeProvider: "google",
+      providerTestStatus: { google: "success" }
+    },
+    sendMessage(message, { transcriptDocument }) {
+      if (message.type === "captions.youtube.fetchTranscript") return { ok: true, document: transcriptDocument };
+      if (message.type === "translation.translateDocument" && message.mode === "final") return pendingFinalResponse;
+      if (message.type === "translation.translateDocument" && message.mode === "temporary") {
+        return { ok: true, document: { ...message.document, cues: message.document.cues.map((cue) => ({ ...cue, text: `빠른 ${cue.id}` })) } };
+      }
+      return { ok: true };
+    }
+  });
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context,
+    { filename: "extension/content/content-script.js" });
+  await flushPromises();
+  await clickAstToggle(harness.controls.querySelector("#ast-toolbar-button"));
+  await flushPromises();
+  const translateRequests = () => harness.sentMessages.filter((message) => message.type === "translation.translateDocument");
+  const before = translateRequests().length;
+
+  await vm.runInNewContext('retranslateCurrentVideo("youtube")', harness.context);
+  await flushPromises();
+
+  const retranslateRequests = translateRequests().slice(before);
+  const temporary = retranslateRequests.find((message) => message.mode === "temporary");
+  assert.equal(temporary?.providerId, "googleTranslate");
+  assert.ok(retranslateRequests.some((message) => message.mode === "final" && message.providerId === "google"));
+  assert.equal(vm.runInNewContext("subtitleState.translationPhase", harness.context), "temporary");
+  assert.match(harness.moviePlayer.querySelector("#ast-subtitle-overlay").textContent, /빠른 /);
+});

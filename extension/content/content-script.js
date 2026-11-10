@@ -1258,7 +1258,8 @@ async function retranslateCurrentVideo(platform, { keepCache = false } = {}) {
       providerId,
       defaultProviderId,
       // Asking to retranslate means the selected provider's translation, not YouTube's captions again.
-      { skipTemporaryTranslation: true, skipYoutubeProvidedTranslation: true }
+      // Retranslating clears what was shown, so the quick translation covers the playing part meanwhile.
+      { skipYoutubeProvidedTranslation: true }
     );
   } finally {
     subtitleState.retranslatingCurrentVideo = false;
