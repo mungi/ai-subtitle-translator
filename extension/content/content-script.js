@@ -131,6 +131,8 @@ const subtitleState = {
   // The running summary: { requestId, step, total }, or null.
   summaryJob: null,
   summaryNotice: null,
+  // The live caption session (Vimeo live events): polling and translation state, or null.
+  live: null,
   disposed: false
 };
 let crossFrameProviderMenuOpen = false;
@@ -198,6 +200,7 @@ function isMachineTranslationProvider(providerId) {
 function disposeContentScript() {
   clearProviderMenuAutoCloseTimer();
   clearFallbackProviderRetry();
+  stopLiveCaptions({ keepState: false });
   removeUdemyTranscriptObserver();
   removeUdemyTranscriptTranslationElements();
   subtitleState.disposed = true;
@@ -1145,6 +1148,80 @@ function renderProviderMenu(platform = detectPlatform()) {
   statusLine.append(statusDot, statusText);
   menu.append(statusLine);
   updateProviderMenuStatus();
+  fitProviderMenuHeight(menu);
+}
+
+const PROVIDER_MENU_EDGE_MARGIN_PX = 8;
+const PROVIDER_SUBMENU_LIST_SELECTOR = ":scope > :is(.ast-source-caption-list, .ast-subtitle-display-list, "
+  + ".ast-subtitle-download-list, .ast-target-language-list, .ast-translation-style-list)";
+
+// The element whose box clips the menu: the nearest ancestor that hides overflow, else the viewport.
+function getProviderMenuClipTop(menu) {
+  let top = PROVIDER_MENU_EDGE_MARGIN_PX;
+  for (let element = menu.parentElement; element && element !== document.body; element = element.parentElement) {
+    const style = getComputedStyle(element);
+    if (/hidden|clip|auto|scroll/.test(`${style.overflow || ""} ${style.overflowY || ""}`)) {
+      top = Math.max(top, (element.getBoundingClientRect?.().top || 0) + PROVIDER_MENU_EDGE_MARGIN_PX);
+      break;
+    }
+  }
+  return top;
+}
+
+// In a short player or frame the menu is taller than the room it has, and its top (or bottom) would be
+// cut off. It is then held to that room and scrolls; otherwise it keeps its natural height.
+function fitProviderMenuHeight(menu = document.getElementById(PROVIDER_MENU_ID)) {
+  if (!menu || menu.hidden || typeof menu.getBoundingClientRect !== "function") return;
+  menu.style.maxHeight = "";
+  menu.classList.remove("ast-provider-menu-scrollable");
+  const rect = menu.getBoundingClientRect();
+  const viewportHeight = document.documentElement?.clientHeight || globalThis.innerHeight || 0;
+  if (!rect.height || !viewportHeight) return;
+  const clipTop = getProviderMenuClipTop(menu);
+  const clipBottom = viewportHeight - PROVIDER_MENU_EDGE_MARGIN_PX;
+  // A menu placed above its button grows upward; one placed below (Shorts, generic) grows downward.
+  const growsDown = menu.dataset.floating === "true";
+  const room = growsDown ? clipBottom - Math.max(rect.top, clipTop) : rect.bottom - clipTop;
+  if (rect.height <= room || room <= 0) return;
+  menu.style.maxHeight = `${Math.floor(room)}px`;
+  menu.classList.add("ast-provider-menu-scrollable");
+  watchProviderMenuScrolling(menu);
+}
+
+// A scrolling menu would clip its side lists, so they are placed on the page beside their row instead.
+function positionProviderSubmenuList(menu, submenu) {
+  const list = submenu?.querySelector?.(PROVIDER_SUBMENU_LIST_SELECTOR);
+  if (!list || !menu.classList.contains("ast-provider-menu-scrollable")) return;
+  list.style.left = "0px";
+  list.style.top = "0px";
+  const origin = list.getBoundingClientRect();
+  if (!origin.width && !origin.height) return;
+  const row = submenu.getBoundingClientRect();
+  const viewportWidth = document.documentElement?.clientWidth || globalThis.innerWidth || 0;
+  const viewportHeight = document.documentElement?.clientHeight || globalThis.innerHeight || 0;
+  const margin = PROVIDER_MENU_EDGE_MARGIN_PX;
+  const opensRight = menu.classList.contains("ast-provider-menu-flyout-right");
+  const opensDown = menu.classList.contains("ast-provider-menu-floating") && menu.classList.contains("ast-provider-menu-youtube");
+  const left = Math.min(Math.max(margin, opensRight ? row.right : row.left - origin.width), Math.max(margin, viewportWidth - margin - origin.width));
+  const top = Math.min(Math.max(margin, opensDown ? row.top : row.bottom - origin.height), Math.max(margin, viewportHeight - margin - origin.height));
+  // Measured from where it landed at 0,0, so a transformed player ancestor does not shift it.
+  list.style.left = `${Math.round(left - origin.left)}px`;
+  list.style.top = `${Math.round(top - origin.top)}px`;
+}
+
+function watchProviderMenuScrolling(menu) {
+  if (menu.astScrollWatched) return;
+  menu.astScrollWatched = true;
+  const place = (event) => {
+    const submenu = event.target?.closest?.("[class*='-submenu']");
+    if (submenu && menu.contains(submenu)) positionProviderSubmenuList(menu, submenu);
+  };
+  menu.addEventListener("mouseover", place);
+  menu.addEventListener("focusin", place);
+  menu.addEventListener("scroll", () => {
+    for (const submenu of menu.querySelectorAll("[class*='-submenu']")) positionProviderSubmenuList(menu, submenu);
+  }, { passive: true });
+  globalThis.addEventListener?.("resize", () => fitProviderMenuHeight(menu), { passive: true });
 }
 
 // The retranslate button starts over with an empty cache; other callers (a style picked while
@@ -1350,7 +1427,11 @@ async function toggleProviderMenu(platform) {
   }
   renderProviderMenu(platform);
   menu.hidden = false;
-  if (menu.dataset.floating === "true") positionGenericProviderMenu(menu);
+  fitProviderMenuHeight(menu);
+  if (menu.dataset.floating === "true") {
+    positionGenericProviderMenu(menu);
+    fitProviderMenuHeight(menu);
+  }
   document.getElementById(BUTTON_ID)?.setAttribute("aria-expanded", "true");
   void setProviderMenuVisibility(true);
   scheduleProviderMenuAutoClose();
@@ -1584,7 +1665,17 @@ function getYoutubePlayerSelector() {
   return isYoutubeShortsPage() ? "#shorts-player" : "#movie_player";
 }
 
+// Live events play in vimeo.com/event/<id>/embed (or /embed/interaction, with chat) instead of
+// player.vimeo.com/video/<id>; the player inside is the same.
+function getVimeoLiveEventId() {
+  if (location.hostname !== "vimeo.com" && location.hostname !== "www.vimeo.com") return null;
+  return location.pathname.match(/^\/event\/(\d+)(?:\/|$)/)?.[1] || null;
+}
+
+// The session key of a Vimeo player: the video id, or event-<id> for a live event page.
 function getVimeoVideoId() {
+  const eventId = getVimeoLiveEventId();
+  if (eventId) return `event-${eventId}`;
   const match = location.pathname.match(/(?:^|\/)(\d+)(?:\/[a-zA-Z0-9_-]+)?\/?$/);
   return match?.[1] || null;
 }
@@ -2231,6 +2322,94 @@ function getVimeoTextTracksFromApiResponse(response, videoId) {
     .filter(Boolean);
 }
 
+const VIMEO_LIVE_TRACK_ID = "vimeo-live";
+
+function getVimeoPlayerConfigUrl(value) {
+  try {
+    const url = new URL(String(value || ""), location.href);
+    return url.origin === "https://player.vimeo.com" && /^\/video\/\d+\/config$/.test(url.pathname) ? url.href : "";
+  } catch {
+    return "";
+  }
+}
+
+// A live event page names its player config on the player element (data-config-url); other pages
+// are found by the config request their player made.
+function findVimeoPlayerConfigUrl() {
+  const fromElement = getVimeoPlayerConfigUrl(document.querySelector?.("[data-config-url]")?.getAttribute("data-config-url"));
+  if (fromElement) return fromElement;
+  const resources = performance.getEntriesByType?.("resource") || [];
+  for (let index = resources.length - 1; index >= 0; index -= 1) {
+    const url = getVimeoPlayerConfigUrl(resources[index]?.name);
+    if (url) return url;
+  }
+  return "";
+}
+
+// A live event has no caption tracks in its config; its captions come from live_event.subtitleUrl.
+function getVimeoLiveCaptionSourceFromConfig(config) {
+  const liveEvent = config?.video?.live_event;
+  const subtitleUrl = String(liveEvent?.subtitleUrl || "");
+  if (!liveEvent || !subtitleUrl) return null;
+  try {
+    const url = new URL(subtitleUrl);
+    if (url.protocol !== "https:" || url.hostname !== "live-api.vimeocdn.com") return null;
+  } catch {
+    return null;
+  }
+  // The HLS link leads to the caption playlist, which has the newest lines first (see vimeo-captions.js).
+  const hls = config?.request?.files?.hls;
+  const cdns = hls?.cdns && typeof hls.cdns === "object" ? hls.cdns : {};
+  const hlsUrl = [cdns[hls?.default_cdn], ...Object.values(cdns)]
+    .map((cdn) => String(cdn?.json_url || ""))
+    .find((value) => {
+      try {
+        const url = new URL(value);
+        return url.protocol === "https:" && url.hostname === "live-api.vimeocdn.com";
+      } catch {
+        return false;
+      }
+    }) || "";
+  return { subtitleUrl, hlsUrl, status: String(liveEvent.status || "") };
+}
+
+// fresh: the link in the page has expired, so the config is asked for again.
+async function readVimeoLiveCaptionSource({ fresh = false } = {}) {
+  if (!fresh) {
+    const pageSource = getVimeoLiveCaptionSourceFromConfig(parseVimeoPlayerConfigFromPage());
+    if (pageSource) return pageSource;
+  }
+  const configUrl = findVimeoPlayerConfigUrl();
+  if (!configUrl) return null;
+  const response = await fetch(configUrl, { credentials: "include" });
+  if (!response.ok) throw new Error(`Vimeo player config request failed (${response.status}).`);
+  return getVimeoLiveCaptionSourceFromConfig(await response.json());
+}
+
+// The player names the live caption track (language and label) once it has read the stream.
+function getVimeoLiveCaptionTrackInfo(video) {
+  const tracks = [...(video?.textTracks || [])].filter((track) => ["subtitles", "captions"].includes(track?.kind));
+  const track = tracks.find((item) => item.language) || null;
+  return { languageCode: track?.language || "en", label: track?.label || "" };
+}
+
+async function getVimeoLiveCaptionTracks(video) {
+  let source = null;
+  try {
+    source = await readVimeoLiveCaptionSource();
+  } catch (error) {
+    console.warn("[AST] Failed to read the Vimeo live caption source:", error.message);
+  }
+  if (!source) return [];
+  const { languageCode, label } = getVimeoLiveCaptionTrackInfo(video);
+  const track = createSourceCaptionTrack({ label, isAutoGenerated: true }, {
+    id: VIMEO_LIVE_TRACK_ID,
+    languageCode,
+    trackUrl: source.subtitleUrl
+  });
+  return [{ ...track, live: true, liveStatus: source.status, liveHlsUrl: source.hlsUrl }];
+}
+
 async function getVimeoTextTracks(videoId) {
   const domTracks = getVimeoTextTracksFromDom(videoId);
   if (domTracks.length > 0) return domTracks;
@@ -2758,8 +2937,11 @@ function getUdemyCourseId() {
 // A short pause between two lines would hide the box for a moment and flash the video behind it,
 // so a line stays up until the next one when the next starts within this many seconds.
 const SUBTITLE_GAP_BRIDGE_SECONDS = 1;
+// A line that ends sooner than this after it starts stays up this long (enough to read the source
+// and its translation), unless the next line starts first.
+const SUBTITLE_MIN_DISPLAY_SECONDS = 2;
 
-function findActiveCue(cues, currentTime) {
+function findActiveCue(cues, currentTime, { minDisplaySeconds = SUBTITLE_MIN_DISPLAY_SECONDS } = {}) {
   if (!Array.isArray(cues)) return null;
   // YouTube rolling captions can overlap: prefer the most recently started cue.
   for (let index = cues.length - 1; index >= 0; index -= 1) {
@@ -2775,6 +2957,7 @@ function findActiveCue(cues, currentTime) {
     if (cue.start > currentTime && (!next || cue.start < next.start)) next = cue;
   }
   if (previous && next && next.start - previous.end <= SUBTITLE_GAP_BRIDGE_SECONDS) return previous;
+  if (previous && minDisplaySeconds > 0 && currentTime < previous.start + minDisplaySeconds) return previous;
   return null;
 }
 
@@ -4296,6 +4479,7 @@ function renderOverlay(video, cues) {
       void sendRuntimeMessage({ type: "translation.setPriority", requestId: subtitleState.activeFinalRequestId,
         currentTime: normalizeInitialStartTime(targetVideo.currentTime) });
     }
+    handleLiveSeek(targetVideo);
   });
   targetVideo.addEventListener("play", () => {
     renderCurrentOverlayCue(targetVideo);
@@ -4311,7 +4495,9 @@ async function translateDocument(document, {
   forceNoCache = false,
   allowFallback = true,
   initialStartTime,
-  requestId
+  requestId,
+  // Live translation retries a failed range on its own, so only its first failure is shown.
+  notifyFailure = true
 } = {}) {
   if (!subtitleState.enabled) return null;
   ensureTranslationLifecyclePort();
@@ -4340,6 +4526,7 @@ async function translateDocument(document, {
       subtitleState.translationFailed = true;
       updateProviderMenuStatus();
       updateFallbackRetryPolicy(response?.errorKind, response?.retryAfterMs);
+      if (!notifyFailure) return null;
       const limitMessageKey = { quota_exceeded: "contentQuotaError", rate_limit_exceeded: "contentRateLimitError", request_restricted: "contentRequestRestrictedError", server_busy: "contentServerBusyError" }[response?.errorKind];
       const detail = [limitMessageKey ? contentText(limitMessageKey) : "", formatTranslationError(response?.error)].filter(Boolean).join("\n\n");
       showToast(contentText("contentTranslationFailed", [detail]), subtitleState.currentVideo, true);
@@ -4478,8 +4665,440 @@ function startFinalTranslation(document, platform, sessionKey, video, providerId
   });
 }
 
+// Live captions (Vimeo live events). The whole caption file gives the event so far; the newest lines
+// come from the HLS caption playlist, read as each 3-second segment is published, because a line is
+// known only 1-4 seconds before the player shows it. The file fills gaps (AST off, a sleeping tab) and
+// is polled instead when the config has no HLS link. Lines are translated from the playback position
+// forward, a range at a time, so the past of a long event is not sent to a paid provider unless the
+// viewer goes back to it (seeking moves translation there).
+const LIVE_SEGMENT_RETRY_MS = 600;
+const LIVE_SEGMENT_EARLY_MS = 300;
+const LIVE_SEGMENT_QUICK_RETRIES = 4;
+const LIVE_POLL_INTERVAL_MS = 8000;
+const LIVE_POLL_BEHIND_INTERVAL_MS = 30000;
+const LIVE_POLL_MAX_BACKOFF_MS = 60000;
+const LIVE_NEAR_EDGE_SECONDS = 90;
+const LIVE_TRANSLATION_BATCH_SECONDS = 300;
+const LIVE_TRANSLATION_BATCH_MAX_CUES = 400;
+const LIVE_TRANSLATION_RETRY_MS = 30000;
+const LIVE_CONTEXT_CUE_COUNT = 8;
+
+function beginLiveCaptions(platform, request, sourceDocument) {
+  stopLiveCaptions({ keepState: false });
+  const cues = sourceDocument.cues || [];
+  subtitleState.live = {
+    platform,
+    sessionKey: request.sessionKey,
+    videoId: sourceDocument.videoId,
+    sourceLanguage: sourceDocument.sourceLanguage,
+    subtitleUrl: request.live.subtitleUrl,
+    hlsUrl: request.live.hlsUrl || "",
+    playlistUrl: "",
+    // The last caption segment read, or null before the first read.
+    lastSequence: null,
+    targetDuration: 3,
+    unchangedPolls: 0,
+    // An event that already ended (Vimeo: "ended", then "done") has its whole file; no more lines come.
+    polling: !["ended", "done"].includes(request.live.status),
+    knownSourceIds: new Set(cues.map((cue) => String(cue.id))),
+    knownSourceTextKeys: new Set(cues.map((cue) => getLiveCueTextKey(cue))),
+    pollTimerId: null,
+    pollRunning: false,
+    pollFailures: 0,
+    // { requestId, start, end } of the range being translated, or null.
+    finalRequest: null,
+    // Lines a finished request covered; they are not asked for again (a failed line keeps its source).
+    attemptedCueIds: new Set(),
+    retryNotBefore: 0,
+    retryTimerId: null,
+    failureNotified: false
+  };
+  // The player seeks to the live position once it has the stream; translation waits for that.
+  const video = resolveRenderVideo(request.video);
+  if (video && !video.astLiveListenersInstalled) {
+    video.astLiveListenersInstalled = true;
+    video.addEventListener?.("playing", () => pumpLiveTranslation());
+  }
+  scheduleLivePoll();
+}
+
+function stopLiveCaptions({ keepState = true } = {}) {
+  const live = subtitleState.live;
+  if (!live) return;
+  clearTimeout(live.pollTimerId);
+  clearTimeout(live.retryTimerId);
+  live.pollTimerId = null;
+  live.retryTimerId = null;
+  live.finalRequest = null;
+  if (!keepState) subtitleState.live = null;
+}
+
+function isActiveLiveSession(live = subtitleState.live) {
+  return Boolean(live) && live === subtitleState.live && subtitleState.enabled && !subtitleState.disposed
+    && subtitleState.currentPlatform === live.platform && subtitleState.currentSessionKey === live.sessionKey;
+}
+
+// Turning AST back on for the same live event picks up from the lines it already has.
+function resumeLiveCaptions() {
+  const live = subtitleState.live;
+  if (!isActiveLiveSession(live)) return;
+  // Right after loading a poll is already waiting; after AST was off, lines missed meanwhile come now.
+  if (live.pollTimerId === null && !live.pollRunning) scheduleLivePoll(0);
+  pumpLiveTranslation();
+}
+
+// A new provider or style translates the live event again from the playback position.
+function restartLiveTranslation() {
+  const live = subtitleState.live;
+  if (!live) return;
+  clearTimeout(live.retryTimerId);
+  live.retryTimerId = null;
+  live.finalRequest = null;
+  live.attemptedCueIds = new Set();
+  live.retryNotBefore = 0;
+  live.failureNotified = false;
+  resumeLiveCaptions();
+}
+
+function isLiveSegmentMode(live) {
+  return Boolean(live.hlsUrl);
+}
+
+function getLivePollDelay(live) {
+  if (live.pollFailures > 0) return Math.min(LIVE_POLL_MAX_BACKOFF_MS, LIVE_POLL_INTERVAL_MS * 2 ** live.pollFailures);
+  if (isLiveSegmentMode(live)) {
+    // Right after a new segment, the next is due one segment later; until then, look again shortly.
+    const segmentMs = Math.max(1000, live.targetDuration * 1000);
+    if (live.unchangedPolls === 0) return Math.max(1000, segmentMs - LIVE_SEGMENT_EARLY_MS);
+    return live.unchangedPolls <= LIVE_SEGMENT_QUICK_RETRIES ? LIVE_SEGMENT_RETRY_MS : segmentMs / 2;
+  }
+  // Watching well behind the live edge (DVR), new lines are not needed soon.
+  const video = resolveRenderVideo(subtitleState.currentVideo);
+  const lastEnd = subtitleState.currentSourceDocument?.cues?.at(-1)?.end;
+  const behind = Number.isFinite(lastEnd) && isLivePlaybackReady(video)
+    && video.currentTime < lastEnd - LIVE_NEAR_EDGE_SECONDS;
+  return behind ? LIVE_POLL_BEHIND_INTERVAL_MS : LIVE_POLL_INTERVAL_MS;
+}
+
+function scheduleLivePoll(delay) {
+  const live = subtitleState.live;
+  if (!live?.polling || live.pollRunning) return;
+  if (live.pollTimerId !== null) {
+    if (delay !== 0) return;
+    clearTimeout(live.pollTimerId);
+  }
+  live.pollTimerId = setTimeout(() => {
+    live.pollTimerId = null;
+    void pollLiveCaptions(live);
+  }, delay ?? getLivePollDelay(live));
+}
+
+async function refreshLiveSubtitleUrl(live) {
+  try {
+    const source = await readVimeoLiveCaptionSource({ fresh: true });
+    if (live !== subtitleState.live) return;
+    if (source?.subtitleUrl) live.subtitleUrl = source.subtitleUrl;
+    if (source?.hlsUrl) {
+      live.hlsUrl = source.hlsUrl;
+      live.playlistUrl = "";
+    }
+  } catch (error) {
+    console.warn("[AST] Failed to refresh the Vimeo live caption link:", error.message);
+  }
+}
+
+async function pollLiveCaptions(live) {
+  if (!isActiveLiveSession(live)) return;
+  live.pollRunning = true;
+  try {
+    if (isLiveSegmentMode(live)) {
+      await pollLiveSegments(live);
+      return;
+    }
+    const response = await sendRuntimeMessage({
+      type: "captions.vimeo.fetchLiveTranscript",
+      videoId: live.videoId,
+      subtitleUrl: live.subtitleUrl,
+      sourceLanguage: live.sourceLanguage
+    });
+    if (!isActiveLiveSession(live)) return;
+    if (!response?.ok) {
+      live.pollFailures += 1;
+      if (live.pollFailures === 1) console.warn("[AST] Failed to refresh live captions:", response?.error || "Unknown error");
+      // The link lasts about two hours; the player config hands out a new one.
+      if ([401, 403, 404, 410].includes(response?.status)) await refreshLiveSubtitleUrl(live);
+      return;
+    }
+    live.pollFailures = 0;
+    mergeLiveSourceCues(live, response.document?.cues || []);
+  } catch (error) {
+    live.pollFailures += 1;
+    console.warn("[AST] Failed to refresh live captions:", error.message);
+  } finally {
+    live.pollRunning = false;
+    if (isActiveLiveSession(live)) scheduleLivePoll();
+  }
+}
+
+async function pollLiveSegments(live) {
+  const response = await sendRuntimeMessage({
+    type: "captions.vimeo.fetchLiveSegments",
+    videoId: live.videoId,
+    hlsUrl: live.hlsUrl,
+    playlistUrl: live.playlistUrl || undefined,
+    afterSequence: live.lastSequence
+  });
+  if (!isActiveLiveSession(live)) return;
+  if (!response?.ok) {
+    live.pollFailures += 1;
+    if (live.pollFailures === 1) console.warn("[AST] Failed to read live caption segments:", response?.error || "Unknown error");
+    if ([401, 403, 404, 410].includes(response?.status)) await refreshLiveSubtitleUrl(live);
+    return;
+  }
+  live.pollFailures = 0;
+  live.playlistUrl = response.playlistUrl || live.playlistUrl;
+  live.targetDuration = Number(response.targetDuration) > 0 ? Number(response.targetDuration) : live.targetDuration;
+  const changed = Number.isInteger(response.lastSequence) && response.lastSequence !== live.lastSequence;
+  live.unchangedPolls = changed ? 0 : live.unchangedPolls + 1;
+  if (Number.isInteger(response.lastSequence)) live.lastSequence = response.lastSequence;
+  mergeLiveSourceCues(live, response.cues || []);
+  if (response.ended) live.polling = false;
+  // Segments missed while AST was off or the tab slept come from the whole caption file.
+  if (response.gap) await fillLiveCaptionGap(live);
+}
+
+async function fillLiveCaptionGap(live) {
+  const response = await sendRuntimeMessage({
+    type: "captions.vimeo.fetchLiveTranscript",
+    videoId: live.videoId,
+    subtitleUrl: live.subtitleUrl,
+    sourceLanguage: live.sourceLanguage
+  });
+  if (!isActiveLiveSession(live)) return;
+  if (response?.ok) {
+    mergeLiveSourceCues(live, response.document?.cues || []);
+  } else {
+    console.warn("[AST] Failed to fill missed live captions:", response?.error || "Unknown error");
+    if ([401, 403, 404, 410].includes(response?.status)) await refreshLiveSubtitleUrl(live);
+  }
+}
+
+// The caption file and the segments can cut a line slightly differently; the same words starting
+// within a second are one line.
+function getLiveCueTextKey(cue, offset = 0) {
+  return `${Math.floor(Number(cue.start) || 0) + offset}|${String(cue.text || "").trim()}`;
+}
+
+function selectNewLiveSourceCues(knownIds, knownTextKeys, cues) {
+  const added = [];
+  for (const cue of Array.isArray(cues) ? cues : []) {
+    if (cue?.id === undefined || cue?.id === null || !Number.isFinite(cue.start) || knownIds.has(String(cue.id))) continue;
+    if ([-1, 0, 1].some((offset) => knownTextKeys.has(getLiveCueTextKey(cue, offset)))) continue;
+    knownIds.add(String(cue.id));
+    knownTextKeys.add(getLiveCueTextKey(cue));
+    added.push(cue);
+  }
+  return added.sort((left, right) => left.start - right.start);
+}
+
+function sortCuesByStart(cues) {
+  return cues.sort((left, right) => left.start - right.start);
+}
+
+// New lines go to their place in time: usually the end, or a gap the caption file filled.
+function mergeLiveSourceCues(live, fetchedCues) {
+  if (!subtitleState.currentSourceDocument || !subtitleState.currentDocument) return [];
+  const added = selectNewLiveSourceCues(live.knownSourceIds, live.knownSourceTextKeys, fetchedCues);
+  if (!added.length) return [];
+
+  const sourceDocument = subtitleState.currentSourceDocument;
+  subtitleState.currentSourceDocument = { ...sourceDocument, cues: sortCuesByStart([...sourceDocument.cues, ...added]) };
+  const newCues = applyPhraseSegmentation({ ...sourceDocument, cues: added }, live.platform).cues;
+  subtitleState.currentDocument = {
+    ...subtitleState.currentDocument,
+    cues: sortCuesByStart([...subtitleState.currentDocument.cues, ...newCues])
+  };
+  for (const cue of newCues) subtitleState.expectedCueIds.add(String(cue.id));
+
+  const video = resolveRenderVideo(subtitleState.currentVideo);
+  // The source line shows at once; translations replace it as they arrive.
+  if (video) renderOverlay(video, sortCuesByStart([...(video.astSubtitleCues || []), ...newCues]));
+  if (subtitleState.translationPhase === "complete") {
+    setTranslationPhase(hasCurrentFinalTranslation(video) ? "current" : "temporary");
+  }
+  startLiveTemporaryTranslationForNewCues(live, newCues, video);
+  pumpLiveTranslation();
+  return newCues;
+}
+
+// With an LLM, a range can take longer than a new line has before it is shown, so new lines get the
+// quick temporary translation right away instead of waiting for the range being translated.
+function startLiveTemporaryTranslationForNewCues(live, cues, video) {
+  const providerId = subtitleState.activeProviderId;
+  if (!providerId || isMachineTranslationProvider(providerId) || providerId === subtitleState.defaultProviderId) return;
+  if (!isLivePlaybackReady(video)) return;
+  const upcoming = cues.filter((cue) => cue.end > (Number(video.currentTime) || 0));
+  if (!upcoming.length) return;
+  startLiveTemporaryTranslation(live, { ...subtitleState.currentDocument, cues: upcoming }, video);
+}
+
+// Before the player has seeked to the live position, currentTime is 0: the start of the event.
+function isLivePlaybackReady(video) {
+  return Boolean(video) && Number(video.readyState) >= 2;
+}
+
+// The next range to translate: untranslated lines from the playback position forward, up to a few
+// minutes. A line already translated ends the range, so each request covers one stretch of the talk.
+function selectLiveTranslationBatch(cues, currentTime, isDone, {
+  maxSeconds = LIVE_TRANSLATION_BATCH_SECONDS,
+  maxCues = LIVE_TRANSLATION_BATCH_MAX_CUES
+} = {}) {
+  const startIndex = findCueIndexAtOrAfterTime(cues, Number(currentTime) || 0);
+  if (startIndex < 0) return [];
+  const batch = [];
+  for (let index = startIndex; index < cues.length && batch.length < maxCues; index += 1) {
+    const cue = cues[index];
+    if (isDone(cue)) {
+      if (batch.length) break;
+      continue;
+    }
+    if (batch.length && cue.start >= batch[0].start + maxSeconds) break;
+    batch.push(cue);
+  }
+  return batch;
+}
+
+function getLiveContextBefore(cues, firstCue) {
+  const index = cues.indexOf(firstCue);
+  return cues.slice(Math.max(0, index - LIVE_CONTEXT_CUE_COUNT), Math.max(0, index))
+    .map((cue) => ({ id: String(cue.id), text: cue.sourceText ?? cue.text }));
+}
+
+function isLiveCueDone(live, cue) {
+  return isFinalTranslatedCue(cue) || live.attemptedCueIds.has(String(cue.id));
+}
+
+function startLiveTemporaryTranslation(live, document, video) {
+  const priorityDocument = buildTemporaryPriorityDocument(document, video?.currentTime || 0);
+  if (!priorityDocument?.cues?.length) return;
+  const generation = subtitleState.translationGeneration;
+  translateDocument(priorityDocument, {
+    providerId: subtitleState.defaultProviderId,
+    mode: "temporary",
+    forceNoCache: true,
+    requestId: createTranslationRequestId("live-temporary")
+  }).then((translatedDocument) => {
+    if (!isActiveLiveSession(live) || generation !== subtitleState.translationGeneration) return;
+    if (!translatedDocument?.cues?.length || ["complete", "fallback"].includes(subtitleState.translationPhase)) return;
+    showFallbackToast(translatedDocument);
+    applyTranslatedCues(subtitleState.currentVideo, translatedDocument.cues, { preserveFinalCues: true });
+    refreshCurrentCueTranslationPhase(subtitleState.currentVideo);
+  }).catch((error) => {
+    if (isActiveLiveSession(live)) console.warn("[AST] Temporary live subtitle translation failed:", error.message);
+  });
+}
+
+// One range is translated at a time; when it finishes, the next one starts from where playback is then.
+function pumpLiveTranslation() {
+  const live = subtitleState.live;
+  if (!isActiveLiveSession(live) || live.finalRequest || !subtitleState.activeProviderId) return;
+  const waitMs = live.retryNotBefore - Date.now();
+  if (waitMs > 0) {
+    if (live.retryTimerId === null) {
+      live.retryTimerId = setTimeout(() => {
+        live.retryTimerId = null;
+        pumpLiveTranslation();
+      }, waitMs);
+    }
+    return;
+  }
+
+  const video = resolveRenderVideo(subtitleState.currentVideo);
+  if (!isLivePlaybackReady(video)) return;
+  const currentDocument = subtitleState.currentDocument;
+  const allCues = currentDocument?.cues || [];
+  const batch = selectLiveTranslationBatch(allCues, video?.currentTime || 0, (cue) => isLiveCueDone(live, cue));
+  if (!batch.length) return;
+
+  const providerId = subtitleState.activeProviderId;
+  const generation = subtitleState.translationGeneration;
+  const document = { ...currentDocument, cues: batch, contextBefore: getLiveContextBefore(allCues, batch[0]) };
+  const requestId = createTranslationRequestId("live-final");
+  const request = { requestId, start: batch[0].start, end: batch.at(-1).end };
+  live.finalRequest = request;
+  subtitleState.activeFinalRequestId = requestId;
+  subtitleState.pendingProviderId = providerId === "googleTranslate" ? "" : providerId;
+  if (!["temporary", "current", "complete", "fallback"].includes(subtitleState.translationPhase)) {
+    setTranslationPhase("temporary");
+  }
+  if (!isMachineTranslationProvider(providerId) && providerId !== subtitleState.defaultProviderId) {
+    startLiveTemporaryTranslation(live, document, video);
+  }
+  refreshOpenProviderMenu();
+
+  const isCurrentRequest = () => live.finalRequest === request && generation === subtitleState.translationGeneration;
+  translateDocument(document, {
+    providerId,
+    mode: "final",
+    initialStartTime: normalizeInitialStartTime(video?.currentTime),
+    requestId,
+    notifyFailure: !live.failureNotified
+  }).then((translatedDocument) => {
+    if (!isCurrentRequest() || !isActiveLiveSession(live)) return;
+    if (!translatedDocument?.cues?.length) {
+      live.failureNotified = true;
+      live.retryNotBefore = Date.now() + LIVE_TRANSLATION_RETRY_MS;
+      return;
+    }
+    live.failureNotified = false;
+    subtitleState.translationFailed = false;
+    for (const cue of batch) live.attemptedCueIds.add(String(cue.id));
+    showFallbackToast(translatedDocument);
+    applyFinalTranslationResult(subtitleState.currentVideo, translatedDocument.cues, translatedDocument);
+    setTranslationPhase(hasCompleteFinalTranslation() ? "complete" : hasCurrentFinalTranslation() ? "current" : "temporary");
+  }).catch((error) => {
+    if (!isCurrentRequest()) return;
+    console.warn(`[AST] ${providerId} live translation failed:`, error.message);
+    live.retryNotBefore = Date.now() + LIVE_TRANSLATION_RETRY_MS;
+  }).finally(() => {
+    if (live.finalRequest !== request) return;
+    live.finalRequest = null;
+    if (subtitleState.activeFinalRequestId === requestId) subtitleState.activeFinalRequestId = "";
+    subtitleState.pendingProviderId = "";
+    refreshOpenProviderMenu();
+    pumpLiveTranslation();
+  });
+}
+
+// A seek outside the range being translated moves translation to the new position; within it, the
+// worker already reorders the range (translation.setPriority).
+function handleLiveSeek(video) {
+  const live = subtitleState.live;
+  if (!isActiveLiveSession(live)) return;
+  const time = Number(video?.currentTime) || 0;
+  const request = live.finalRequest;
+  if (request && time >= request.start - 1 && time <= request.end + 1) return;
+  if (request) {
+    live.finalRequest = null;
+    if (subtitleState.activeFinalRequestId === request.requestId) {
+      subtitleState.activeFinalRequestId = "";
+      subtitleState.pendingProviderId = "";
+      sendRuntimeMessage({ type: "translation.cancelRequest", requestId: request.requestId }).catch(() => {});
+    }
+  }
+  live.retryNotBefore = 0;
+  clearTimeout(live.retryTimerId);
+  live.retryTimerId = null;
+  pumpLiveTranslation();
+}
+
 function startProviderTranslation(document, platform, sessionKey, video, providerId, defaultProviderId, options = {}) {
-  if (!document?.cues?.length) return;
+  // A live document keeps growing after a caller took it; the current one has every line so far.
+  if (document?.live && subtitleState.currentDocument?.live && document.videoId === subtitleState.currentDocument.videoId) {
+    document = subtitleState.currentDocument;
+  }
+  // A live event may not have said anything yet; its lines are translated as they arrive.
+  if (!document?.cues?.length && !document?.live) return;
   invalidateTranslationRequests();
   subtitleState.hasAlignmentFallback = false;
   subtitleState.fallbackCueIds = new Set();
@@ -4505,6 +5124,11 @@ function startProviderTranslation(document, platform, sessionKey, video, provide
   renderOverlay(targetVideo, document.cues);
 
   const startRequests = () => {
+    if (document.live) {
+      restartLiveTranslation();
+      refreshOpenProviderMenu();
+      return;
+    }
     if (!options.skipTemporaryTranslation
       && !isMachineTranslationProvider(providerId)
       && providerId !== subtitleState.defaultProviderId) {
@@ -4586,8 +5210,13 @@ function applyPhraseSegmentation(document, platform) {
   if (platform === "youtube" && subtitleState.phraseSegmentationSkipYoutubeManual
     && !isYoutubeAutoGeneratedDocument(document)) return document;
   try {
-    const cues = segmentCues(document.cues, { language: document.sourceLanguage });
-    if (!cues?.length || cues === document.cues) return document;
+    const segmentedCues = segmentCues(document.cues, { language: document.sourceLanguage });
+    if (!segmentedCues?.length || segmentedCues === document.cues) return document;
+    // Live lines are segmented a batch at a time, and the segmenter numbers its cues from p0, so
+    // each batch's ids carry the id of its first line.
+    const cues = document.live
+      ? segmentedCues.map((cue) => ({ ...cue, id: `${document.cues[0].id}:${cue.id}` }))
+      : segmentedCues;
     const segmented = { ...document, cues };
     sourceDocumentsBySegmented.set(segmented, document);
     return segmented;
@@ -5517,13 +6146,15 @@ const platformHandlers = {
     findVideo: () => findVideoElement("vimeo"),
     async listCaptionTracks() {
       const videoId = getVimeoVideoId();
-      return (await getVimeoTextTracks(videoId))
+      const tracks = (await getVimeoTextTracks(videoId))
         .map((track) => createSourceCaptionTrack(track, {
           id: track.trackUrl,
           languageCode: track.sourceLanguage,
           trackUrl: track.trackUrl
         }))
         .filter(Boolean);
+      // A recorded event has caption tracks; one still live only has its growing caption file.
+      return tracks.length > 0 ? tracks : getVimeoLiveCaptionTracks(this.findVideo());
     },
     async buildTranscriptRequest() {
       const videoId = getVimeoVideoId();
@@ -5542,6 +6173,27 @@ const platformHandlers = {
         getSelectedSourceCaptionTrack(this.platform, videoId)
           || setSourceCaptionTracks(this.platform, videoId, await this.listCaptionTracks())
       );
+
+      if (track.live) {
+        // The link expires; a refreshed one from the running session replaces the listed one.
+        const subtitleUrl = subtitleState.live?.sessionKey === videoId && subtitleState.live.subtitleUrl
+          || track.trackUrl;
+        return {
+          sessionKey: videoId,
+          video,
+          live: {
+            subtitleUrl,
+            hlsUrl: subtitleState.live?.sessionKey === videoId && subtitleState.live.hlsUrl || track.liveHlsUrl || "",
+            status: track.liveStatus || ""
+          },
+          message: {
+            type: "captions.vimeo.fetchLiveTranscript",
+            videoId,
+            subtitleUrl,
+            sourceLanguage: track.languageCode
+          }
+        };
+      }
 
       return {
         sessionKey: videoId,
@@ -5641,6 +6293,11 @@ async function loadPlatformSubtitleOverlay(handler, options = {}) {
   subtitleState.lastFallbackToastKey = "";
   subtitleState.serverBusyNoticeShown = false;
   handler.markLoaded?.(request.sessionKey, sourceDocument);
+  if (request.live) {
+    beginLiveCaptions(handler.platform, request, sourceDocument);
+  } else {
+    stopLiveCaptions({ keepState: false });
+  }
 
   clearOverlayStatus(request.video);
   setTranslationPhase("source");
@@ -5837,6 +6494,8 @@ async function togglePlatformSubtitles(handler) {
     subtitleState.subtitleLoadGeneration += 1;
     subtitleState.loading = false;
     invalidateTranslationRequests();
+    // Kept for turning back on: the lines so far stay, and polling resumes from them.
+    stopLiveCaptions();
     setTranslationPhase("off");
   }
   setButtonState(subtitleState.enabled, false);
@@ -5860,6 +6519,7 @@ async function togglePlatformSubtitles(handler) {
     }
     renderOverlay(subtitleState.currentVideo, subtitleState.currentVideo.astSubtitleCues);
     renderUdemyTranscriptTranslations();
+    resumeLiveCaptions();
     return;
   }
 

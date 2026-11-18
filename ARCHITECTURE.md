@@ -56,6 +56,7 @@ type SubtitleDocument = {
 - Udemy: course/lecture id를 추출하고 `/api-2.0/users/me/subscribed-courses/{courseId}/lectures/{lectureId}/?fields[asset]=captions`에서 caption URL을 가져온다.
 - TED: HLS master manifest에서 subtitle track을 찾고 TED HLS의 WebVTT를 수집한다.
 - NVIDIA Academy와 Vimeo: Vimeo player의 caption track을 찾아 WebVTT를 수집한다.
+- Vimeo 라이브 이벤트: `vimeo.com/event/<id>/embed`(채팅이 붙은 `/embed/interaction` 포함) 프레임을 Vimeo로 인식하고 세션 키는 `event-<id>`로 둔다. 플레이어 config(`[data-config-url]` 또는 resource timing의 `player.vimeo.com/video/<id>/config`)에 caption track이 없고 `video.live_event.subtitleUrl`이 있으면 라이브 track으로 본다. 워커가 `live-api.vimeocdn.com`의 `subtitleUrl`이 돌려주는 `{url}`을 따라 `live*.vimeocdn.com`의 누적 WebVTT를 쿠키 없이 받는다. 이 파일은 방송 시작부터 쌓이고 시간축이 `video.currentTime`과 같다(Vimeo 자체 transcript도 이 파일과 HLS 자막 세그먼트를 이어 붙인다). cue id는 시작 시각(`live-<ms>`)으로 정해 파일이 늘어나도 바뀌지 않는다. 링크는 약 2시간 뒤 만료되므로 401/403/404/410이면 config를 다시 받아 새 `subtitleUrl`로 바꾼다.
 - 추가 지원 사이트(각 사이트의 자막 수집 방식은 플레이어와 API가 달라 platform별 모듈로 분리한다):
   - Coursera: `onDemandLectureVideos.v1` API의 `subtitlesVtt`(서명된 VTT URL)를 사용한다.
   - LinkedIn Learning: 강의 페이지 HTML에 포함된 Voyager 데이터의 `transcripts[].captionFile`(VTT)을 사용한다.
@@ -77,8 +78,10 @@ type SubtitleDocument = {
 2. LLM provider를 선택하고 임시 provider가 최종 provider와 다르면, 설정된 임시 번역을 먼저 실행한다. 임시 번역 상태는 노란색 아이콘으로 표시한다.
 3. 사용자가 선택한 active provider로 전체 번역을 background에서 실행한다. LLM provider를 선택한 경우에만 설정된 임시 provider 번역을 먼저 표시할 수 있다.
 4. LLM provider는 전체 subtitle JSON을 chunk 단위로 보내고, cue id 기준으로 결과를 병합한다. 현재 재생 위치의 1분을 우선 처리한 뒤 이후 구간을 먼저, 이전 구간을 나중에 처리한다. 일반 청크는 기본 최대 7분을 기준으로 하며 사용자가 2~15분 사이에서 조절할 수 있다. 내부 안전 상한은 24,000자·500 cue다. 응답이 불완전하면 해당 청크만 반으로 나눠 재시도한다.
-5. 최종 번역이 완료되면 오버레이 cue를 교체하고 아이콘을 완료색으로 바꾼다.
-6. LLM 실패 시 Google Translate로 대체 번역한다. 번역 실패 시에는 원문 표시를 유지한다.
+5. 자막 줄은 시작 후 2초가 안 돼 끝나도 다음 줄이 시작되기 전까지는 2초 동안 화면에 남긴다(`SUBTITLE_MIN_DISPLAY_SECONDS`). 다음 줄이 1초 안에 시작하면 그 사이도 이전 줄을 유지한다(`SUBTITLE_GAP_BRIDGE_SECONDS`). 모든 사이트에 같은 규칙을 쓴다.
+6. 최종 번역이 완료되면 오버레이 cue를 교체하고 아이콘을 완료색으로 바꾼다.
+7. LLM 실패 시 Google Translate로 대체 번역한다. 번역 실패 시에는 원문 표시를 유지한다.
+8. 라이브 문서(`document.live`)의 새 줄은 HLS 자막 플레이리스트(config `files.hls.cdns.<cdn>.json_url` → master → `TYPE=SUBTITLES`)에서 읽는다. Vimeo는 3초짜리 WebVTT 세그먼트를 영상보다 약 9초 늦게 공개하고, 플레이어는 약 13초 늦게 재생한다. 그래서 한 줄은 표시 1~4초 전에야 알 수 있다. 이 때문에 새 세그먼트를 받은 뒤 2.7초 뒤, 없으면 0.6초 간격으로 `_HLS_skip=YES` 델타 플레이리스트를 다시 읽는다. 세그먼트 cue는 `X-TIMESTAMP-MAP`의 MPEGTS로 스트림 시간축에 옮겨 누적 파일과 같은 id를 갖는다. 새 줄은 시간 순서 자리에 넣어 원문을 바로 보여 주고, LLM을 쓸 때는 진행 중인 범위와 별도로 임시 번역을 바로 요청한다. 놓친 세그먼트(AST 꺼짐, 잠든 탭)는 누적 파일로 채운다. HLS 링크가 없으면 누적 파일을 8초마다 다시 받는다. 상태가 `ended`/`done`이거나 플레이리스트에 `EXT-X-ENDLIST`가 있으면 더 받지 않는다. 플레이어가 라이브 위치로 이동하기 전(`readyState < 2`)에는 번역하지 않는다. 번역은 재생 위치부터 최대 5분 범위를 한 번에 하나씩 요청하고, 끝나면 그때의 재생 위치에서 다음 범위를 고른다. 재생 위치보다 앞선 구간은 그 위치로 탐색할 때만 번역하며, 진행 중인 범위 밖으로 탐색하면 그 요청을 취소하고 새 위치부터 번역한다. 요청에는 바로 앞 8줄을 `contextBefore`로 함께 보낸다. 문서 단위 캐시는 쓰지 않고 문장 캐시만 쓴다. 실패한 범위는 30초 뒤 다시 시도하고 실패 안내는 한 번만 보여 준다.
 
 ## Provider
 

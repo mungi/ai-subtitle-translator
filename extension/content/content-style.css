@@ -251,6 +251,21 @@
   user-select: none;
 }
 
+/* Held to the room it has in a short player or frame (height set by script); it scrolls, and its side
+   lists sit on the page beside their row (placed by script) so the scrolling box does not cut them. */
+.ast-provider-menu.ast-provider-menu-scrollable {
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.ast-provider-menu-scrollable :is(.ast-source-caption-list, .ast-subtitle-display-list,
+  .ast-subtitle-download-list, .ast-target-language-list, .ast-translation-style-list) {
+  position: fixed;
+  right: auto;
+  bottom: auto;
+}
+
 .ast-provider-menu[hidden] {
   display: none !important;
 }

@@ -151,6 +151,23 @@ test("background message sender validation separates extension pages and content
   assert.deepEqual(messageContracts.validateMessageSender(
     { type: "captions.ted.fetchTranscript" }, tedSender, "extension-id"
   ), { ok: true });
+  // A live event page on vimeo.com, and one embedded in a site the user added for the generic player.
+  const vimeoEventSender = {
+    id: "extension-id",
+    url: "https://vimeo.com/event/6300761/embed/interaction?muted=1",
+    tab: { id: 6, url: "https://vimeo.com/event/6300761" }
+  };
+  assert.deepEqual(messageContracts.validateMessageSender(
+    { type: "captions.vimeo.fetchLiveTranscript" }, vimeoEventSender, "extension-id"
+  ), { ok: true });
+  const embeddedEventSender = { ...vimeoEventSender, tab: { id: 7, url: "https://events.example.com/session?id=1" } };
+  assert.deepEqual(messageContracts.validateMessageSender(
+    { type: "captions.vimeo.fetchLiveTranscript" }, embeddedEventSender, "extension-id"
+  ), { ok: false, error: "Message is restricted to supported content scripts." });
+  assert.deepEqual(messageContracts.validateMessageSender(
+    { type: "captions.vimeo.fetchLiveTranscript" }, embeddedEventSender, "extension-id",
+    { genericState: { enabled: true, allowedHosts: ["events.example.com"] } }
+  ), { ok: true });
   assert.deepEqual(messageContracts.validateMessageSender(
     { type: "captions.vimeo.fetchTranscript" }, {
       ...nvidiaVimeoSender,

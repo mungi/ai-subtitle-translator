@@ -175,11 +175,21 @@ function splitLlmChunksAtSentenceBoundaries(chunks) {
 function getChunkContextBefore(document, chunk) {
   const firstCueId = chunk.cues[0]?.id;
   const firstCueIndex = document.cues.findIndex((cue) => cue.id === firstCueId);
-  if (firstCueIndex <= 0) return [];
+  // A part of a longer document (a live event's newest lines) can carry the lines before it.
+  if (firstCueIndex === 0) return getDocumentContextBefore(document);
+  if (firstCueIndex < 0) return [];
   return document.cues.slice(Math.max(0, firstCueIndex - CONTEXT_CUE_COUNT), firstCueIndex).map((cue) => ({
     id: cue.id,
     text: cue.text
   }));
+}
+
+function getDocumentContextBefore(document) {
+  const context = Array.isArray(document.contextBefore) ? document.contextBefore : [];
+  return context
+    .filter((cue) => cue && typeof cue.text === "string" && cue.text.trim())
+    .slice(-CONTEXT_CUE_COUNT)
+    .map((cue) => ({ id: String(cue.id ?? ""), text: cue.text.slice(0, 1000) }));
 }
 
 function splitDocumentIntoChunks(
@@ -1315,8 +1325,12 @@ export async function translateSubtitleDocument(document, {
   const provider = settings.providers[providerId || settings.activeProvider];
   assertProviderEndpoint(provider);
   const cacheKey = buildCacheKey(document, settings, provider);
+  // A live document is translated a few lines at a time while it grows, so a whole-document entry
+  // would never be read again and would push other videos out of the cache. Its sentence
+  // translations still go into the per-video sentence cache.
+  const useDocumentCache = settings.cacheTranslations && !forceNoCache && document.live !== true;
 
-  if (settings.cacheTranslations && !forceNoCache) {
+  if (useDocumentCache) {
     const cached = await readCachedTranslation(cacheKey);
     const cachedDocument = getReusableCachedTranslation(document, cached?.document, provider);
     if (cachedDocument) {
@@ -1340,7 +1354,7 @@ export async function translateSubtitleDocument(document, {
         cacheHit: false
       };
 
-      if (settings.cacheTranslations && !forceNoCache) {
+      if (useDocumentCache) {
         throwIfAborted(signal);
         await writeCachedTranslation(cacheKey, result);
       }
@@ -1392,7 +1406,7 @@ export async function translateSubtitleDocument(document, {
       cacheHit: cachedTranslations.length === document.cues.length
     };
 
-    if (settings.cacheTranslations && !forceNoCache && !result.fallbackProviderId) {
+    if (useDocumentCache && !result.fallbackProviderId) {
       throwIfAborted(signal);
       await writeCachedTranslation(cacheKey, result);
     }

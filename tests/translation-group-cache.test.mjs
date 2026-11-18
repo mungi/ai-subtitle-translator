@@ -111,3 +111,31 @@ test("clearing the cache removes sentence reuse as well as complete-document reu
     assert.equal(requests.length, 6);
   });
 });
+
+test("a live document keeps only sentence translations in the cache and sends the lines before it as context", async () => {
+  await withEnvironment(async ({ stored }) => {
+    const inputs = [];
+    globalThis.fetch = async (_url, init) => {
+      const input = JSON.parse(JSON.parse(init.body).contents[0].parts[0].text);
+      inputs.push(input);
+      return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify({
+        translations: input.cues.map(({ id, text }) => ({ id, text: `번역 ${text}` }))
+      }) }] } }] }));
+    };
+    const live = {
+      platform: "vimeo", videoId: "event-6300761", sourceLanguage: "en", live: true,
+      contextBefore: [{ id: "live-1000", text: "Earlier line one." }, { id: "live-2000", text: "Earlier line two." }],
+      cues: [{ id: "live-3000", start: 3, end: 5, text: "Newest live line." }]
+    };
+    const result = await translateSubtitleDocument(live);
+    assert.equal(result.cues[0].text, "번역 Newest live line.");
+    assert.deepEqual(inputs[0].cues.map((cue) => cue.text), ["Newest live line."]);
+    assert.deepEqual(inputs[0].contextBefore.map((cue) => cue.text), ["Earlier line one.", "Earlier line two."]);
+    const keys = Object.keys(stored.translationCache || {});
+    assert.ok(keys.length > 0 && keys.every((key) => key.startsWith("sentence-v1:")), keys.join(", "));
+
+    // The next poll's lines reuse the sentence cache like any reopened video.
+    await translateSubtitleDocument({ ...live, contextBefore: [], cues: [{ id: "live-9000", start: 9, end: 11, text: "Newest live line." }] });
+    assert.equal(inputs.length, 1);
+  });
+});

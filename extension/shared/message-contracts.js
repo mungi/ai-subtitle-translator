@@ -31,6 +31,8 @@ const BACKGROUND_MESSAGE_TYPES = new Set([
   "captions.udemy.listTracks",
   "captions.udemy.fetchTranscript",
   "captions.vimeo.fetchTranscript",
+  "captions.vimeo.fetchLiveTranscript",
+  "captions.vimeo.fetchLiveSegments",
   "captions.coursera.fetchTranscript",
   "captions.linkedin.fetchTranscript",
   "captions.oreilly.listTracks",
@@ -83,6 +85,8 @@ const CONTENT_SCRIPT_MESSAGE_TYPES = new Set([
   "captions.udemy.listTracks",
   "captions.udemy.fetchTranscript",
   "captions.vimeo.fetchTranscript",
+  "captions.vimeo.fetchLiveTranscript",
+  "captions.vimeo.fetchLiveSegments",
   "captions.coursera.fetchTranscript",
   "captions.linkedin.fetchTranscript",
   "captions.oreilly.listTracks",
@@ -379,6 +383,24 @@ export function validateBackgroundMessage(message) {
       else if (!isOptionalString(message.sourceLanguage)) error = "sourceLanguage must be a string.";
       else if (message.platform !== undefined && !["nvidia", "vimeo"].includes(message.platform)) {
         error = "platform must be nvidia or vimeo.";
+      }
+      break;
+    case "captions.vimeo.fetchLiveTranscript":
+      if (!isNonEmptyValue(message.videoId)) error = "videoId is required.";
+      else if (typeof message.subtitleUrl !== "string" || !message.subtitleUrl || message.subtitleUrl.length > 4096) {
+        error = "subtitleUrl is required.";
+      }
+      else if (!isOptionalString(message.sourceLanguage)) error = "sourceLanguage must be a string.";
+      break;
+    case "captions.vimeo.fetchLiveSegments":
+      if (typeof message.hlsUrl !== "string" || !message.hlsUrl || message.hlsUrl.length > 4096) error = "hlsUrl is required.";
+      else if (message.playlistUrl !== undefined && message.playlistUrl !== null
+        && (typeof message.playlistUrl !== "string" || message.playlistUrl.length > 4096)) {
+        error = "playlistUrl must be a string.";
+      }
+      else if (message.afterSequence !== undefined && message.afterSequence !== null
+        && (!Number.isInteger(message.afterSequence) || message.afterSequence < -1)) {
+        error = "afterSequence must be an integer.";
       }
       break;
     case "captions.edx.buildTranscript":

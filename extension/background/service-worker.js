@@ -14,7 +14,7 @@ import { buildCustomHeaders, CUSTOM_LLM_PROVIDER_ID, normalizeJsonMode } from ".
 import { benchmarkReasoningModes } from "../shared/reasoning-benchmark.js";
 import { fetchYoutubeCaptionTracks, fetchYoutubeTranscript } from "../platforms/youtube-captions.js";
 import { fetchUdemyCaptionTracks, fetchUdemyTranscript } from "../platforms/udemy-captions.js";
-import { fetchVimeoTranscript } from "../platforms/vimeo-captions.js";
+import { fetchVimeoLiveSegments, fetchVimeoLiveTranscript, fetchVimeoTranscript } from "../platforms/vimeo-captions.js";
 import { fetchCourseraTranscript } from "../platforms/coursera-captions.js";
 import { fetchLinkedinTranscript } from "../platforms/linkedin-captions.js";
 import { fetchOreillyTracks, fetchOreillyTranscript } from "../platforms/oreilly-captions.js";
@@ -877,6 +877,29 @@ export function dispatchBackgroundMessage(message, sender, sendResponse) {
     })
       .then((document) => sendResponse({ ok: true, document }))
       .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.type === "captions.vimeo.fetchLiveTranscript") {
+    fetchVimeoLiveTranscript({
+      videoId: message.videoId,
+      subtitleUrl: message.subtitleUrl,
+      sourceLanguage: message.sourceLanguage
+    })
+      .then((document) => sendResponse({ ok: true, document }))
+      // The status tells the page when the link expired and the player config has a new one.
+      .catch((error) => sendResponse({ ok: false, error: error.message, status: error.status }));
+    return true;
+  }
+
+  if (message?.type === "captions.vimeo.fetchLiveSegments") {
+    fetchVimeoLiveSegments({
+      hlsUrl: message.hlsUrl,
+      playlistUrl: message.playlistUrl,
+      afterSequence: message.afterSequence
+    })
+      .then((result) => sendResponse({ ok: true, ...result }))
+      .catch((error) => sendResponse({ ok: false, error: error.message, status: error.status }));
     return true;
   }
 

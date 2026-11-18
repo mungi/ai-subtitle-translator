@@ -5618,3 +5618,312 @@ test("a click on the subtitle edge without dragging keeps the set width even whe
   assert.equal(overlay.style.maxWidth, setWidth);
   assert.equal(vm.runInNewContext("subtitleState.subtitleStyle?.width", context), savedWidth);
 });
+
+// Vimeo live events (vimeo.com/event/<id>/embed/interaction inside a conference page).
+const VIMEO_EVENT_CONFIG_URL = "https://player.vimeo.com/video/1239090134/config?autopause=0&s=test_1795114920";
+const VIMEO_EVENT_SUBTITLE_URL = "https://live-api.vimeocdn.com/sessions/5342ef22/playlist/subtitle.webvtt?json=1&~sig=first";
+const VIMEO_EVENT_HLS_URL = "https://live-api.vimeocdn.com/sessions/5342ef22/playlist/avc/hls.m3u8?cdn=akamai-fmp4&json=1&~sig=hls";
+const VIMEO_EVENT_PLAYLIST_URL = "https://live-ak.vimeocdn.com/exp=1~acl=x~hmac=y/5342ef22_fmp4/subs/en/subs.m3u8";
+
+// Arrays made inside the content script's VM are compared as plain arrays.
+function cueTexts(cues) {
+  return Array.from(cues || [], (cue) => cue.text);
+}
+
+function liveCue(seconds, end, text) {
+  return { id: `live-${seconds * 1000}`, start: seconds, end, text };
+}
+
+function createVimeoLiveHarness({ liveDocuments, currentTime = 0, fetchConfig, settings = {}, segmentResponses = [], slowFinal = false } = {}) {
+  const fetched = [];
+  const segmentPolls = [];
+  const translateRequests = [];
+  let fetchIndex = 0;
+  const h = createYoutubeHarness({
+    subtitlePreference: { enabled: false },
+    settings: { platforms: { vimeo: true }, ...settings },
+    sendMessage: (message) => {
+      if (message.type === "platform.vimeo.getContext") return { ok: true, platform: "vimeo" };
+      if (message.type === "captions.vimeo.fetchLiveSegments") {
+        segmentPolls.push(message);
+        return segmentResponses[segmentPolls.length - 1] || { ok: true, playlistUrl: VIMEO_EVENT_PLAYLIST_URL, lastSequence: message.afterSequence, targetDuration: 3, cues: [] };
+      }
+      if (message.type === "captions.vimeo.fetchLiveTranscript") {
+        fetched.push(message);
+        const next = liveDocuments[Math.min(fetchIndex, liveDocuments.length - 1)];
+        fetchIndex += 1;
+        if (next.ok === false) return next;
+        return { ok: true, document: { platform: "vimeo", videoId: message.videoId, sourceLanguage: "en", live: true, cues: next.cues } };
+      }
+      if (message.type === "translation.translateDocument") {
+        translateRequests.push(message);
+        if (slowFinal && message.mode === "final") return new Promise(() => {});
+        return { ok: true, document: { ...message.document, cues: message.document.cues.map((cue) => ({ ...cue, text: `번역 ${cue.text}` })) } };
+      }
+      return { ok: true };
+    },
+    fetch: async (url) => {
+      assert.equal(String(url), VIMEO_EVENT_CONFIG_URL);
+      return jsonFetchResponse(fetchConfig ? fetchConfig() : {
+        request: { text_tracks: null },
+        video: { id: 1239090134, live_event: { status: "started", subtitleUrl: VIMEO_EVENT_SUBTITLE_URL } }
+      });
+    }
+  });
+  h.context.location = {
+    hostname: "vimeo.com",
+    href: "https://vimeo.com/event/6300761/embed/interaction?muted=1",
+    pathname: "/event/6300761/embed/interaction",
+    search: "?muted=1"
+  };
+  h.context.performance = { getEntriesByType: () => [] };
+  const playerElement = new FakeElement("div");
+  playerElement.setAttribute("data-config-url", VIMEO_EVENT_CONFIG_URL);
+  const querySelector = h.context.document.querySelector;
+  h.context.document.querySelector = (selector) => {
+    if (selector === "video") return h.video;
+    if (selector === "[data-config-url]") return playerElement;
+    return querySelector(selector);
+  };
+  h.video.currentTime = currentTime;
+  h.video.readyState = 4;
+  return { h, fetched, segmentPolls, translateRequests };
+}
+
+async function enableVimeoLive(h) {
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), h.context);
+  await flushPromises();
+  await flushPromises();
+  h.runtimeMessageListeners.forEach((listener) => listener({ type: "subtitles.setEnabled", enabled: true }));
+  for (let index = 0; index < 4; index += 1) await flushPromises();
+}
+
+function runLivePollTimers(h) {
+  for (const timeout of h.timeoutCallbacks.splice(0)) {
+    if (!timeout.cleared && timeout.delay >= 8000) timeout.callback();
+  }
+}
+
+test("a Vimeo live event page is recognized by its event id, apart from recorded videos", () => {
+  const h = createYoutubeHarness({ subtitlePreference: { enabled: false } });
+  h.context.performance = { getEntriesByType: () => [] };
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), h.context);
+  const check = (pathname) => {
+    h.context.location = { hostname: "vimeo.com", href: `https://vimeo.com${pathname}`, pathname, search: "" };
+    return JSON.parse(vm.runInNewContext("JSON.stringify([getVimeoVideoId(), detectPlatform()])", h.context));
+  };
+  assert.deepEqual(check("/event/6300761/embed/interaction"), ["event-6300761", "vimeo"]);
+  assert.deepEqual(check("/event/6300761/embed"), ["event-6300761", "vimeo"]);
+  assert.deepEqual(check("/event/6300761"), ["event-6300761", "vimeo"]);
+  assert.deepEqual(check("/1191467672"), ["1191467672", "vimeo"]);
+  assert.deepEqual(check("/1191467672/abcdef1234"), ["1191467672", "vimeo"]);
+});
+
+test("live translation ranges start at the playback position and only new lines are added", () => {
+  const h = createYoutubeHarness({ subtitlePreference: { enabled: false } });
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), h.context);
+  h.context.cues = [liveCue(10, 12, "E."), liveCue(100, 102, "A."), liveCue(103, 106, "B."), liveCue(107, 109, "C."), liveCue(500, 502, "Far.")];
+  const batch = (time, done = []) => JSON.parse(vm.runInNewContext(
+    `JSON.stringify(selectLiveTranslationBatch(cues, ${time}, (cue) => ${JSON.stringify(done)}.includes(cue.id)).map((cue) => cue.id))`, h.context));
+  assert.deepEqual(batch(105), ["live-103000", "live-107000"]);
+  // Translated lines are skipped before a range starts and end it after.
+  assert.deepEqual(batch(0, ["live-10000"]), ["live-100000", "live-103000", "live-107000"]);
+  assert.deepEqual(batch(0, ["live-100000"]), ["live-10000"]);
+  // A range covers at most five minutes of the talk.
+  assert.deepEqual(batch(101, []), ["live-100000", "live-103000", "live-107000"]);
+  assert.deepEqual(batch(600), []);
+
+  // Unknown lines are added wherever they fall in time (a filled gap too); the same words cut
+  // slightly differently by the caption file and a segment are one line.
+  h.context.fetched = [liveCue(100, 102, "A."), liveCue(103, 106, "B."), liveCue(107, 109, "C."), liveCue(110, 112, "D."),
+    { id: "live-50000", start: 50, end: 52, text: "Filled gap line." }, { id: "live-103400", start: 103.4, end: 106, text: "B." }];
+  assert.deepEqual(JSON.parse(vm.runInNewContext(
+    `JSON.stringify(selectNewLiveSourceCues(new Set(["live-100000", "live-103000", "live-107000"]),
+      new Set(["100|A.", "103|B.", "107|C."]), fetched).map((cue) => cue.id))`, h.context)),
+  ["live-50000", "live-110000"]);
+});
+
+test("a Vimeo live event loads its caption file, translates from the playback position, and adds new lines", async () => {
+  const first = [liveCue(10, 12, "Early."), liveCue(100, 102, "A."), liveCue(103, 106, "B."), liveCue(107, 109, "C.")];
+  const { h, fetched, translateRequests } = createVimeoLiveHarness({
+    currentTime: 105,
+    liveDocuments: [{ cues: first }, { cues: [...first, liveCue(110, 112, "D.")] }]
+  });
+  await enableVimeoLive(h);
+
+  assert.equal(fetched.length, 1);
+  assert.equal(fetched[0].videoId, "event-6300761");
+  assert.equal(fetched[0].subtitleUrl, VIMEO_EVENT_SUBTITLE_URL);
+  assert.equal(translateRequests.length, 1);
+  assert.equal(translateRequests[0].mode, "final");
+  assert.equal(translateRequests[0].document.live, true);
+  assert.deepEqual(cueTexts(translateRequests[0].document.cues), ["B.", "C."]);
+  assert.deepEqual(cueTexts(translateRequests[0].document.contextBefore), ["Early.", "A."]);
+  assert.deepEqual(cueTexts(h.video.astSubtitleCues), ["Early.", "A.", "번역 B.", "번역 C."]);
+
+  runLivePollTimers(h);
+  for (let index = 0; index < 4; index += 1) await flushPromises();
+  assert.equal(fetched.length, 2);
+  assert.equal(translateRequests.length, 2);
+  assert.deepEqual(cueTexts(translateRequests[1].document.cues), ["D."]);
+  assert.deepEqual(cueTexts(translateRequests[1].document.contextBefore), ["Early.", "A.", "B.", "C."]);
+  assert.deepEqual(cueTexts(h.video.astSubtitleCues), ["Early.", "A.", "번역 B.", "번역 C.", "번역 D."]);
+  // Polling goes on while the event runs.
+  assert.ok(h.timeoutCallbacks.some((timeout) => !timeout.cleared && timeout.delay === 8000));
+});
+
+test("seeking back in a Vimeo live event translates the lines there", async () => {
+  const cues = [liveCue(10, 12, "Early."), liveCue(100, 102, "A."), liveCue(103, 106, "B.")];
+  const { h, translateRequests } = createVimeoLiveHarness({ currentTime: 103, liveDocuments: [{ cues }] });
+  await enableVimeoLive(h);
+  assert.deepEqual(translateRequests.map((request) => cueTexts(request.document.cues)), [["B."]]);
+
+  h.video.currentTime = 11;
+  h.video.dispatchEvent({ type: "seeked" });
+  for (let index = 0; index < 4; index += 1) await flushPromises();
+  assert.deepEqual(translateRequests.map((request) => cueTexts(request.document.cues)), [["B."], ["Early.", "A."]]);
+  assert.deepEqual(cueTexts(h.video.astSubtitleCues), ["번역 Early.", "번역 A.", "번역 B."]);
+});
+
+test("an expired Vimeo live caption link is replaced from the player config", async () => {
+  const cues = [liveCue(100, 102, "A.")];
+  let configCalls = 0;
+  const { h, fetched } = createVimeoLiveHarness({
+    currentTime: 100,
+    liveDocuments: [{ cues }, { ok: false, error: "Vimeo live captions request failed (HTTP 410).", status: 410 }, { cues }],
+    fetchConfig: () => {
+      configCalls += 1;
+      const subtitleUrl = configCalls === 1 ? VIMEO_EVENT_SUBTITLE_URL : VIMEO_EVENT_SUBTITLE_URL.replace("first", "second");
+      return { request: {}, video: { id: 1239090134, live_event: { status: "started", subtitleUrl } } };
+    }
+  });
+  await enableVimeoLive(h);
+  runLivePollTimers(h);
+  for (let index = 0; index < 4; index += 1) await flushPromises();
+  runLivePollTimers(h);
+  for (let index = 0; index < 4; index += 1) await flushPromises();
+  assert.deepEqual(fetched.map((message) => message.subtitleUrl.split("~sig=")[1]), ["first", "first", "second"]);
+});
+
+test("turning AST off stops polling a Vimeo live event and turning it on resumes it", async () => {
+  const cues = [liveCue(100, 102, "A.")];
+  const { h, fetched } = createVimeoLiveHarness({ currentTime: 100, liveDocuments: [{ cues }] });
+  await enableVimeoLive(h);
+  h.runtimeMessageListeners.forEach((listener) => listener({ type: "subtitles.setEnabled", enabled: false }));
+  for (let index = 0; index < 4; index += 1) await flushPromises();
+  runLivePollTimers(h);
+  for (let index = 0; index < 4; index += 1) await flushPromises();
+  assert.equal(fetched.length, 1);
+
+  h.runtimeMessageListeners.forEach((listener) => listener({ type: "subtitles.setEnabled", enabled: true }));
+  for (let index = 0; index < 4; index += 1) await flushPromises();
+  for (const timeout of h.timeoutCallbacks.splice(0)) {
+    if (!timeout.cleared && timeout.delay === 0) timeout.callback();
+  }
+  for (let index = 0; index < 4; index += 1) await flushPromises();
+  assert.equal(fetched.length, 2);
+});
+
+test("a Vimeo live event reads its newest lines from the HLS caption segments as they are published", async () => {
+  const first = [liveCue(5911, 5914, "And the other thing,"), liveCue(5914, 5916, "is the issue of power.")];
+  const { h, segmentPolls, translateRequests } = createVimeoLiveHarness({
+    currentTime: 0,
+    liveDocuments: [{ cues: first }],
+    settings: { activeProvider: "openai" },
+    slowFinal: true,
+    fetchConfig: () => ({
+      request: { files: { hls: { default_cdn: "akamai_live", cdns: { akamai_live: { json_url: VIMEO_EVENT_HLS_URL } } } } },
+      video: { id: 1239090134, live_event: { status: "started", subtitleUrl: VIMEO_EVENT_SUBTITLE_URL } }
+    }),
+    segmentResponses: [
+      { ok: true, playlistUrl: VIMEO_EVENT_PLAYLIST_URL, lastSequence: 1972, targetDuration: 3, cues: [liveCue(5914, 5916, "is the issue of power."), liveCue(5917, 5921, "And there's so much power.")] },
+      { ok: true, playlistUrl: VIMEO_EVENT_PLAYLIST_URL, lastSequence: 1972, targetDuration: 3, cues: [] }
+    ]
+  });
+  // The player has not seeked to the live position yet: nothing is translated from the event's start.
+  h.video.readyState = 0;
+  await enableVimeoLive(h);
+  assert.equal(translateRequests.length, 0);
+
+  h.video.readyState = 4;
+  h.video.currentTime = 5913;
+  h.video.dispatchEvent({ type: "playing" });
+  for (let index = 0; index < 4; index += 1) await flushPromises();
+  assert.deepEqual(translateRequests.map((request) => [request.mode, cueTexts(request.document.cues)]), [
+    ["temporary", ["And the other thing,", "is the issue of power."]],
+    ["final", ["And the other thing,", "is the issue of power."]]
+  ]);
+
+  // The next segment read comes one segment (3 s) later, a little early.
+  const pollTimer = h.timeoutCallbacks.find((timeout) => !timeout.cleared && timeout.delay === 2700);
+  assert.ok(pollTimer, JSON.stringify(h.timeoutCallbacks.map((timeout) => timeout.delay)));
+  h.timeoutCallbacks.splice(0).forEach((timeout) => { if (!timeout.cleared && timeout.delay === 2700) timeout.callback(); });
+  for (let index = 0; index < 4; index += 1) await flushPromises();
+  assert.equal(segmentPolls.length, 1);
+  assert.equal(segmentPolls[0].hlsUrl, VIMEO_EVENT_HLS_URL);
+  assert.equal(segmentPolls[0].afterSequence, null);
+  // The new line is added at once and gets a temporary translation while the LLM range runs.
+  assert.deepEqual(Array.from(h.video.astSubtitleCues, (cue) => [cue.sourceText ?? cue.text, cue.text]).slice(-1),
+    [["And there's so much power.", "번역 And there's so much power."]]);
+  assert.deepEqual(translateRequests.slice(2).map((request) => [request.mode, cueTexts(request.document.cues)]), [
+    ["temporary", ["And there's so much power."]]
+  ]);
+
+  // Nothing new yet: look again shortly, with what was read so far.
+  const retry = h.timeoutCallbacks.find((timeout) => !timeout.cleared && timeout.delay === 2700);
+  h.timeoutCallbacks.splice(0).forEach((timeout) => { if (!timeout.cleared && timeout === retry) timeout.callback(); });
+  for (let index = 0; index < 4; index += 1) await flushPromises();
+  assert.equal(segmentPolls[1].afterSequence, 1972);
+  assert.equal(segmentPolls[1].playlistUrl, VIMEO_EVENT_PLAYLIST_URL);
+  assert.ok(h.timeoutCallbacks.some((timeout) => !timeout.cleared && timeout.delay === 600));
+});
+
+test("a short line stays up for two seconds unless the next line starts", () => {
+  const h = createYoutubeHarness({ subtitlePreference: { enabled: false } });
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), h.context);
+  h.context.cues = [liveCue(10, 10.5, "Uh-"), liveCue(11.2, 15, "There are a couple of other details."), liveCue(30, 30.4, "Itself.")];
+  const shown = (time) => vm.runInNewContext(`findActiveCue(cues, ${time})?.text ?? null`, h.context);
+  assert.equal(shown(30.9), "Itself.");
+  assert.equal(shown(31.9), "Itself.");
+  assert.equal(shown(32.1), null);
+  // The next line replaces it as soon as it starts; a long line ends at its own end.
+  assert.equal(shown(10.8), "Uh-");
+  assert.equal(shown(11.3), "There are a couple of other details.");
+  assert.equal(shown(15.5), null);
+});
+
+test("a menu taller than the room above its button scrolls, and its side lists sit beside their row", () => {
+  const h = createYoutubeHarness({ subtitlePreference: { enabled: false } });
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), h.context);
+  h.context.document.documentElement.clientHeight = 450;
+  h.context.document.documentElement.clientWidth = 800;
+  const menu = new FakeElement("div");
+  menu.dataset.platform = "vimeo";
+  menu.getBoundingClientRect = () => ({ top: -200, bottom: 400, left: 500, right: 780, width: 280, height: 600 });
+  const submenu = new FakeElement("div");
+  submenu.className = "ast-source-caption-submenu";
+  submenu.getBoundingClientRect = () => ({ top: 100, bottom: 130, left: 500, right: 780, width: 280, height: 30 });
+  const list = new FakeElement("div");
+  list.className = "ast-source-caption-list";
+  list.getBoundingClientRect = () => ({ top: 0, bottom: 200, left: 0, right: 260, width: 260, height: 200 });
+  submenu.querySelector = () => list;
+  menu.append(submenu);
+  h.context.menu = menu;
+  h.context.submenu = submenu;
+
+  vm.runInNewContext("fitProviderMenuHeight(menu)", h.context);
+  // The frame's top edge: 400 px from the button up to 8 px below the top.
+  assert.equal(menu.style.maxHeight, "392px");
+  assert.ok(menu.classList.contains("ast-provider-menu-scrollable"));
+
+  vm.runInNewContext("positionProviderSubmenuList(menu, submenu)", h.context);
+  // Left of its row, bottom-aligned with it, kept inside the frame.
+  assert.equal(list.style.left, "240px");
+  assert.equal(list.style.top, "8px");
+
+  // A menu that fits keeps its natural height and its side lists stay where the stylesheet puts them.
+  menu.getBoundingClientRect = () => ({ top: 100, bottom: 400, left: 500, right: 780, width: 280, height: 300 });
+  vm.runInNewContext("fitProviderMenuHeight(menu)", h.context);
+  assert.equal(menu.style.maxHeight, "");
+  assert.equal(menu.classList.contains("ast-provider-menu-scrollable"), false);
+});

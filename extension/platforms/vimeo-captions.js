@@ -82,6 +82,223 @@ export async function fetchVimeoTranscript({ videoId, trackUrl, sourceLanguage, 
   });
 }
 
+// A live event keeps its captions in one WebVTT file that grows while the event runs, on the same
+// timeline as the player (Vimeo's own transcript joins that file with the live HLS caption segments).
+// The player config's live_event.subtitleUrl (live-api) answers with a short-lived link to the file.
+const VIMEO_LIVE_API_HOST = "live-api.vimeocdn.com";
+const VIMEO_LIVE_FILE_HOST_PATTERN = /^live(?:-[a-z0-9]+)?\.vimeocdn\.com$/;
+const VIMEO_LIVE_TRANSCRIPT_MAX_CHARS = 5_000_000;
+
+export function isVimeoLiveSubtitleUrl(value) {
+  try {
+    const url = new URL(String(value || ""));
+    return url.protocol === "https:" && url.hostname === VIMEO_LIVE_API_HOST
+      && /^\/sessions\/[\w-]+\/playlist\/subtitle\.webvtt$/.test(url.pathname);
+  } catch {
+    return false;
+  }
+}
+
+function isVimeoLiveCdnUrl(value, pathPattern) {
+  try {
+    const url = new URL(String(value || ""));
+    return url.protocol === "https:" && VIMEO_LIVE_FILE_HOST_PATTERN.test(url.hostname) && pathPattern.test(url.pathname);
+  } catch {
+    return false;
+  }
+}
+
+export function isVimeoLiveSubtitleFileUrl(value) {
+  return isVimeoLiveCdnUrl(value, /\.(?:web)?vtt$/i);
+}
+
+export function isVimeoLivePlaylistUrl(value) {
+  return isVimeoLiveCdnUrl(value, /\.m3u8$/i);
+}
+
+// The player config's HLS link (files.hls.cdns.<cdn>.json_url) answers with the master playlist.
+export function isVimeoLiveHlsUrl(value) {
+  try {
+    const url = new URL(String(value || ""));
+    return url.protocol === "https:" && url.hostname === VIMEO_LIVE_API_HOST
+      && /^\/sessions\/[\w-]+\/playlist\/[\w-]+\/hls\.m3u8$/.test(url.pathname);
+  } catch {
+    return false;
+  }
+}
+
+// Cue ids come from the start time, so a line keeps its id while the file grows around it, and the
+// same line read from an HLS caption segment gets the same id. A repeated line is dropped.
+// offsetSeconds moves an HLS segment's local times onto the stream timeline.
+export function parseVimeoLiveSubtitles(vtt, { offsetSeconds = 0 } = {}) {
+  const text = String(vtt ?? "");
+  // A live event that has not said anything yet has a file with no cues.
+  if (!text.includes("-->")) return [];
+  const seen = new Set();
+  const idCounts = new Map();
+  const cues = [];
+  for (const parsed of parseWebVtt(text, { idPrefix: "live" })) {
+    const cue = offsetSeconds
+      ? { ...parsed, start: roundSeconds(parsed.start + offsetSeconds), end: roundSeconds(parsed.end + offsetSeconds) }
+      : parsed;
+    const signature = `${cue.start}|${cue.end}|${cue.text}`;
+    if (seen.has(signature)) continue;
+    seen.add(signature);
+    const baseId = `live-${Math.round(cue.start * 1000)}`;
+    const count = idCounts.get(baseId) || 0;
+    idCounts.set(baseId, count + 1);
+    cues.push({ ...cue, id: count ? `${baseId}-${count}` : baseId });
+  }
+  return cues.sort((left, right) => left.start - right.start);
+}
+
+async function fetchVimeoLiveResource(url, accept) {
+  const response = await fetch(url, {
+    credentials: "omit",
+    cache: "no-store",
+    headers: { Accept: accept }
+  });
+  if (!response.ok) {
+    const error = new Error(`Vimeo live captions request failed (HTTP ${response.status}).`);
+    error.status = response.status;
+    throw error;
+  }
+  return response;
+}
+
+export async function fetchVimeoLiveTranscript({ videoId, subtitleUrl, sourceLanguage }) {
+  if (!videoId) throw new Error("Vimeo videoId is required.");
+  if (!isVimeoLiveSubtitleUrl(subtitleUrl)) throw new Error("Vimeo live caption URL is invalid.");
+
+  const pointer = await (await fetchVimeoLiveResource(subtitleUrl, "application/json")).json().catch(() => null);
+  if (!isVimeoLiveSubtitleFileUrl(pointer?.url)) throw new Error("Vimeo live caption file URL is invalid.");
+
+  const response = await fetchVimeoLiveResource(pointer.url, "text/vtt,text/plain,*/*");
+  if (!isVimeoLiveSubtitleFileUrl(response.url || pointer.url)) throw new Error("Vimeo live caption file URL is invalid.");
+  if (Number(response.headers.get("content-length")) > VIMEO_LIVE_TRANSCRIPT_MAX_CHARS) {
+    throw new Error("Vimeo live captions are too large.");
+  }
+  const text = await response.text();
+  if (text.length > VIMEO_LIVE_TRANSCRIPT_MAX_CHARS) throw new Error("Vimeo live captions are too large.");
+
+  return {
+    ...createSubtitleDocument({
+      platform: "vimeo",
+      videoId: String(videoId),
+      sourceLanguage: String(sourceLanguage || "en"),
+      cues: parseVimeoLiveSubtitles(text)
+    }),
+    live: true
+  };
+}
+
+function roundSeconds(value) {
+  return Math.round(value * 1000) / 1000;
+}
+
+// Live captions near the edge: Vimeo publishes a 3-second WebVTT segment about 9 seconds after its
+// media and plays about 13 seconds behind, so a line is known only 1-4 seconds before it is due.
+// The growing caption file lags further, so the newest lines come from the HLS caption playlist,
+// as the player reads them.
+const LIVE_SEGMENT_FIRST_READ_COUNT = 4;
+const LIVE_SEGMENT_MAX_READ_COUNT = 8;
+
+export function parseVimeoLiveSegmentPlaylist(text) {
+  const lines = String(text ?? "").split(/\r?\n/).map((line) => line.trim());
+  let sequence = Number(lines.find((line) => line.startsWith("#EXT-X-MEDIA-SEQUENCE:"))?.split(":")[1]) || 0;
+  sequence += Number(lines.find((line) => line.startsWith("#EXT-X-SKIP:"))?.match(/SKIPPED-SEGMENTS=(\d+)/)?.[1]) || 0;
+  const targetDuration = Number(lines.find((line) => line.startsWith("#EXT-X-TARGETDURATION:"))?.split(":")[1]) || 3;
+  const segments = [];
+  for (const line of lines) {
+    if (!line || line.startsWith("#")) continue;
+    segments.push({ sequence, uri: line });
+    sequence += 1;
+  }
+  return { targetDuration, segments, ended: lines.includes("#EXT-X-ENDLIST") };
+}
+
+// A segment's X-TIMESTAMP-MAP places its local times on the stream (90 kHz MPEG-TS clock).
+export function getVimeoLiveSegmentOffset(vtt) {
+  const map = String(vtt ?? "").match(/X-TIMESTAMP-MAP=([^\r\n]+)/)?.[1] || "";
+  const mpegTs = Number(map.match(/MPEGTS:(\d+)/)?.[1]);
+  const local = map.match(/LOCAL:([\d:.]+)/)?.[1];
+  if (!Number.isFinite(mpegTs)) return 0;
+  const localSeconds = local ? local.split(":").reduce((total, part) => total * 60 + Number(part), 0) : 0;
+  return mpegTs / 90000 - (Number.isFinite(localSeconds) ? localSeconds : 0);
+}
+
+async function resolveVimeoLiveSubtitlePlaylist(hlsUrl) {
+  if (!isVimeoLiveHlsUrl(hlsUrl)) throw new Error("Vimeo live HLS URL is invalid.");
+  const pointer = await (await fetchVimeoLiveResource(hlsUrl, "application/json")).json().catch(() => null);
+  if (!isVimeoLivePlaylistUrl(pointer?.url)) throw new Error("Vimeo live master playlist URL is invalid.");
+  const master = await (await fetchVimeoLiveResource(pointer.url, "application/vnd.apple.mpegurl,*/*")).text();
+  const media = master.split(/\r?\n/).filter((line) => /^#EXT-X-MEDIA:.*TYPE=SUBTITLES/.test(line));
+  const chosen = media.find((line) => /DEFAULT=YES/.test(line)) || media[0];
+  const uri = chosen?.match(/URI="([^"]+)"/)?.[1];
+  if (!uri) {
+    const error = new Error("No Vimeo live captions are available.");
+    error.code = "CAPTIONS_UNAVAILABLE";
+    throw error;
+  }
+  const playlistUrl = new URL(uri, pointer.url).href;
+  if (!isVimeoLivePlaylistUrl(playlistUrl)) throw new Error("Vimeo live caption playlist URL is invalid.");
+  return playlistUrl;
+}
+
+async function readVimeoLiveSegmentPlaylist(playlistUrl) {
+  const url = new URL(playlistUrl);
+  // Delta updates: only the last few segments instead of every segment since the event began.
+  url.searchParams.set("_HLS_skip", "YES");
+  return parseVimeoLiveSegmentPlaylist(await (await fetchVimeoLiveResource(url.href, "application/vnd.apple.mpegurl,*/*")).text());
+}
+
+// afterSequence: the last segment already read (null on the first read). gap: segments were missed
+// (AST was off, the tab slept), so the caller fills them from the caption file.
+export async function fetchVimeoLiveSegments({ hlsUrl, playlistUrl, afterSequence = null }) {
+  let resolvedUrl = isVimeoLivePlaylistUrl(playlistUrl) ? playlistUrl : await resolveVimeoLiveSubtitlePlaylist(hlsUrl);
+  let playlist;
+  try {
+    playlist = await readVimeoLiveSegmentPlaylist(resolvedUrl);
+  } catch (error) {
+    // The playlist link expires after about an hour; the HLS link hands out a new one.
+    if (resolvedUrl !== playlistUrl || ![401, 403, 404, 410].includes(error.status)) throw error;
+    resolvedUrl = await resolveVimeoLiveSubtitlePlaylist(hlsUrl);
+    playlist = await readVimeoLiveSegmentPlaylist(resolvedUrl);
+  }
+
+  const hasPrevious = Number.isInteger(afterSequence) && afterSequence >= 0;
+  const unread = hasPrevious
+    ? playlist.segments.filter((segment) => segment.sequence > afterSequence)
+    : playlist.segments.slice(-LIVE_SEGMENT_FIRST_READ_COUNT);
+  const selected = unread.slice(-LIVE_SEGMENT_MAX_READ_COUNT);
+  const gap = hasPrevious && selected.length > 0 && selected[0].sequence > afterSequence + 1;
+
+  const results = await Promise.allSettled(selected.map(async (segment) => {
+    const segmentUrl = new URL(segment.uri, resolvedUrl).href;
+    if (!isVimeoLiveSubtitleFileUrl(segmentUrl)) throw new Error("Vimeo live caption segment URL is invalid.");
+    const vtt = await (await fetchVimeoLiveResource(segmentUrl, "text/vtt,*/*")).text();
+    if (vtt.length > VIMEO_LIVE_TRANSCRIPT_MAX_CHARS) throw new Error("Vimeo live caption segment is too large.");
+    return parseVimeoLiveSubtitles(vtt, { offsetSeconds: getVimeoLiveSegmentOffset(vtt) });
+  }));
+  // Stop at the first segment that could not be read, so it is asked for again next time.
+  const cues = [];
+  let lastSequence = hasPrevious ? afterSequence : (selected[0]?.sequence ?? playlist.segments.at(-1)?.sequence ?? 0) - 1;
+  for (const [index, result] of results.entries()) {
+    if (result.status !== "fulfilled") break;
+    cues.push(...result.value);
+    lastSequence = selected[index].sequence;
+  }
+  if (!selected.length && playlist.segments.length && !hasPrevious) lastSequence = playlist.segments.at(-1).sequence;
+  return {
+    playlistUrl: resolvedUrl,
+    lastSequence,
+    targetDuration: playlist.targetDuration,
+    ended: playlist.ended,
+    gap,
+    cues
+  };
+}
+
 export const vimeoCaptionInternals = {
   isEnglishTrack,
   fetchText

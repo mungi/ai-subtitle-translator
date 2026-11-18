@@ -92,6 +92,8 @@ type SubtitleDocument = {
 | `captions.ted.listTracks` | content | background | TED HLS subtitle track 목록 수집 |
 | `captions.ted.fetchTranscript` | content | background | TED caption WebVTT 수집 |
 | `captions.vimeo.fetchTranscript` | content | background | NVIDIA Academy/Vimeo caption WebVTT 수집 |
+| `captions.vimeo.fetchLiveTranscript` | content | background | Vimeo 라이브 이벤트의 누적 WebVTT 수집(첫 로드, 빠진 구간 채우기) |
+| `captions.vimeo.fetchLiveSegments` | content | background | Vimeo 라이브 HLS 자막 세그먼트 중 새로 공개된 것 수집 |
 | `translation.translateDocument` | content | background | provider 번역 실행 |
 | `translation.progress` | background | content | chunk/cue 진행분 반영 |
 | `settings.getPublic` | content | background | API key가 제거된 공개 설정 조회 |
@@ -140,6 +142,8 @@ caption URL의 WebVTT를 받아 `parseWebVtt`로 cue를 생성합니다. 로그�
 ### NVIDIA Academy와 Vimeo
 
 `platforms/vimeo-captions.js`는 Vimeo 계열 player가 제공한 caption URL을 `captions.vimeo.com` 또는 `captions.cloud.vimeo.com` HTTPS host로 제한한 뒤 WebVTT를 읽습니다. NVIDIA Academy는 Vimeo player를 사용하는 강의 화면에서 같은 경로를 사용합니다.
+
+라이브 이벤트는 caption track 대신 player config의 `live_event.subtitleUrl`을 씁니다. `fetchVimeoLiveTranscript`는 이 주소를 `live-api.vimeocdn.com`의 `/sessions/<id>/playlist/subtitle.webvtt`로, 응답이 가리키는 파일을 `live*.vimeocdn.com`의 `.webvtt`/`.vtt`로 제한하고, 쿠키 없이 5MB까지 읽어 `live: true` 문서를 만듭니다. 실패하면 HTTP 상태를 함께 돌려줘 content script가 만료된 링크를 새로 받게 합니다. `fetchVimeoLiveSegments`는 config의 HLS 링크에서 자막 플레이리스트를 찾고, 마지막으로 읽은 세그먼트 뒤의 세그먼트를 읽어 MPEGTS 기준 시간으로 옮깁니다. 플레이리스트 링크가 만료되면 HLS 링크로 다시 찾습니다. 폴링, 새 줄 끼워 넣기, 재생 위치 기준 번역은 `content/content-script.js`의 live captions 구역이 맡습니다.
 
 ## 번역 계층
 

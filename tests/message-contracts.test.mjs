@@ -145,6 +145,29 @@ test("background message validation rejects incomplete platform requests", () =>
   });
 
   assert.deepEqual(validateBackgroundMessage({
+    type: "captions.vimeo.fetchLiveTranscript",
+    videoId: "event-6300761"
+  }), {
+    handled: true,
+    ok: false,
+    error: "subtitleUrl is required."
+  });
+  assert.deepEqual(validateBackgroundMessage({
+    type: "captions.vimeo.fetchLiveTranscript",
+    videoId: "event-6300761",
+    subtitleUrl: "https://live-api.vimeocdn.com/sessions/a/playlist/subtitle.webvtt",
+    sourceLanguage: "en"
+  }).ok, true);
+
+  assert.equal(validateBackgroundMessage({ type: "captions.vimeo.fetchLiveSegments", videoId: "event-1" }).error, "hlsUrl is required.");
+  assert.equal(validateBackgroundMessage({
+    type: "captions.vimeo.fetchLiveSegments", videoId: "event-1", hlsUrl: "https://live-api.vimeocdn.com/x", afterSequence: 1.5
+  }).error, "afterSequence must be an integer.");
+  assert.equal(validateBackgroundMessage({
+    type: "captions.vimeo.fetchLiveSegments", videoId: "event-1", hlsUrl: "https://live-api.vimeocdn.com/x", afterSequence: null
+  }).ok, true);
+
+  assert.deepEqual(validateBackgroundMessage({
     type: "captions.ted.listTracks",
     videoId: "485565"
   }), {
