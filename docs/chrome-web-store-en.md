@@ -53,6 +53,14 @@ See the introduction website's [LLM selection guide](https://mungi.github.io/ai-
   - If you have a DeepL API key, you can use DeepL for fast translation (Free or Pro plan).
 
 # Major Changes
+  [ v0.2.3 (2026-11-19) ]
+  - Added Vimeo live event subtitles, including live events embedded in other sites. Translation runs from the playback position, and moving back to an earlier part translates that part.
+  - Added YouTube Shorts support.
+  - Short subtitle lines now stay on screen for at least 2 seconds until the next line appears.
+  - The menu now scrolls instead of being cut off when the window is small.
+  - Added Hebrew as a target language and showed language codes in the language list.
+  - Changed the default reasoning for OpenAI and OpenRouter to low for less literal translations.
+
   [ v0.2.2 (2026-11-08) ]
   - Added support for 6 more sites.
   - Added a generic video player (technical preview): add a site from the toolbar popup to translate subtitles of standard HTML5 videos.
@@ -74,12 +82,6 @@ See the introduction website's [LLM selection guide](https://mungi.github.io/ai-
   - Phrase-based regrouping of auto-generated subtitles.
   - Translation status and progress in the player menu.
   - More reliable AI translation and new default models (gpt-6-luna, claude-haiku-5-5).
-
-  [ v0.1.4 (2026-10-28) ]
-  - Improved YouTube caption retrieval and synchronization, added source word progress highlighting, and hid AST subtitles during ads.
-  - Added dual, source, and translated subtitle modes, plus right-to-left support for Persian and Arabic.
-  - Improved video retranslation, retries after translation errors, and cancellation of previous requests when switching models.
-  - Improved font loading and Korean, English, and Japanese interface text and guidance.
 
   ※ For the change history of earlier versions, see GitHub Releases: https://github.com/mungi/ai-subtitle-translator/releases
 
