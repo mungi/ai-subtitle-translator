@@ -247,6 +247,29 @@ test("provider and translation-style mutations are serialized without losing eit
   await assert.rejects(setWordProgressHighlight("no"), /enabled must be a boolean/);
 });
 
+test("a Vimeo player frame is a Vimeo player on any site, except a background embed", async () => {
+  globalThis.chrome = {
+    runtime: { id: "test-extension", onMessage: { addListener() {} } },
+    storage: { local: { get: async () => ({}), set: async () => {}, setAccessLevel: async () => {} } }
+  };
+  const { dispatchBackgroundMessage } = await import("../extension/background/service-worker.js");
+  const context = (url, tabUrl) => {
+    let response;
+    dispatchBackgroundMessage({ type: "platform.vimeo.getContext" }, { url, tab: { id: 3, url: tabUrl } }, (value) => { response = value; });
+    return response;
+  };
+  const conference = "https://sc26.conference-program.com/session/?sess=sess151";
+  assert.deepEqual(context("https://player.vimeo.com/video/1145209543?h=abc", conference), { ok: true, platform: "vimeo", embedded: true });
+  assert.deepEqual(context("https://vimeo.com/event/6300761/embed/interaction", "https://events.example.com/"), { ok: true, platform: "vimeo", embedded: true });
+  // Decorative autoplaying loops are left alone.
+  assert.deepEqual(context("https://player.vimeo.com/video/1145209543?background=1&autoplay=1", conference), { ok: true, platform: null });
+  // On Vimeo itself and on NVIDIA Academy nothing changes.
+  assert.deepEqual(context("https://player.vimeo.com/video/1", "https://vimeo.com/1"), { ok: true, platform: "vimeo", embedded: false });
+  assert.deepEqual(context("https://player.vimeo.com/video/1", "https://www.nvidia.com/en-us/training/academy/course-player/"), { ok: true, platform: "nvidia", embedded: false });
+  // A frame that is not Vimeo's player stays unsupported.
+  assert.deepEqual(context("https://ads.example.com/frame", conference), { ok: true, platform: null });
+});
+
 test("a summary uses the style picked in the player menu and remembers it", async () => {
   let llmSettings = {
     activeProvider: "local",

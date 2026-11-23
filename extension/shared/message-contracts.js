@@ -194,6 +194,20 @@ function isVimeoPageUrl(value) {
   }
 }
 
+// Vimeo's own player frames: a video (player.vimeo.com/video/<id>) or a live event embed
+// (vimeo.com/event/<id>/embed). Sites embed them anywhere, and the frame address comes from Chrome,
+// so the page around it cannot pose as one.
+export function isVimeoPlayerFrameUrl(value) {
+  try {
+    const url = new URL(String(value || ""));
+    if (url.protocol !== "https:") return false;
+    if (url.hostname === "player.vimeo.com") return /^\/video\/\d+\/?$/.test(url.pathname);
+    return ["vimeo.com", "www.vimeo.com"].includes(url.hostname) && /^\/event\/\d+\/embed(?:\/|$)/.test(url.pathname);
+  } catch {
+    return false;
+  }
+}
+
 function isOreillyVideoPageUrl(value) {
   try {
     const url = new URL(String(value || ""));
@@ -222,6 +236,7 @@ function isSupportedContentUrl(value, tabUrl) {
     if (url.hostname === "www.nvidia.com" && /^\/[a-z]{2}-[a-z]{2}\/on-demand\/session\//i.test(url.pathname)) return true;
     if (isNvidiaAcademyCourseUrl(url.href)) return true;
     if (isVimeoPageUrl(url.href) && isVimeoPageUrl(tabUrl)) return true;
+    if (isVimeoPlayerFrameUrl(url.href)) return true;
     return url.hostname === "player.vimeo.com"
       && (isNvidiaAcademyCourseUrl(tabUrl) || isVimeoPageUrl(tabUrl));
   } catch {

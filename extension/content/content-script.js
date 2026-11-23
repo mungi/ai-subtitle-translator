@@ -6722,9 +6722,15 @@ async function isNvidiaAcademyVimeoFrame() {
   return Boolean(response?.ok && response.isNvidiaCoursePlayer);
 }
 
+// A player embedded in another site this small is a thumbnail or a decoration, not one to translate.
+const VIMEO_EMBED_MIN_WIDTH = 240;
+const VIMEO_EMBED_MIN_HEIGHT = 135;
+
 async function getVimeoPlayerPlatform() {
   const response = await sendRuntimeMessage({ type: "platform.vimeo.getContext" });
-  return response?.ok && isVimeoPlatform(response.platform) ? response.platform : null;
+  if (!response?.ok || !isVimeoPlatform(response.platform)) return null;
+  if (response.embedded && (globalThis.innerWidth < VIMEO_EMBED_MIN_WIDTH || globalThis.innerHeight < VIMEO_EMBED_MIN_HEIGHT)) return null;
+  return response.platform;
 }
 
 async function initializeContentScript() {

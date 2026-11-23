@@ -151,7 +151,7 @@ test("background message sender validation separates extension pages and content
   assert.deepEqual(messageContracts.validateMessageSender(
     { type: "captions.ted.fetchTranscript" }, tedSender, "extension-id"
   ), { ok: true });
-  // A live event page on vimeo.com, and one embedded in a site the user added for the generic player.
+  // A live event page on vimeo.com, and one embedded in any other site.
   const vimeoEventSender = {
     id: "extension-id",
     url: "https://vimeo.com/event/6300761/embed/interaction?muted=1",
@@ -163,17 +163,23 @@ test("background message sender validation separates extension pages and content
   const embeddedEventSender = { ...vimeoEventSender, tab: { id: 7, url: "https://events.example.com/session?id=1" } };
   assert.deepEqual(messageContracts.validateMessageSender(
     { type: "captions.vimeo.fetchLiveTranscript" }, embeddedEventSender, "extension-id"
-  ), { ok: false, error: "Message is restricted to supported content scripts." });
-  assert.deepEqual(messageContracts.validateMessageSender(
-    { type: "captions.vimeo.fetchLiveTranscript" }, embeddedEventSender, "extension-id",
-    { genericState: { enabled: true, allowedHosts: ["events.example.com"] } }
   ), { ok: true });
+  // A Vimeo player embedded in any site (a conference page) works without adding the site.
   assert.deepEqual(messageContracts.validateMessageSender(
     { type: "captions.vimeo.fetchTranscript" }, {
       ...nvidiaVimeoSender,
-      tab: { ...nvidiaVimeoSender.tab, url: "https://example.com/embed/video" }
+      tab: { ...nvidiaVimeoSender.tab, url: "https://sc26.conference-program.com/session/?sess=sess151" }
     }, "extension-id"
-  ), { ok: false, error: "Message is restricted to supported content scripts." });
+  ), { ok: true });
+  // Only Vimeo's player frames count: another page of vimeo.com framed elsewhere, or a look-alike, does not.
+  for (const url of ["https://vimeo.com/1191467672", "https://player.vimeo.com/api/player.js", "https://player.vimeo.com.example.com/video/1"]) {
+    assert.deepEqual(messageContracts.validateMessageSender(
+      { type: "captions.vimeo.fetchTranscript" }, { ...nvidiaVimeoSender, url, tab: { id: 8, url: "https://example.com/embed/video" } }, "extension-id"
+    ), { ok: false, error: "Message is restricted to supported content scripts." }, url);
+  }
+  assert.equal(messageContracts.isVimeoPlayerFrameUrl("https://player.vimeo.com/video/76979871?h=abc"), true);
+  assert.equal(messageContracts.isVimeoPlayerFrameUrl("https://vimeo.com/event/6300761/embed"), true);
+  assert.equal(messageContracts.isVimeoPlayerFrameUrl("http://player.vimeo.com/video/76979871"), false);
 });
 
 test("hosted provider requests reject non-provider origins", () => {

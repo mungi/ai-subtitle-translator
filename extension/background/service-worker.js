@@ -1,7 +1,7 @@
 import { classifyProviderLimit, providerRetryDelay } from "../shared/provider-limits.js";
 import { getPublicSettings, getSettings, restrictLocalStorageAccess, saveSettings, updateSubtitleStyleSettings } from "../shared/storage.js";
 import { getSummaryStyleSystemPrompt, normalizeSummaryStyle, SUMMARY_STYLES, TARGET_LANGUAGES, TRANSLATION_STYLES } from "../shared/defaults.js";
-import { validateBackgroundMessage, validateMessageSender } from "../shared/message-contracts.js";
+import { isVimeoPlayerFrameUrl, validateBackgroundMessage, validateMessageSender } from "../shared/message-contracts.js";
 import { buildGenericProbeMatches, GENERIC_EXCLUDE_MATCHES, getHostname, GENERIC_PLATFORM_ID, isGenericEligibleUrl, isHostListed, normalizeGenericHost, normalizeGenericHosts } from "../shared/platform-urls.js";
 import { fetchGenericTranscript, listGenericHlsTracks, parseGenericTranscript } from "../platforms/generic-captions.js";
 import { ANTHROPIC_DIRECT_BROWSER_ACCESS_HEADER, buildProviderRequest, createReasoningProfile, extractText, getReasoningProbeModes, isReasoningOptionError } from "../shared/provider-request.js";
@@ -176,6 +176,27 @@ const genericStateReady = (async () => {
     console.warn("[AST] Could not prepare the generic video player:", error?.message || error);
   }
 })();
+
+// What a Vimeo player frame is: the NVIDIA Academy player, a player on Vimeo itself, or a player
+// embedded in any other site (a conference page), which works without adding that site. Background
+// embeds (muted autoplaying loops used as decoration) are left alone.
+function getVimeoFrameContext(sender) {
+  const tabUrl = String(sender?.tab?.url || "");
+  const frameUrl = String(sender?.url || tabUrl);
+  if (/^https:\/\/www\.nvidia\.com\/[^?#]*\/training\/academy\/course-player\/?(?:[?#]|$)/i.test(tabUrl)) {
+    return { platform: "nvidia", embedded: false };
+  }
+  if (/^https:\/\/(?:www\.)?vimeo\.com\/|^https:\/\/player\.vimeo\.com\//i.test(tabUrl)) {
+    return { platform: "vimeo", embedded: false };
+  }
+  if (isVimeoPlayerFrameUrl(frameUrl)) {
+    return new URL(frameUrl).searchParams.get("background") === "1"
+      ? { platform: null }
+      : { platform: "vimeo", embedded: true };
+  }
+  // Other Vimeo frames still work on a site the user added for the generic player.
+  return isGenericTabAllowed(tabUrl) ? { platform: "vimeo", embedded: true } : { platform: null };
+}
 
 function isGenericTabAllowed(tabUrl) {
   return genericState.enabled
@@ -1086,14 +1107,7 @@ export function dispatchBackgroundMessage(message, sender, sendResponse) {
   }
 
   if (message?.type === "platform.vimeo.getContext") {
-    const tabUrl = String(sender.tab?.url || "");
-    const platform = /^https:\/\/www\.nvidia\.com\/[^?#]*\/training\/academy\/course-player\/?(?:[?#]|$)/i.test(tabUrl)
-      ? "nvidia"
-      : /^https:\/\/(?:www\.)?vimeo\.com\/|^https:\/\/player\.vimeo\.com\//i.test(tabUrl)
-        ? "vimeo"
-        // A Vimeo player embedded in another site works there too once the generic player is on.
-        : isGenericTabAllowed(tabUrl) ? "vimeo" : null;
-    sendResponse({ ok: true, platform });
+    sendResponse({ ok: true, ...getVimeoFrameContext(sender) });
     return false;
   }
 

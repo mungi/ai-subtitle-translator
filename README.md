@@ -11,7 +11,8 @@ Chrome 102 or later is required.
 ## Key features
 
 - Collects subtitles from Udemy, YouTube, TED, NVIDIA Academy, Vimeo, Coursera, LinkedIn Learning, O'Reilly, NVIDIA On-Demand, DeepLearning.AI, and edX and displays the original or translated subtitles.
-- For Vimeo live events (`vimeo.com/event`, including ones embedded in other sites), fetches the captions that grow during the broadcast again every few seconds and keeps translating them. Translation runs forward from the playback position, and moving back to an earlier part translates that part. As with recorded Vimeo videos, a live event embedded in another site needs that site on the generic player list.
+- For Vimeo live events (`vimeo.com/event`, including ones embedded in other sites), fetches the captions that grow during the broadcast again every few seconds and keeps translating them. Translation runs forward from the playback position, and moving back to an earlier part translates that part.
+- Vimeo players embedded in other sites (such as conference pages), both recorded videos and live events, work right away without adding the site to the generic player list. Decorative background videos (`background=1`) and very small players are skipped.
 - Generic video player (Technical Preview): also finds and translates captions for HTML5 videos on other websites (`<track>` files, the player's caption tracks, and HLS subtitles). It is on by default but works only on sites you add to the generic player list with "Add" in the toolbar popup on a video page; listed sites show "Remove" in the same place.
 - Lets you choose a source subtitle language and translation style directly from the AST menu.
 - On YouTube, prioritizes native player caption responses and changes source words from dark gray to the configured text color as speech progresses. When word timing is unavailable, progress is estimated from cue timing. Translations use cue-level display, and AST subtitles are hidden during ads.
