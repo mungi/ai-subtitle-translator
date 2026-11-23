@@ -53,6 +53,12 @@ See the introduction website's [LLM selection guide](https://mungi.github.io/ai-
   - If you have a DeepL API key, you can use DeepL for fast translation (Free or Pro plan).
 
 # Major Changes
+  [ v0.2.4 (2026-11-24) ]
+  - Added summary styles (Brief, Detailed, Custom); large-context models summarize long videos in one request.
+  - Vimeo players embedded in other sites now work without adding the site.
+  - Translated subtitles now break at full stops and commas, with short fragments merged.
+  - Also: a second Custom LLM, and better generic player caption detection, retranslation, and rate-limit handling.
+
   [ v0.2.3 (2026-11-19) ]
   - Added Vimeo live event subtitles, including live events embedded in other sites. Translation runs from the playback position, and moving back to an earlier part translates that part.
   - Added YouTube Shorts support.
@@ -73,15 +79,6 @@ See the introduction website's [LLM selection guide](https://mungi.github.io/ai-
   - Richer player menu: model names and a word highlight on/off switch (YouTube).
   - Shows when YouTube auto-translation is in use (default).
   - Temporary translation now always uses Google Translate.
-
-  [ v0.2.0 (2026-11-01) ]
-  ※ Site access now covers all sites. Chrome pauses the extension after this update until you approve the new permission on the extensions page. (See "Permissions" below.)
-  - Dual subtitles are now the default, with separate fonts and a top/bottom position option.
-  - UX fixes for video switching, Shorts, long videos, and retranslation; fewer pop-ups.
-  - Prefer YouTube's own subtitles or auto-translation when available.
-  - Phrase-based regrouping of auto-generated subtitles.
-  - Translation status and progress in the player menu.
-  - More reliable AI translation and new default models (gpt-6-luna, claude-haiku-5-5).
 
   ※ For the change history of earlier versions, see GitHub Releases: https://github.com/mungi/ai-subtitle-translator/releases
 
