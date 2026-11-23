@@ -4,6 +4,7 @@ import {
   fitMaxTokensToContext,
   fitSummaryPartChars,
   getContextLength,
+  getHostedContextLength,
   getServerRootUrl,
   parseLmStudioModelsContext,
   parseOllamaShowContext,
@@ -73,4 +74,25 @@ test("summary parts shrink to about half of a small context", () => {
   assert.equal(fitSummaryPartChars(withContext(131072), 20000), 20000);
   assert.equal(fitSummaryPartChars(withContext(8192), 20000), Math.floor(8192 * 0.45 * 1.5));
   assert.equal(fitSummaryPartChars(withContext(1024), 20000), 1000);
+});
+
+test("hosted models with a large context get larger summary parts; unknown models keep the default", () => {
+  const hosted = (id, model) => ({ id, model });
+  assert.equal(getHostedContextLength(hosted("google", "gemini-3.1-flash-lite")), 1000000);
+  assert.equal(getHostedContextLength(hosted("anthropic", "claude-haiku-5-5")), 200000);
+  assert.equal(getHostedContextLength(hosted("openai", "gpt-6-luna")), 400000);
+  assert.equal(getHostedContextLength(hosted("openai", "gpt-4.1-mini")), 1000000);
+  assert.equal(getHostedContextLength(hosted("openai", "gpt-4o-mini")), 128000);
+  assert.equal(getHostedContextLength(hosted("openrouter", "google/gemini-3.5-flash-lite")), 1000000);
+  assert.equal(getHostedContextLength(hosted("openrouter", "deepseek/deepseek-v4-flash:nitro")), 128000);
+  assert.equal(getHostedContextLength(hosted("nvidiaNim", "openai/gpt-oss-120b")), 128000);
+  assert.equal(getHostedContextLength(hosted("openrouter", "qwen/qwen3-8b")), null);
+  assert.equal(getHostedContextLength(hosted("openai", "gpt-3.5-turbo")), null);
+  // A Custom LLM's size comes only from detection.
+  assert.equal(getHostedContextLength(hosted("local", "gemini-3.1-flash-lite")), null);
+
+  assert.equal(fitSummaryPartChars(hosted("anthropic", "claude-haiku-5-5"), 20000), Math.floor(200000 * 0.45 * 1.5));
+  assert.equal(fitSummaryPartChars(hosted("openai", "gpt-4o"), 20000), Math.floor(128000 * 0.45 * 1.5));
+  assert.equal(fitSummaryPartChars(hosted("google", "gemini-3.1-flash-lite"), 20000), 300000);
+  assert.equal(fitSummaryPartChars(hosted("openrouter", "qwen/qwen3-8b"), 20000), 20000);
 });

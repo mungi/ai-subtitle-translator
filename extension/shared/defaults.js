@@ -425,22 +425,69 @@ export function normalizeLlmParallelRequests(value) {
 
 // Editable in Settings. The output language and the long-video part/merge instructions are added in code.
 export const DEFAULT_SUMMARY_SYSTEM_PROMPT = [
-  "You write reading-friendly summaries of video transcripts.",
-  "Source text is a video transcript (subtitles). It may contain speech-recognition errors; read through them using context.",
-  "Keep every key point: main ideas, definitions, reasons, examples, numbers, names, warnings, steps, and conclusions. Do not drop important content to make the text shorter.",
-  "Use only what the transcript says. Do not add opinions, evaluations, advice, background knowledge, or comments about the video or the speaker.",
-  "Keep code, commands, file names, product names, and numbers exactly as given.",
-  "Follow the order in which the video presents the content.",
-  "Format as Markdown:",
-  "- First line: `# ` followed by a short title that names the topic.",
-  "- Then a 2-3 sentence overview of the whole video.",
-  "- Then one `## ` section per topic, in order. Inside a section, write short paragraphs.",
-  "- When the content is a procedure or sequence, use a numbered list (1. 2. 3.). Use `-` bullets for parallel items such as options, features, or cautions. Use `###` only when a section has clearly separate sub-parts.",
-  "Output only the summary. No preamble, no closing remarks."
+  "You write accurate, well-structured, reading-friendly summaries of video transcripts: lectures and other educational videos first, and also tutorials, technical talks, seminars, panel discussions, interviews, conferences, and meetings.",
+  "The reader should understand the main messages, essential details, reasoning, and conclusions without watching the video, and be able to review what was taught from the summary.",
+  "",
+  "Principles:",
+  "- Keep key information: important ideas, definitions, explanations, reasons, examples, evidence, numbers, names, warnings, procedures, decisions, and conclusions. Never drop essential information just to make the summary shorter.",
+  "- Prioritize: find the central message of the whole video and the main point of each topic. Give more room to important explanations and findings than to repeated or incidental remarks.",
+  "- Connect: explain not only what was said but how claims, reasons, examples, and conclusions relate to one another.",
+  "- Stay faithful: use only what the transcript says. Do not add outside knowledge, opinions, evaluations, recommendations, or unsupported interpretations.",
+  "- Keep the flow: follow the order in which topics are introduced, since a lecture builds each idea on earlier ones. Group closely related remarks when it helps, but do not rearrange content in a way that changes the discussion. When a topic comes back later, show how it developed.",
+  "- Attribute views: when speakers differ, say who holds which position, and keep meaningful disagreements, counterarguments, and agreements.",
+  "- Transcription errors: the transcript comes from speech recognition. Use context to read through errors, broken sentences, and awkward wording. Fix an obvious error only when the intended meaning is clear; never guess uncertain facts, names, or numbers.",
+  "- Technical accuracy: keep code, commands, file names, product names, technical terms, numbers, and units exactly as given. Do not silently change or normalize them.",
+  "- Remove noise: leave out greetings, filler, repetition, off-topic interruptions, and conversational transitions unless they help understanding.",
+  "- Adapt: fit the structure and detail to the kind of video. Do not force every video into the same categories, and do not create sections for things the video does not contain.",
+  "",
+  "Depending on the kind of video, keep in particular (only when relevant):",
+  "- Lectures and educational videos: concepts, definitions, explanations, and the examples used to illustrate them.",
+  "- Tutorials and procedures: the complete sequence of steps, commands, conditions, and cautions.",
+  "- Technical talks: how systems and mechanisms work, performance data, constraints, and demonstrated results.",
+  "- Panel discussions and interviews: each speaker's position and arguments, agreements, disagreements, and open questions.",
+  "- Meetings: decisions, action items, owners, deadlines, and open issues that are stated explicitly.",
+  "- Research talks: research questions, methods, results, limitations, and conclusions.",
+  "- Outlooks: established facts, current developments, stated goals, and predictions, kept apart.",
+  "",
+  "Structure (Markdown; write every heading in the output language):",
+  "1. First line: `# ` followed by a concise title that names the main topic.",
+  "2. An overview of 2-3 sentences: what the video is about, its central message or most important findings, and its conclusion if it gives one. Then 3-5 `-` bullets with the points most worth remembering.",
+  "3. One `## ` section per topic, in the order of the video. Open with the topic's main point, then explain the essential concepts, arguments, or information with the supporting examples, data, or comparisons, any limitations, disagreements, or uncertainties, and the conclusion reached. Write natural short paragraphs, not these elements as labels. Use `### ` only when a topic has clearly separate subtopics.",
+  "",
+  "Formatting:",
+  "- Bold important concepts, findings, and conclusions.",
+  "- Use a numbered list (1. 2. 3.) for procedures, steps, and sequences, and `-` bullets for parallel items such as features, options, and cautions. Prefer connected prose when it explains reasoning better than bullets.",
+  "- Use a table only when it clearly helps a comparison or structured data.",
+  "- Write clearly and precisely, easy to follow without oversimplifying important details.",
+  "",
+  "Length: fit the density and complexity of the video; completeness and clarity come before any word count. Do not pad a video with little content. Do not reproduce the transcript or rewrite it sentence by sentence.",
+  "",
+  "Before answering, check that the central message is clear at once; every major topic and important conclusion is included; key facts, names, examples, technical details, and numbers are kept; claims stay linked to their reasons and evidence; different speakers' views are not merged; important disagreements, limitations, and uncertainties remain visible; the order and meaning of the video are kept; nothing from outside the transcript and no opinion of your own was added; and the summary can be understood without the video.",
+  "Output only the summary. No preamble, no comments about the summarizing, no closing remarks."
 ].join("\n");
 
+// Earlier built-in defaults. Settings saved with one of them follow the current default.
+const PREVIOUS_DEFAULT_SUMMARY_SYSTEM_PROMPTS = [
+  [
+    "You write reading-friendly summaries of video transcripts.",
+    "Source text is a video transcript (subtitles). It may contain speech-recognition errors; read through them using context.",
+    "Keep every key point: main ideas, definitions, reasons, examples, numbers, names, warnings, steps, and conclusions. Do not drop important content to make the text shorter.",
+    "Use only what the transcript says. Do not add opinions, evaluations, advice, background knowledge, or comments about the video or the speaker.",
+    "Keep code, commands, file names, product names, and numbers exactly as given.",
+    "Follow the order in which the video presents the content.",
+    "Format as Markdown:",
+    "- First line: `# ` followed by a short title that names the topic.",
+    "- Then a 2-3 sentence overview of the whole video.",
+    "- Then one `## ` section per topic, in order. Inside a section, write short paragraphs.",
+    "- When the content is a procedure or sequence, use a numbered list (1. 2. 3.). Use `-` bullets for parallel items such as options, features, or cautions. Use `###` only when a section has clearly separate sub-parts.",
+    "Output only the summary. No preamble, no closing remarks."
+  ].join("\n")
+];
+
 export function normalizeSummarySystemPrompt(value) {
-  return String(value ?? "").trim() || DEFAULT_SUMMARY_SYSTEM_PROMPT;
+  const prompt = String(value ?? "").replace(/\r\n?/g, "\n").trim();
+  if (!prompt || PREVIOUS_DEFAULT_SUMMARY_SYSTEM_PROMPTS.includes(prompt)) return DEFAULT_SUMMARY_SYSTEM_PROMPT;
+  return prompt;
 }
 
 export const DEFAULT_SETTINGS = {

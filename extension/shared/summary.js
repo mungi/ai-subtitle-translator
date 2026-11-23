@@ -11,6 +11,15 @@ const SUMMARY_FINAL_MAX_TOKENS = 8192;
 const SUMMARY_RETRY_MAX_ATTEMPTS = 4;
 const SUMMARY_RETRY_BASE_DELAY_MS = 2000;
 const SUMMARY_RETRY_STATUS_CODES = new Set([408, 429, 500, 502, 503, 504, 529]);
+// Wording vendors use when one request is larger than the model's context or the account's
+// per-minute token limit (OpenAI, Anthropic, Google, OpenRouter). Sending it again cannot succeed.
+const REQUEST_TOO_LARGE_PATTERN = /context (?:length|window)|too (?:long|large)|exceeds? (?:the )?(?:maximum|max|limit|context)|maximum (?:number of )?tokens|input token count|tokens per min|input tokens per minute/i;
+
+export function isRequestTooLargeError(error) {
+  const status = Number(error?.status);
+  if (status === 413) return true;
+  return (status === 400 || status === 429) && REQUEST_TOO_LARGE_PATTERN.test(String(error?.message || ""));
+}
 
 function languageInstruction(languageName) {
   return `Write in ${languageName || "the transcript's language"}. Keep technical terms in their original form when that is clearer.`;
@@ -88,7 +97,7 @@ async function fetchProviderText(provider, request, signal) {
   return extractText(provider, body);
 }
 
-async function requestSummaryText(provider, { systemPrompt, input, maxTokens }, { fetchText = fetchProviderText, signal, waitFor = wait } = {}) {
+async function requestSummaryText(provider, { systemPrompt, input, maxTokens }, { fetchText = fetchProviderText, signal, waitFor = wait, canShrink = false } = {}) {
   // A provider set to a smaller output limit keeps its own limit only when it is larger.
   const tokens = Math.max(Number(provider.maxTokens) || 0, maxTokens);
   for (let attempt = 1; ; attempt += 1) {
@@ -100,6 +109,8 @@ async function requestSummaryText(provider, { systemPrompt, input, maxTokens }, 
       return text;
     } catch (error) {
       throwIfAborted(signal);
+      // The summary starts over with smaller parts instead of waiting on the same request.
+      if (canShrink && isRequestTooLargeError(error)) throw error;
       const status = Number(error?.status);
       const retryable = SUMMARY_RETRY_STATUS_CODES.has(status) || (!Number.isFinite(status) && error?.name === "TypeError");
       if (!retryable || attempt >= SUMMARY_RETRY_MAX_ATTEMPTS) throw error;
@@ -113,16 +124,37 @@ export function isSummaryProvider(provider) {
 }
 
 // onProgress receives { step, total }: total is the number of model calls the summary needs.
-export async function summarizeTranscript({ text, title = "", languageName = "", systemPrompt }, {
+export async function summarizeTranscript(input, {
   provider,
-  onProgress,
-  signal,
-  // A Custom LLM with a detected small context gets smaller parts.
+  // A Custom LLM with a detected small context gets smaller parts; a hosted model with a large
+  // context gets larger ones.
   maxPartChars = fitSummaryPartChars(provider, SUMMARY_PART_MAX_CHARS),
-  ...requestOptions
+  ...options
 } = {}) {
   if (!isSummaryProvider(provider)) throw new Error("Summaries need an LLM provider.");
   assertProviderEndpoint(provider);
+  let partChars = maxPartChars;
+  for (;;) {
+    const canShrink = partChars > SUMMARY_PART_MAX_CHARS;
+    try {
+      return await summarizeInParts(input, partChars, { ...options, provider, canShrink });
+    } catch (error) {
+      if (!canShrink || !isRequestTooLargeError(error)) throw error;
+      throwIfAborted(options.signal);
+      // Too large for the model or the account: halve what was actually sent, down to the default size.
+      // A little slack keeps a split on line breaks from leaving a tiny extra part.
+      const sent = Math.min(partChars, String(input?.text ?? "").length);
+      partChars = Math.max(SUMMARY_PART_MAX_CHARS, Math.ceil(sent * 0.525));
+    }
+  }
+}
+
+async function summarizeInParts({ text, title = "", languageName = "", systemPrompt }, maxPartChars, {
+  provider,
+  onProgress,
+  signal,
+  ...requestOptions
+}) {
   const parts = splitTranscript(text, maxPartChars);
   if (parts.length === 0) throw new Error("There is no transcript to summarize.");
   const titleLine = title ? `Video title: ${title}\n\n` : "";

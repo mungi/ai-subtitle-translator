@@ -137,10 +137,42 @@ export function fitMaxTokensToContext(provider, maxTokens, promptText) {
   return Math.min(maxTokens, Math.max(MIN_OUTPUT_TOKENS, room));
 }
 
+// Context windows (tokens) of hosted models, from the vendors' model docs. Only families whose whole
+// line-up has at least this much are listed; anything else keeps the small default part size.
+const HOSTED_CONTEXT_RULES = [
+  { providers: ["google"], pattern: /^(?:models\/)?gemini-/i, tokens: 1000000 },
+  { providers: ["openai"], pattern: /^gpt-4\.1(?:-|$)/i, tokens: 1000000 },
+  { providers: ["openai"], pattern: /^gpt-(?:[5-9]|\d{2,})(?:[.-]|$)/i, tokens: 400000 },
+  { providers: ["openai"], pattern: /^(?:o[1-9]|gpt-4o)(?:-|$)/i, tokens: 128000 },
+  { providers: ["anthropic"], pattern: /^claude-/i, tokens: 200000 },
+  { providers: ["openrouter"], pattern: /^google\/gemini-/i, tokens: 1000000 },
+  { providers: ["openrouter"], pattern: /^openai\/gpt-4\.1(?:-|$)/i, tokens: 1000000 },
+  { providers: ["openrouter"], pattern: /^openai\/gpt-(?:[5-9]|\d{2,})(?:[.-]|$)/i, tokens: 400000 },
+  { providers: ["openrouter"], pattern: /^anthropic\/claude-/i, tokens: 200000 },
+  { providers: ["openrouter"], pattern: /^deepseek\/deepseek-/i, tokens: 128000 },
+  { providers: ["openrouter", "nvidiaNim"], pattern: /^openai\/gpt-oss-/i, tokens: 128000 }
+];
+// Even a 1M-token model gets at most this much per request (several hours of speech), so one request
+// does not run for minutes; a longer transcript is still split.
+const HOSTED_SUMMARY_PART_MAX_CHARS = 300000;
+
+export function getHostedContextLength(provider) {
+  if (!provider || isCustomLlmProviderId(provider.id)) return null;
+  const model = String(provider.model || "").trim();
+  const rule = HOSTED_CONTEXT_RULES.find((item) => item.providers.includes(provider.id) && item.pattern.test(model));
+  return rule ? rule.tokens : null;
+}
+
 // Largest transcript part (in characters) for one summary request: about half the context for the
-// input, leaving the rest for the prompt and the reply.
+// input, leaving the rest for the prompt and the reply. A Custom LLM with a detected small context
+// gets smaller parts; a hosted model with a large context gets larger ones, so a long video needs
+// fewer requests.
 export function fitSummaryPartChars(provider, defaultChars) {
   const contextLength = getContextLength(provider);
-  if (!contextLength) return defaultChars;
-  return Math.max(1000, Math.min(defaultChars, Math.floor(contextLength * 0.45 * CHARS_PER_TOKEN)));
+  if (contextLength) {
+    return Math.max(1000, Math.min(defaultChars, Math.floor(contextLength * 0.45 * CHARS_PER_TOKEN)));
+  }
+  const hostedLength = getHostedContextLength(provider);
+  if (!hostedLength) return defaultChars;
+  return Math.max(defaultChars, Math.min(HOSTED_SUMMARY_PART_MAX_CHARS, Math.floor(hostedLength * 0.45 * CHARS_PER_TOKEN)));
 }
