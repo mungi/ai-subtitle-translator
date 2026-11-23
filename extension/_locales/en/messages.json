@@ -439,13 +439,25 @@
     "message": "Subtitle summary"
   },
   "summarySettingsDescription": {
-    "message": "This prompt is used by Download subtitles → Summary in the player menu. Instructions for the target language and for summarizing long videos in parts are added automatically.\nSummaries are available only when an LLM provider is selected."
+    "message": "Pick a style in Download subtitles → Summary in the player menu. Brief gives slide-ready bullet points, Detailed a structured, lecture-focused summary, and Custom uses the prompt below, which you can edit. Instructions for the target language and for summarizing long videos in parts are added automatically.\nSummaries are available only when an LLM provider is selected."
   },
   "summarySystemPrompt": {
     "message": "Summary system prompt"
   },
+  "summaryStyle": {
+    "message": "Summary style"
+  },
+  "summaryStyleBrief": {
+    "message": "Brief"
+  },
+  "summaryStyleDetailed": {
+    "message": "Detailed"
+  },
+  "summaryStyleCustom": {
+    "message": "Custom"
+  },
   "resetSummaryConfirm": {
-    "message": "The summary system prompt will return to its default. Continue?"
+    "message": "The summary style and the Custom prompt will return to their defaults. Continue?"
   },
   "resetSubtitleStyleConfirm": {
     "message": "Subtitle style settings will be reset to their defaults. Do you want to continue?"

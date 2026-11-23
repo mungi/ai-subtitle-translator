@@ -1,4 +1,4 @@
-import { buildDefaultCustom2StyleSystemPrompt, buildDefaultCustomStyleSystemPrompt, DEFAULT_SETTINGS, extractStyleSystemPrompt, getTargetLanguageLabel, normalizeCustomStyleLabel, normalizeLlmParallelRequests, normalizeSummarySystemPrompt, PROVIDERS, TARGET_LANGUAGES, WEB_FONT_PRESETS } from "./defaults.js";
+import { buildDefaultCustom2StyleSystemPrompt, buildDefaultCustomStyleSystemPrompt, DEFAULT_SETTINGS, DEFAULT_SUMMARY_SYSTEM_PROMPT, extractStyleSystemPrompt, getTargetLanguageLabel, normalizeCustomStyleLabel, normalizeLlmParallelRequests, normalizeSummaryStyle, normalizeSummarySystemPrompt, PROVIDERS, TARGET_LANGUAGES, WEB_FONT_PRESETS } from "./defaults.js";
 import { clearEncryptedProviderSecrets, readEncryptedProviderSecrets, writeEncryptedProviderSecrets } from "./secret-storage.js";
 import { normalizeGenericHosts } from "./platform-urls.js";
 import { CUSTOM_HEADER_SECRET_SUFFIX, isCustomLlmProviderId, normalizeCustomHeaders, normalizeJsonMode, normalizeReasoningEffort } from "./custom-llm-options.js";
@@ -183,6 +183,9 @@ export function normalizeSettings(settings = {}) {
     wordProgressHighlight: settings.wordProgressHighlight !== false,
     customSystemPrompt: extractStyleSystemPrompt(settings.customSystemPrompt || defaults.customSystemPrompt || buildDefaultCustomStyleSystemPrompt(targetLanguage)),
     custom2SystemPrompt: extractStyleSystemPrompt(settings.custom2SystemPrompt || defaults.custom2SystemPrompt || buildDefaultCustom2StyleSystemPrompt()),
+    // Settings saved before summary styles existed: an edited prompt keeps being used as Custom.
+    summaryStyle: normalizeSummaryStyle(settings.summaryStyle,
+      normalizeSummarySystemPrompt(settings.summarySystemPrompt) === DEFAULT_SUMMARY_SYSTEM_PROMPT ? defaults.summaryStyle : "custom"),
     summarySystemPrompt: normalizeSummarySystemPrompt(settings.summarySystemPrompt),
     customStyleLabel: normalizeCustomStyleLabel(settings.customStyleLabel, defaults.customStyleLabel),
     custom2StyleLabel: normalizeCustomStyleLabel(settings.custom2StyleLabel, defaults.custom2StyleLabel)

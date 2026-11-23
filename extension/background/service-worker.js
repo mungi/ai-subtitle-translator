@@ -1,6 +1,6 @@
 import { classifyProviderLimit, providerRetryDelay } from "../shared/provider-limits.js";
 import { getPublicSettings, getSettings, restrictLocalStorageAccess, saveSettings, updateSubtitleStyleSettings } from "../shared/storage.js";
-import { TARGET_LANGUAGES, TRANSLATION_STYLES } from "../shared/defaults.js";
+import { getSummaryStyleSystemPrompt, normalizeSummaryStyle, SUMMARY_STYLES, TARGET_LANGUAGES, TRANSLATION_STYLES } from "../shared/defaults.js";
 import { validateBackgroundMessage, validateMessageSender } from "../shared/message-contracts.js";
 import { buildGenericProbeMatches, GENERIC_EXCLUDE_MATCHES, getHostname, GENERIC_PLATFORM_ID, isGenericEligibleUrl, isHostListed, normalizeGenericHost, normalizeGenericHosts } from "../shared/platform-urls.js";
 import { fetchGenericTranscript, listGenericHlsTracks, parseGenericTranscript } from "../platforms/generic-captions.js";
@@ -664,18 +664,36 @@ export function buildYoutubeTranscriptErrorResponse(error) {
   return response;
 }
 
-// Summarizes the transcript the content script sends, in the target language, with the active LLM.
+// The style picked in the player menu becomes the one shown as selected there and in Settings.
+export function setSummaryStyle(summaryStyle) {
+  if (!SUMMARY_STYLES.some((style) => style.id === summaryStyle)) {
+    return Promise.reject(new Error(`Unsupported summary style: ${summaryStyle}`));
+  }
+  return enqueueSettingsMutation(async () => {
+    const settings = await getSettings();
+    if (settings.summaryStyle !== summaryStyle) {
+      settings.summaryStyle = summaryStyle;
+      await saveSettings(settings);
+    }
+    return { summaryStyle };
+  });
+}
+
+// Summarizes the transcript the content script sends, in the target language, with the active LLM,
+// in the style the message names (else the saved one).
 export async function generateSummary(message, sender, summarize = summarizeTranscript) {
   const settings = await getSettings();
   const provider = settings.providers?.[settings.activeProvider];
   if (!isSummaryProvider(provider)) throw new Error("Summaries need an LLM provider.");
+  const style = normalizeSummaryStyle(message.style, settings.summaryStyle);
+  if (message.style) await setSummaryStyle(style).catch(() => {});
   const language = TARGET_LANGUAGES.find((item) => item.code === settings.targetLanguage);
   const tabId = sender?.tab?.id;
   try {
     return await summarize({
       text: message.text,
       title: message.title || "",
-      systemPrompt: settings.summarySystemPrompt,
+      systemPrompt: getSummaryStyleSystemPrompt(settings, style),
       languageName: language?.labels?.en || settings.targetLanguage || ""
     }, {
       provider,

@@ -1,4 +1,5 @@
 import { validateCues } from "./subtitles.js";
+import { SUMMARY_STYLES } from "./defaults.js";
 import { ALL_PLATFORM_IDS, getHostname, isDedicatedSiteHost, isGenericEligibleUrl, isHostListed, normalizeGenericHost } from "./platform-urls.js";
 
 const BACKGROUND_MESSAGE_TYPES = new Set([
@@ -483,6 +484,7 @@ export function validateBackgroundMessage(message) {
       else if (message.text.length > SUMMARY_TEXT_MAX_CHARS) error = "text is too long.";
       else if (!isOptionalString(message.title)) error = "title must be a string.";
       else if (!isOptionalString(message.requestId)) error = "requestId must be a string.";
+      else if (message.style !== undefined && !SUMMARY_STYLES.some((style) => style.id === message.style)) error = "style must be a summary style.";
       break;
     default:
       break;

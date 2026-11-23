@@ -8,7 +8,14 @@ import {
   SUMMARY_PART_MAX_CHARS,
   summarizeTranscript
 } from "../extension/shared/summary.js";
-import { DEFAULT_SUMMARY_SYSTEM_PROMPT, normalizeSummarySystemPrompt } from "../extension/shared/defaults.js";
+import {
+  BRIEF_SUMMARY_SYSTEM_PROMPT,
+  DEFAULT_SUMMARY_SYSTEM_PROMPT,
+  getSummaryStyleSystemPrompt,
+  normalizeSummaryStyle,
+  normalizeSummarySystemPrompt,
+  SUMMARY_STYLES
+} from "../extension/shared/defaults.js";
 
 const provider = {
   id: "local",
@@ -55,6 +62,33 @@ test("summary prompt asks for a faithful, lecture-first Markdown summary in the 
   assert.match(prompt, /numbered list/);
   assert.match(prompt, /completeness and clarity come before any word count/);
   assert.match(prompt, /Output only the summary/);
+});
+
+test("the Brief style asks for slide-ready note-style bullets in the target language", () => {
+  const prompt = buildSummarySystemPrompt("Japanese", BRIEF_SUMMARY_SYSTEM_PROMPT);
+  assert.match(prompt, /Write in Japanese\./);
+  assert.doesNotMatch(BRIEF_SUMMARY_SYSTEM_PROMPT, /Write in |in Korean\.|Korean bullet/, "the output language comes only from the target language line");
+  assert.match(prompt, /slide-ready bullet points/);
+  assert.match(prompt, /Prefer noun phrases to full sentences/);
+  for (const section of ["Key messages", "Main content", "Key issues and outlook, only when", "Final takeaways"]) {
+    assert.match(prompt, new RegExp(`\`## \` ${section}`));
+  }
+  assert.match(prompt, /One key message per bullet/);
+  assert.match(prompt, /Do not create conclusions or outlooks that are not in the source/);
+  assert.match(prompt, /Output only the structured summary/);
+});
+
+test("each summary style has its prompt; Custom uses the edited one", () => {
+  assert.deepEqual(SUMMARY_STYLES.map((style) => style.id), ["brief", "detailed", "custom"]);
+  assert.equal(getSummaryStyleSystemPrompt({}, "brief"), BRIEF_SUMMARY_SYSTEM_PROMPT);
+  assert.equal(getSummaryStyleSystemPrompt({}, "detailed"), DEFAULT_SUMMARY_SYSTEM_PROMPT);
+  assert.equal(getSummaryStyleSystemPrompt({ summarySystemPrompt: "Mine." }, "custom"), "Mine.");
+  // Custom starts from the detailed prompt.
+  assert.equal(getSummaryStyleSystemPrompt({}, "custom"), DEFAULT_SUMMARY_SYSTEM_PROMPT);
+  assert.equal(getSummaryStyleSystemPrompt({ summaryStyle: "brief" }), BRIEF_SUMMARY_SYSTEM_PROMPT);
+  assert.equal(getSummaryStyleSystemPrompt({ summarySystemPrompt: "Mine." }, "unknown"), DEFAULT_SUMMARY_SYSTEM_PROMPT);
+  assert.equal(normalizeSummaryStyle("custom"), "custom");
+  assert.equal(normalizeSummaryStyle("long"), "detailed");
 });
 
 test("an edited summary prompt replaces the default and still gets the language line", async () => {

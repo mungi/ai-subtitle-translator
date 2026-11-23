@@ -42,6 +42,10 @@ test("summary messages need transcript text and optional string fields", () => {
     assert.equal(validateBackgroundMessage({ type: "summary.generate", text }).ok, false);
   }
   assert.equal(validateBackgroundMessage({ type: "summary.generate", text: "a", title: 1 }).ok, false);
+  for (const style of ["brief", "detailed", "custom"]) {
+    assert.equal(validateBackgroundMessage({ type: "summary.generate", text: "a", style }).ok, true);
+  }
+  assert.equal(validateBackgroundMessage({ type: "summary.generate", text: "a", style: "long" }).ok, false);
 });
 
 test("background message validation accepts a valid translation request", () => {

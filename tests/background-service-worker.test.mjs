@@ -247,6 +247,51 @@ test("provider and translation-style mutations are serialized without losing eit
   await assert.rejects(setWordProgressHighlight("no"), /enabled must be a boolean/);
 });
 
+test("a summary uses the style picked in the player menu and remembers it", async () => {
+  let llmSettings = {
+    activeProvider: "local",
+    providerTestStatus: { local: "success" },
+    summarySystemPrompt: "My own summary prompt."
+  };
+  globalThis.chrome = {
+    runtime: { id: "test-extension", onMessage: { addListener() {} } },
+    storage: {
+      local: {
+        get: async () => ({ llmSettings: structuredClone(llmSettings) }),
+        set: async (patch) => {
+          if (patch.llmSettings) llmSettings = structuredClone(patch.llmSettings);
+        },
+        remove: async () => {},
+        setAccessLevel: async () => {}
+      }
+    }
+  };
+  const { generateSummary, setSummaryStyle } = await import("../extension/background/service-worker.js");
+  const { BRIEF_SUMMARY_SYSTEM_PROMPT, DEFAULT_SUMMARY_SYSTEM_PROMPT } = await import("../extension/shared/defaults.js");
+  const prompts = [];
+  const summarize = async (input) => {
+    prompts.push(input.systemPrompt);
+    return "# Summary";
+  };
+
+  // An edited prompt saved before styles existed is kept as Custom.
+  assert.equal(await generateSummary({ text: "Hello." }, {}, summarize), "# Summary");
+  assert.equal(prompts.at(-1), "My own summary prompt.");
+
+  await generateSummary({ text: "Hello.", style: "brief" }, {}, summarize);
+  assert.equal(prompts.at(-1), BRIEF_SUMMARY_SYSTEM_PROMPT);
+  assert.equal(llmSettings.summaryStyle, "brief");
+  assert.equal(llmSettings.summarySystemPrompt, "My own summary prompt.", "picking a style keeps the Custom prompt");
+
+  await generateSummary({ text: "Hello." }, {}, summarize);
+  assert.equal(prompts.at(-1), BRIEF_SUMMARY_SYSTEM_PROMPT, "the remembered style is used");
+
+  await generateSummary({ text: "Hello.", style: "detailed" }, {}, summarize);
+  assert.equal(prompts.at(-1), DEFAULT_SUMMARY_SYSTEM_PROMPT);
+  assert.equal(llmSettings.summaryStyle, "detailed");
+  await assert.rejects(setSummaryStyle("long"), /Unsupported summary style/);
+});
+
 test("NVIDIA NIM model listing uses the OpenAI-compatible models endpoint", async () => {
   globalThis.chrome = {
     runtime: {

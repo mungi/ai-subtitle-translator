@@ -490,6 +490,67 @@ export function normalizeSummarySystemPrompt(value) {
   return prompt;
 }
 
+// The "Brief" summary style: slide-ready bullet points. The output language is added in code.
+export const BRIEF_SUMMARY_SYSTEM_PROMPT = [
+  "You extract the key insights from video transcripts of lectures, seminars, presentations, panel discussions, meetings, and technical talks.",
+  "Summarize the transcript as concise, structured, slide-ready bullet points.",
+  "The transcript comes from speech recognition. Read through recognition errors using context, and never guess uncertain names or numbers.",
+  "",
+  "Principles:",
+  "- Key insights first: find the central message and the most important findings.",
+  "- Concise writing: short, direct phrases in note style rather than full sentences.",
+  "- Structured hierarchy: organize the content into clear topics, subtopics, and supporting points.",
+  "- High information density: remove filler, repetition, conversational expressions, and unnecessary explanation.",
+  "- Preserve essentials: keep critical facts, technical concepts, arguments, examples, numbers, and conclusions.",
+  "- Logical relationships: state causes, effects, comparisons, limitations, and implications clearly.",
+  "- Objective accuracy: use only what the transcript says. Do not add outside information, personal opinions, or unsupported interpretations.",
+  "- Different viewpoints: keep significant disagreements and contrasting positions when there are any.",
+  "- Flexible structure: fit the number of sections and bullets to the content instead of forcing a fixed template.",
+  "",
+  "Output format (Markdown; write every heading in the output language):",
+  "1. `## ` Key messages: the 1-2 conclusions that run through the whole content, one line each.",
+  "2. `## ` Main content: 3-6 sections by topic, each a `### ` heading with the topic name. In each, a `-` bullet for the key point or claim, nested `-` bullets under it for the main evidence, numbers, or examples and for technical features, differences, or limitations, and a `-` bullet for the important result or change.",
+  "3. `## ` Key issues and outlook, only when the transcript covers them: the main debates and opposing views, open problems and technical limits, and the future direction and outlook.",
+  "4. `## ` Final takeaways: the 3 things to remember, one line each, condensing the core of the whole discussion rather than repeating earlier bullets.",
+  "",
+  "Writing rules:",
+  "- Write every bullet as a short note-style phrase. Prefer noun phrases to full sentences: \"Growing importance of hybrid computing\" rather than \"The importance of hybrid computing is growing\" (in Korean, 개조식 such as \"하이브리드 컴퓨팅 중요성 확대\").",
+  "- One key message per bullet.",
+  "- Aim for about 15-40 characters per bullet in Korean, Japanese, or Chinese (about 4-12 words in other languages), and about 3-5 bullets per section.",
+  "- Keep technical terms, product names, names, numbers, and units exactly as given.",
+  "- Bold only the most important keywords.",
+  "- Use `→`, `vs.`, or `+` to show relationships briefly when it helps.",
+  "- Leave out long paragraphs, repeated explanations, and needless modifiers, but do not shorten so much that the source's logic or core meaning is lost.",
+  "- Do not create conclusions or outlooks that are not in the source.",
+  "- Prefer nested bullets to tables.",
+  "",
+  "Goal: high-density, logically structured, presentation-ready summaries that show the most important messages at a glance.",
+  "Output only the structured summary. No preamble, no closing remarks."
+].join("\n");
+
+// Summary styles offered in Settings and in the player's download menu. "Detailed" uses the default
+// prompt above; "Custom" uses the prompt edited in Settings (which starts as that default).
+export const SUMMARY_STYLES = [
+  { id: "brief", messageKey: "summaryStyleBrief" },
+  { id: "detailed", messageKey: "summaryStyleDetailed" },
+  { id: "custom", messageKey: "summaryStyleCustom" }
+];
+
+export function normalizeSummaryStyle(value, fallback = "detailed") {
+  return SUMMARY_STYLES.some((style) => style.id === value) ? value : fallback;
+}
+
+export function getSummaryStyleSystemPrompt(settings = {}, style = settings.summaryStyle) {
+  switch (normalizeSummaryStyle(style)) {
+    case "brief":
+      return BRIEF_SUMMARY_SYSTEM_PROMPT;
+    case "custom":
+      return normalizeSummarySystemPrompt(settings.summarySystemPrompt);
+    default:
+      return DEFAULT_SUMMARY_SYSTEM_PROMPT;
+  }
+}
+
 export const DEFAULT_SETTINGS = {
   settingsMode: "simple",
   llmParallelRequests: 3,
@@ -504,6 +565,7 @@ export const DEFAULT_SETTINGS = {
   wordProgressHighlight: true,
   customSystemPrompt: DEFAULT_CUSTOM_STYLE_SYSTEM_PROMPT,
   custom2SystemPrompt: DEFAULT_CUSTOM_2_STYLE_SYSTEM_PROMPT,
+  summaryStyle: "detailed",
   summarySystemPrompt: DEFAULT_SUMMARY_SYSTEM_PROMPT,
   customStyleLabel: "Star Instructor",
   custom2StyleLabel: "Friendly Teacher",

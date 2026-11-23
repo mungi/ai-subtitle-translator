@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { DEFAULT_SETTINGS, PROVIDERS } from "../extension/shared/defaults.js";
+import { DEFAULT_SETTINGS, DEFAULT_SUMMARY_SYSTEM_PROMPT, PROVIDERS } from "../extension/shared/defaults.js";
 import { normalizeSettings } from "../extension/shared/storage.js";
 
 test("subtitle display defaults to dual subtitles and validates saved modes", () => {
@@ -10,6 +10,16 @@ test("subtitle display defaults to dual subtitles and validates saved modes", ()
   for (const subtitleDisplayMode of ["dual", "source", "translated"]) {
     assert.equal(normalizeSettings({ subtitleDisplayMode }).subtitleDisplayMode, subtitleDisplayMode);
   }
+});
+
+test("summary style defaults to Detailed; an edited prompt saved before styles existed becomes Custom", () => {
+  assert.equal(DEFAULT_SETTINGS.summaryStyle, "detailed");
+  assert.equal(normalizeSettings().summaryStyle, "detailed");
+  assert.equal(normalizeSettings({ summarySystemPrompt: DEFAULT_SUMMARY_SYSTEM_PROMPT }).summaryStyle, "detailed");
+  assert.equal(normalizeSettings({ summarySystemPrompt: "Three bullets only." }).summaryStyle, "custom");
+  assert.equal(normalizeSettings({ summarySystemPrompt: "Three bullets only." }).summarySystemPrompt, "Three bullets only.");
+  assert.equal(normalizeSettings({ summaryStyle: "brief", summarySystemPrompt: "Three bullets only." }).summaryStyle, "brief");
+  assert.equal(normalizeSettings({ summaryStyle: "long" }).summaryStyle, "detailed");
 });
 
 test("subtitle background color defaults to black", () => {

@@ -439,13 +439,25 @@
     "message": "字幕の要約"
   },
   "summarySettingsDescription": {
-    "message": "プレーヤーメニューの「字幕をダウンロード → 要約」で使われるプロンプトです。翻訳先の言語と、長い動画を分割して要約する指示は自動で追加されます。\n要約機能は LLM プロバイダーを選択した場合にのみ利用できます。"
+    "message": "プレーヤーメニューの「字幕をダウンロード → 要約」でスタイルを選んで要約します。簡潔はスライド向けの箇条書き、詳細は講義を中心にした構造化された要約で、カスタムでは下のプロンプトを編集して使えます。翻訳先の言語と、長い動画を分割して要約する指示は自動で追加されます。\n要約機能は LLM プロバイダーを選択した場合にのみ利用できます。"
   },
   "summarySystemPrompt": {
     "message": "要約のシステムプロンプト"
   },
+  "summaryStyle": {
+    "message": "要約スタイル"
+  },
+  "summaryStyleBrief": {
+    "message": "簡潔"
+  },
+  "summaryStyleDetailed": {
+    "message": "詳細"
+  },
+  "summaryStyleCustom": {
+    "message": "カスタム"
+  },
   "resetSummaryConfirm": {
-    "message": "要約のシステムプロンプトが既定値に戻ります。続行しますか？"
+    "message": "要約スタイルとカスタムプロンプトが既定値に戻ります。続行しますか？"
   },
   "resetSubtitleStyleConfirm": {
     "message": "字幕スタイルの設定が初期値に戻ります。続行しますか？"

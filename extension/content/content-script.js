@@ -81,6 +81,7 @@ const subtitleState = {
   currentDocument: null,
   activeProviderId: "",
   translationStyle: "",
+  summaryStyle: "detailed",
   preferYoutubeProvidedTranslation: true,
   youtubeProvidedTranslationLanguage: "",
   youtubeProvidedTranslationSource: "",
@@ -738,7 +739,19 @@ function renderSubtitleDownloadMenu(menu) {
   menu.append(submenu);
 }
 
-// "Summary" row: one button that asks the active LLM for a summary and saves it as Markdown.
+// Summary styles, as in shared/defaults.js SUMMARY_STYLES (content scripts cannot import it).
+const SUMMARY_STYLE_MESSAGE_KEYS = {
+  brief: "summaryStyleBrief",
+  detailed: "summaryStyleDetailed",
+  custom: "summaryStyleCustom"
+};
+
+function normalizeContentSummaryStyle(value, fallback = "detailed") {
+  return Object.hasOwn(SUMMARY_STYLE_MESSAGE_KEYS, value) ? value : fallback;
+}
+
+// "Summary" row: one button per summary style. A click asks the active LLM for a summary in that
+// style and saves it as Markdown; the style used last is marked.
 function renderSummaryDownloadRow(hasCues) {
   const row = document.createElement("div");
   row.className = "ast-provider-menu-item ast-translation-position-row ast-subtitle-download-row";
@@ -749,22 +762,28 @@ function renderSummaryDownloadRow(hasCues) {
   const group = document.createElement("div");
   group.className = "ast-segmented-control";
   group.setAttribute("role", "group");
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = "ast-segmented-option ast-summary-download";
-  button.dataset.kind = "summary";
-  button.setAttribute("role", "menuitem");
+  group.setAttribute("aria-label", contentText("contentDownloadSummary"));
   const job = subtitleState.summaryJob;
   const hasLlm = Boolean(subtitleState.activeProviderId) && !isMachineTranslationProvider(subtitleState.activeProviderId);
-  // Progress shows on the status line at the bottom of the menu.
-  button.textContent = contentText("contentDownloadSummaryAction");
-  button.disabled = Boolean(job) || !hasLlm || !hasCues;
   if (!hasLlm) label.title = contentText("contentDownloadSummaryNeedsLlm");
-  button.addEventListener("click", (event) => {
-    event.stopPropagation();
-    downloadSummaryFile().catch((error) => setSummaryNotice({ text: contentText("contentSummaryFailed", [error.message]), failed: true }));
-  });
-  group.append(button);
+  for (const [style, messageKey] of Object.entries(SUMMARY_STYLE_MESSAGE_KEYS)) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "ast-segmented-option ast-summary-download";
+    button.dataset.kind = "summary";
+    button.dataset.style = style;
+    button.setAttribute("role", "menuitem");
+    // Progress shows on the status line at the bottom of the menu.
+    button.textContent = contentText(messageKey);
+    button.title = contentText("contentDownloadSummaryAction");
+    button.classList.toggle("active", style === subtitleState.summaryStyle);
+    button.disabled = Boolean(job) || !hasLlm || !hasCues;
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      downloadSummaryFile(style).catch((error) => setSummaryNotice({ text: contentText("contentSummaryFailed", [error.message]), failed: true }));
+    });
+    group.append(button);
+  }
   row.append(label, group);
   return row;
 }
@@ -804,8 +823,10 @@ function getDownloadTitle() {
   return globalThis.astSubtitleExport.sanitizeFileName((document.title || "").replace(/\s*[-–|]\s*YouTube\s*$/i, ""));
 }
 
-async function downloadSummaryFile() {
+async function downloadSummaryFile(style = subtitleState.summaryStyle) {
   if (subtitleState.summaryJob) return;
+  style = normalizeContentSummaryStyle(style);
+  subtitleState.summaryStyle = style;
   const exporter = globalThis.astSubtitleExport;
   const sourceLanguage = subtitleState.currentSourceDocument?.sourceLanguage || subtitleState.currentDocument?.sourceLanguage || "";
   const text = exporter.buildTxt(getDownloadCues(), "source", { language: sourceLanguage });
@@ -816,10 +837,12 @@ async function downloadSummaryFile() {
   refreshOpenProviderMenu();
   try {
     const title = getDownloadTitle();
-    const response = await sendRuntimeMessage({ type: "summary.generate", text, title, requestId });
+    const response = await sendRuntimeMessage({ type: "summary.generate", text, title, requestId, style });
     if (!response?.ok) throw new Error(response?.error || "Summary failed.");
     const language = subtitleState.targetLanguage || "";
-    saveTextFile(`${title}.summary${language ? `.${language}` : ""}.md`, `${response.summary.trim()}\n`, "text/markdown;charset=utf-8");
+    // The detailed summary keeps the earlier file name; the other styles are told apart by a suffix.
+    const kind = style === "detailed" ? "summary" : `summary-${style}`;
+    saveTextFile(`${title}.${kind}${language ? `.${language}` : ""}.md`, `${response.summary.trim()}\n`, "text/markdown;charset=utf-8");
     setSummaryNotice({ text: contentText("contentSummarySaved") }, SUMMARY_SAVED_NOTICE_MS);
   } catch (error) {
     // Shown on the menu status line, not as a popup over the video.
@@ -1390,6 +1413,7 @@ async function refreshAvailableProviders() {
     .some((provider) => provider.id === settings.activeProvider);
   subtitleState.activeProviderId = activeProviderAvailable ? settings.activeProvider : "googleTranslate";
   subtitleState.translationStyle = settings.translationStyle || "custom";
+  subtitleState.summaryStyle = normalizeContentSummaryStyle(settings.summaryStyle);
   applyCustomStyleLabels(settings);
   subtitleState.preferYoutubeProvidedTranslation = settings.preferYoutubeProvidedTranslation !== false;
   applyCaptionDisplaySettings(settings);
@@ -4592,6 +4616,7 @@ async function loadSubtitleStyle() {
     subtitleState.subtitleDisplayMode = Object.hasOwn(SUBTITLE_DISPLAY_MESSAGE_KEYS, settings.subtitleDisplayMode)
       ? settings.subtitleDisplayMode : "dual";
     subtitleState.translationStyle = settings.translationStyle || "custom";
+    subtitleState.summaryStyle = normalizeContentSummaryStyle(settings.summaryStyle);
     applyCustomStyleLabels(settings);
     subtitleState.targetLanguages = settings.targetLanguages || subtitleState.targetLanguages;
     subtitleState.targetLanguage = settings.targetLanguage || "";
@@ -6433,6 +6458,7 @@ chrome.runtime.onMessage.addListener((message) => {
       subtitleState.subtitleDisplayMode = settings.subtitleDisplayMode;
     }
     subtitleState.translationStyle = settings.translationStyle || subtitleState.translationStyle;
+    subtitleState.summaryStyle = normalizeContentSummaryStyle(settings.summaryStyle, subtitleState.summaryStyle);
     applyCustomStyleLabels(settings);
     if (typeof settings.preferYoutubeProvidedTranslation === "boolean"
       && settings.preferYoutubeProvidedTranslation !== subtitleState.preferYoutubeProvidedTranslation) {

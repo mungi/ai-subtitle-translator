@@ -1,4 +1,4 @@
-import { buildDefaultCustom2StyleSystemPrompt, buildDefaultCustomStyleSystemPrompt, buildStyleSystemPrompt, DEFAULT_CUSTOM_WEB_FONT_CSS, getDeepLEndpoint, DEFAULT_SETTINGS, extractStyleSystemPrompt, getTargetLanguageLabel, getWebFontPresetLabel, normalizeCustomStyleLabel, normalizeLlmParallelRequests, normalizeSummarySystemPrompt, DEFAULT_SUMMARY_SYSTEM_PROMPT, TARGET_LANGUAGES, TRANSLATION_STYLES, WEB_FONT_PRESETS } from "../shared/defaults.js";
+import { buildDefaultCustom2StyleSystemPrompt, buildDefaultCustomStyleSystemPrompt, buildStyleSystemPrompt, DEFAULT_CUSTOM_WEB_FONT_CSS, getDeepLEndpoint, DEFAULT_SETTINGS, extractStyleSystemPrompt, getTargetLanguageLabel, getWebFontPresetLabel, normalizeCustomStyleLabel, normalizeLlmParallelRequests, normalizeSummarySystemPrompt, normalizeSummaryStyle, getSummaryStyleSystemPrompt, SUMMARY_STYLES, DEFAULT_SUMMARY_SYSTEM_PROMPT, TARGET_LANGUAGES, TRANSLATION_STYLES, WEB_FONT_PRESETS } from "../shared/defaults.js";
 import { getProviderGuide } from "../shared/provider-guides.js";
 import { CUSTOM_LLM_JSON_MODES, CUSTOM_LLM_REASONING_OPTIONS, isCustomLlmProviderId, isUsableHeaderName, MAX_CUSTOM_HEADERS, normalizeCustomHeaders, normalizeJsonMode, normalizeReasoningEffort } from "../shared/custom-llm-options.js";
 import { getConfiguredKeyProviders, validateConfiguredProviderKeys } from "../shared/provider-key-validation.js";
@@ -66,6 +66,7 @@ const PLAYER_OWNED_SETTING_PATHS = [
   ["activeProvider"],
   ["targetLanguage"],
   ["translationStyle"],
+  ["summaryStyle"],
   ["subtitleDisplayMode"],
   ["preferYoutubeProvidedTranslation"],
   ["wordProgressHighlight"],
@@ -120,6 +121,10 @@ async function adoptPlayerOwnedChanges(next) {
   if (adoptedKeys.has("translationStyle")) {
     translationStyleSelect.value = settings.translationStyle;
     updateSystemPromptTextarea();
+  }
+  if (adoptedKeys.has("summaryStyle")) {
+    summaryStyleSelect.value = settings.summaryStyle;
+    updateSummaryPromptTextarea();
   }
   if (adoptedKeys.has("preferYoutubeProvidedTranslation")) {
     preferYoutubeProvidedTranslationInput.checked = settings.preferYoutubeProvidedTranslation !== false;
@@ -221,6 +226,7 @@ const targetLanguageSelect = document.getElementById("targetLanguage");
 const translationStyleSelect = document.getElementById("translationStyle");
 const systemPromptTextarea = document.getElementById("systemPrompt");
 const customStyleLabelInput = document.getElementById("customStyleLabel");
+const summaryStyleSelect = document.getElementById("summaryStyle");
 const summarySystemPromptTextarea = document.getElementById("summarySystemPrompt");
 const maxChunkDurationMinutesInput = document.getElementById("maxChunkDurationMinutes");
 const llmParallelRequestsInput = document.getElementById("llmParallelRequests");
@@ -933,7 +939,11 @@ function readGeneralSettings() {
   settings.phraseSegmentation = phraseSegmentationInput.checked;
   settings.phraseSegmentationSkipYoutubeManual = phraseSegmentationSkipYoutubeManualInput.checked;
   settings.wordProgressHighlight = wordProgressHighlightInput.checked;
-  settings.summarySystemPrompt = normalizeSummarySystemPrompt(summarySystemPromptTextarea.value);
+  settings.summaryStyle = normalizeSummaryStyle(summaryStyleSelect.value);
+  // Only Custom's prompt is edited here; the other styles show their fixed prompt read-only.
+  if (settings.summaryStyle === "custom") {
+    settings.summarySystemPrompt = normalizeSummarySystemPrompt(summarySystemPromptTextarea.value);
+  }
 }
 
 function getChunkDurationMinutes(value = maxChunkDurationMinutesInput.value) {
@@ -1043,7 +1053,19 @@ function renderGeneralSettings() {
   phraseSegmentationSkipYoutubeManualInput.disabled = !phraseSegmentationInput.checked;
   wordProgressHighlightInput.checked = settings.wordProgressHighlight !== false;
   updateSystemPromptTextarea();
-  summarySystemPromptTextarea.value = normalizeSummarySystemPrompt(settings.summarySystemPrompt);
+  summaryStyleSelect.innerHTML = SUMMARY_STYLES
+    .map((style) => `<option value="${style.id}">${t(style.messageKey)}</option>`)
+    .join("");
+  summaryStyleSelect.value = normalizeSummaryStyle(settings.summaryStyle);
+  updateSummaryPromptTextarea();
+}
+
+function updateSummaryPromptTextarea() {
+  const style = normalizeSummaryStyle(summaryStyleSelect.value);
+  const isCustom = style === "custom";
+  summarySystemPromptTextarea.readOnly = !isCustom;
+  summarySystemPromptTextarea.classList.toggle("readonly", !isCustom);
+  summarySystemPromptTextarea.value = getSummaryStyleSystemPrompt(settings, style);
 }
 
 function updateSystemPromptTextarea() {
@@ -1939,6 +1961,7 @@ async function resetSummarySettingsSection() {
   if (!globalThis.confirm(t("resetSummaryConfirm"))) return;
   await flushAutomaticSave();
   captureCurrentFormState();
+  settings.summaryStyle = DEFAULT_SETTINGS.summaryStyle;
   settings.summarySystemPrompt = DEFAULT_SUMMARY_SYSTEM_PROMPT;
   await persistSectionReset();
 }
@@ -2079,6 +2102,14 @@ async function init() {
   });
   targetLanguageSelect.addEventListener("change", () => {
     updateSystemPromptTextarea();
+    scheduleAutomaticSave({ immediate: true });
+  });
+  summaryStyleSelect.addEventListener("change", () => {
+    // Keep what was typed into Custom before the box shows another style's prompt.
+    if (settings.summaryStyle === "custom" && !summarySystemPromptTextarea.readOnly) {
+      settings.summarySystemPrompt = normalizeSummarySystemPrompt(summarySystemPromptTextarea.value);
+    }
+    updateSummaryPromptTextarea();
     scheduleAutomaticSave({ immediate: true });
   });
   translationStyleSelect.addEventListener("change", () => {

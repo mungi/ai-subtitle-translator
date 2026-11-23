@@ -439,13 +439,25 @@
     "message": "자막 요약"
   },
   "summarySettingsDescription": {
-    "message": "플레이어 메뉴의 자막 다운로드 → 요약문에 사용되는 프롬프트입니다. 번역 대상 언어와 긴 영상을 나눠 요약하라는 지시는 자동으로 추가됩니다.\n요약 기능은 LLM 공급자를 선택한 경우에만 사용할 수 있습니다."
+    "message": "플레이어 메뉴의 자막 다운로드 → 요약문에서 스타일을 골라 요약합니다. 간단히는 슬라이드용 개조식 요점, 자세히는 강의 중심의 구조화된 요약이고, Custom은 아래 프롬프트를 직접 고쳐 쓸 수 있습니다. 번역 대상 언어와 긴 영상을 나눠 요약하라는 지시는 자동으로 추가됩니다.\n요약 기능은 LLM 공급자를 선택한 경우에만 사용할 수 있습니다."
   },
   "summarySystemPrompt": {
     "message": "요약 시스템 프롬프트"
   },
+  "summaryStyle": {
+    "message": "요약 스타일"
+  },
+  "summaryStyleBrief": {
+    "message": "간단히"
+  },
+  "summaryStyleDetailed": {
+    "message": "자세히"
+  },
+  "summaryStyleCustom": {
+    "message": "Custom"
+  },
   "resetSummaryConfirm": {
-    "message": "요약 시스템 프롬프트가 기본값으로 돌아갑니다. 계속 진행하시겠습니까?"
+    "message": "요약 스타일과 Custom 프롬프트가 기본값으로 돌아갑니다. 계속 진행하시겠습니까?"
   },
   "resetSubtitleStyleConfirm": {
     "message": "자막 스타일 설정이 초기화됩니다. 계속 진행하시겠습니까?"
