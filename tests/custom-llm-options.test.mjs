@@ -75,3 +75,27 @@ test("extra headers are added to Custom LLM requests, skipping empty and unusabl
   assert.equal(isUsableHeaderName("Authorization"), true);
   assert.deepEqual(normalizeCustomHeaders([{ name: " A ", value: " b " }]), [{ name: "A", value: "b" }]);
 });
+
+test("a second Custom LLM slot behaves like the first but keeps its own settings", () => {
+  const { local: first, local2: second } = normalizeSettings({}).providers;
+  assert.equal(first.label, "Custom LLM 1");
+  assert.equal(second.label, "Custom LLM 2");
+  assert.equal(second.reasoningEffort, "auto");
+  assert.equal(second.jsonMode, "off");
+
+  const stored = normalizeSettings({ providers: {
+    local: { model: "model-a", jsonMode: "json_object" },
+    local2: { model: "model-b", baseUrl: "http://192.168.0.5:8080/v1", reasoningEffort: "high", customHeaders: [{ name: "X-Slot", value: "two" }] }
+  } }).providers;
+  assert.equal(stored.local.model, "model-a");
+  assert.equal(stored.local2.model, "model-b");
+  assert.equal(stored.local.baseUrl, "http://localhost:1234/v1");
+  assert.equal(stored.local2.reasoningEffort, "high");
+  assert.deepEqual(stored.local.customHeaders, []);
+
+  const provider = { ...stored.local2, apiStyle: "openai-chat", maxTokens: 4096 };
+  assert.deepEqual(buildCustomHeaders(provider), { "X-Slot": "two" });
+  assert.equal(send(provider).body.reasoning_effort, "high");
+  assert.deepEqual(send({ ...provider, jsonMode: "json_object" }).body.response_format, { type: "json_object" });
+  assert.throws(() => send({ ...provider, baseUrl: "http://example.com/v1" }), /HTTPS/);
+});

@@ -79,7 +79,20 @@ export const PROVIDERS = {
   },
   local: {
     id: "local",
-    label: "Custom LLM",
+    label: "Custom LLM 1",
+    apiStyle: "openai-chat",
+    baseUrl: "http://localhost:1234/v1",
+    apiKey: "",
+    model: "google/gemma-4-e4b",
+    temperature: 0.2,
+    maxTokens: 16384,
+    reasoningEffort: "auto",
+    jsonMode: "off",
+    customHeaders: []
+  },
+  local2: {
+    id: "local2",
+    label: "Custom LLM 2",
     apiStyle: "openai-chat",
     baseUrl: "http://localhost:1234/v1",
     apiKey: "",

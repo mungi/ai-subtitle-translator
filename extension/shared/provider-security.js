@@ -1,3 +1,4 @@
+import { isCustomLlmProviderId } from "./custom-llm-options.js";
 const HOSTED_PROVIDER_ORIGINS = Object.freeze({
   googleTranslate: {
     label: "Google Translate",
@@ -74,7 +75,7 @@ function parseProviderUrl(provider) {
 
 export function assertProviderEndpoint(provider) {
   const url = parseProviderUrl(provider);
-  if (provider?.id === "local") {
+  if (isCustomLlmProviderId(provider?.id)) {
     if (isLocalNetworkHostname(url.hostname)) {
       if (!["http:", "https:"].includes(url.protocol)) {
         throw new Error("Custom LLM Base URL must use HTTP or HTTPS.");

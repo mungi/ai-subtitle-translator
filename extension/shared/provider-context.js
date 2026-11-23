@@ -4,9 +4,7 @@
 // maximum), LM Studio /api/v0 and Ollama /api/show (maximum only). OpenAI-compatible /v1/models has
 // no standard field, so a few common extras are read when present.
 
-import { buildCustomHeaders } from "./custom-llm-options.js";
-
-export const CONTEXT_DETECTION_PROVIDER_ID = "local";
+import { buildCustomHeaders, isCustomLlmProviderId } from "./custom-llm-options.js";
 const CONTEXT_REQUEST_TIMEOUT_MS = 5000;
 // Rough characters per token used to size requests. Low on purpose: Korean, Japanese and Chinese
 // use more tokens per character than English, and overestimating the prompt only shortens the reply.
@@ -122,7 +120,7 @@ export function createContextProfile(provider, detected) {
 // The detected size, only while the provider still points at the model and server it was found for.
 export function getContextLength(provider) {
   const profile = provider?.contextProfile;
-  if (provider?.id !== CONTEXT_DETECTION_PROVIDER_ID || !profile) return null;
+  if (!isCustomLlmProviderId(provider?.id) || !profile) return null;
   if (profile.model !== String(provider.model || "") || profile.baseUrl !== String(provider.baseUrl || "")) return null;
   return positiveInteger(profile.contextLength);
 }

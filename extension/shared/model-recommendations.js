@@ -48,6 +48,8 @@ const PROVIDER_MODEL_PREFERENCES = {
     /llama.*8b.*instruct/i
   ]
 };
+// The second Custom LLM slot talks to the same kind of server.
+PROVIDER_MODEL_PREFERENCES.local2 = PROVIDER_MODEL_PREFERENCES.local;
 
 const GENERAL_LIGHTWEIGHT_PATTERNS = [
   /flash-lite/i,

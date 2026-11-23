@@ -17,7 +17,8 @@ test("provider display order places default translators before AI providers", ()
     "anthropic",
     "openrouter",
     "nvidiaNim",
-    "local"
+    "local",
+    "local2"
   ]);
   assert.equal(PROVIDER_TAB_SEPARATOR_AFTER_ID, "deepl");
   assert.deepEqual(getOrderedProviderIds(PROVIDERS), PROVIDER_DISPLAY_ORDER);
@@ -31,7 +32,8 @@ test("provider display order places default translators before AI providers", ()
       "Anthropic",
       "OpenRouter",
       "NVIDIA NIM",
-      "Custom LLM"
+      "Custom LLM 1",
+      "Custom LLM 2"
     ]
   );
 });

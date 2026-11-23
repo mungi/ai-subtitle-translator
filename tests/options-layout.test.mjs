@@ -333,7 +333,7 @@ test("Google Translate tab is always light green because it needs no test", () =
 });
 
 test("Base URL is read-only except for the local LLM server", () => {
-  assert.match(optionsJs, /if \(key === "baseUrl" && provider\.id !== "local"\) \{[^}]*input\.readOnly = true;/);
+  assert.match(optionsJs, /if \(key === "baseUrl" && !isCustomLlmProviderId\(provider\.id\)\) \{[^}]*input\.readOnly = true;/);
   assert.match(optionsCss, /input\.readonly \{/);
 });
 
@@ -360,9 +360,9 @@ test("active provider select only shows providers that pass connection tests", (
   assert.match(optionsJs, /for \(const provider of getOrderedProviders\(settings\.providers\)\)/);
   assert.match(optionsJs, /function renderProviderTabSeparator\(\)/);
   assert.match(optionsJs, /separator\.className = "provider-tab-separator";/);
-  assert.match(optionsJs, /separator\.textContent = "\|";/);
   assert.match(optionsJs, /provider\.id === PROVIDER_TAB_SEPARATOR_AFTER_ID/);
-  assert.match(optionsCss, /\.provider-tab-separator\s*\{[\s\S]*margin: 0 8px;/);
+  assert.match(optionsCss, /\.provider-tabs\s*\{[\s\S]*flex-wrap: nowrap;/);
+  assert.match(optionsCss, /\.provider-tab-separator\s*\{[\s\S]*margin: 4px 8px 0;/);
 });
 
 test("active provider guide uses the full row above translation style", () => {
@@ -422,7 +422,7 @@ test("Custom LLM check is rendered only in its provider settings", () => {
   assert.doesNotMatch(optionsHtml, /<h2 data-i18n="localExample">/);
   assert.doesNotMatch(optionsHtml, /Local LLM 예시/);
   assert.equal(message("ko", "localCheckTitle"), "Custom LLM 확인 방법");
-  assert.match(optionsJs, /if \(provider\.id === "local"\) \{[\s\S]*renderLocalLlmCheck\(provider\)/);
+  assert.match(optionsJs, /if \(isCustomLlmProviderId\(provider\.id\)\) \{[\s\S]*renderLocalLlmCheck\(provider\)/);
   assert.match(optionsJs, /buildLocalChatCompletionsUrl\(draft\.baseUrl\)/);
   assert.match(optionsJs, /draft\.model/);
   assert.match(optionsJs, /draft\.apiKey/);
@@ -493,7 +493,7 @@ test("fetching models selects the recommended lightweight model and automaticall
   assert.match(message("ko", "modelsLoadedAndTested"), /\$provider\$: \$model\$ 선택 및 연결 테스트 성공/);
   assert.match(message("en", "modelsLoadedAndTested"), /\$provider\$: Selected \$model\$ and passed the connection test/);
   assert.match(message("ja", "modelsLoadedAndTested"), /\$provider\$: \$model\$ を選択し、接続テストに成功しました/);
-  assert.match(optionsJs, /if \(provider\.id === "local"\) \{[\s\S]*localModelSelected[\s\S]*return;/);
+  assert.match(optionsJs, /if \(isCustomLlmProviderId\(provider\.id\)\) \{[\s\S]*localModelSelected[\s\S]*return;/);
   assert.match(message("ko", "localModelSelected"), /\$provider\$: \$model\$ 선택 완료 \(모델 \$count\$개, 연결 테스트는 실행하지 않음\)/);
 });
 

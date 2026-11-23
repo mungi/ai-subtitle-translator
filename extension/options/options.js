@@ -1,6 +1,6 @@
 import { buildDefaultCustom2StyleSystemPrompt, buildDefaultCustomStyleSystemPrompt, buildStyleSystemPrompt, DEFAULT_CUSTOM_WEB_FONT_CSS, getDeepLEndpoint, DEFAULT_SETTINGS, extractStyleSystemPrompt, getTargetLanguageLabel, getWebFontPresetLabel, normalizeCustomStyleLabel, normalizeLlmParallelRequests, normalizeSummarySystemPrompt, DEFAULT_SUMMARY_SYSTEM_PROMPT, TARGET_LANGUAGES, TRANSLATION_STYLES, WEB_FONT_PRESETS } from "../shared/defaults.js";
 import { getProviderGuide } from "../shared/provider-guides.js";
-import { CUSTOM_LLM_JSON_MODES, CUSTOM_LLM_REASONING_OPTIONS, isUsableHeaderName, MAX_CUSTOM_HEADERS, normalizeCustomHeaders, normalizeJsonMode, normalizeReasoningEffort } from "../shared/custom-llm-options.js";
+import { CUSTOM_LLM_JSON_MODES, CUSTOM_LLM_REASONING_OPTIONS, isCustomLlmProviderId, isUsableHeaderName, MAX_CUSTOM_HEADERS, normalizeCustomHeaders, normalizeJsonMode, normalizeReasoningEffort } from "../shared/custom-llm-options.js";
 import { getConfiguredKeyProviders, validateConfiguredProviderKeys } from "../shared/provider-key-validation.js";
 import { selectRecommendedModel } from "../shared/model-recommendations.js";
 import { getOrderedProviders, PROVIDER_TAB_SEPARATOR_AFTER_ID } from "../shared/provider-order.js";
@@ -197,6 +197,7 @@ const providerFieldDefs = {
     ["maxTokens", "fieldMaxOutputTokens", "16384", "number"]
   ]
 };
+providerFieldDefs.local2 = providerFieldDefs.local;
 
 const deepLPlanOptions = [
   ["free", "Free"],
@@ -1142,7 +1143,7 @@ function readProviderForm() {
     provider.model = withOpenRouterNitro(provider.model, provider.nitro);
   }
 
-  if (provider.id === "local" && providerForm.querySelector("[data-custom-header-fields]")) {
+  if (isCustomLlmProviderId(provider.id) && providerForm.querySelector("[data-custom-header-fields]")) {
     provider.customHeaders = readCustomHeaderRows();
   }
 
@@ -1180,7 +1181,6 @@ function renderProviderTabSeparator() {
   const separator = document.createElement("span");
   separator.className = "provider-tab-separator";
   separator.setAttribute("aria-hidden", "true");
-  separator.textContent = "|";
   return separator;
 }
 
@@ -1342,7 +1342,7 @@ function renderField(provider, [key, labelKey, placeholder, type = "text"]) {
     input.min = "0";
   }
   // Hosted providers use a fixed endpoint; only a local server can listen on another port.
-  if (key === "baseUrl" && provider.id !== "local") {
+  if (key === "baseUrl" && !isCustomLlmProviderId(provider.id)) {
     if (provider.apiStyle === "deepl") input.value = getDeepLEndpoint(provider.plan);
     input.readOnly = true;
     input.classList.add("readonly");
@@ -1395,7 +1395,7 @@ async function fetchModelsForSelectedProvider(button) {
     updateProviderTestStatus(provider.id, "idle");
     settings = await saveOptionsSettings(settings);
 
-    if (provider.id === "local") {
+    if (isCustomLlmProviderId(provider.id)) {
       renderGeneralSettings();
       renderProviderTabs();
       renderProviderForm();
@@ -1469,7 +1469,7 @@ function renderProviderForm() {
     }
   }
 
-  if (provider.id === "local") {
+  if (isCustomLlmProviderId(provider.id)) {
     providerForm.append(...renderCustomLlmOptionFields(provider));
     providerForm.append(renderLocalLlmCheck(provider));
   }
@@ -1668,8 +1668,8 @@ function buildLocalLlmCheckText(provider) {
 
 function updateLocalLlmCheck() {
   const preview = providerForm.querySelector("[data-local-llm-check]");
-  if (!preview || selectedProviderId !== "local") return;
-  preview.textContent = buildLocalLlmCheckText(settings.providers.local);
+  if (!preview || !isCustomLlmProviderId(selectedProviderId)) return;
+  preview.textContent = buildLocalLlmCheckText(settings.providers[selectedProviderId]);
 }
 
 function renderLocalLlmCheck(provider) {

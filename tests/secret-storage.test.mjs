@@ -186,3 +186,27 @@ test("Custom LLM header values are encrypted with the API keys and never reach p
     globalThis.chrome = previousChrome;
   }
 });
+
+test("the two Custom LLM slots keep separate API keys and header values", async () => {
+  const previousChrome = globalThis.chrome;
+  const harness = createChromeStorage();
+  globalThis.chrome = harness.chrome;
+
+  try {
+    await saveSettings({
+      providers: {
+        local: { apiKey: "key-slot-one", customHeaders: [{ name: "X-One", value: "header-one" }] },
+        local2: { apiKey: "key-slot-two", customHeaders: [{ name: "X-Two", value: "header-two" }] }
+      }
+    });
+
+    assert.doesNotMatch(JSON.stringify(harness.data.llmSettings), /key-slot|header-one|header-two/);
+    const restored = await getSettings();
+    assert.equal(restored.providers.local.apiKey, "key-slot-one");
+    assert.equal(restored.providers.local2.apiKey, "key-slot-two");
+    assert.deepEqual(restored.providers.local.customHeaders[0], { name: "X-One", value: "header-one" });
+    assert.equal(restored.providers.local2.customHeaders[0].value, "header-two");
+  } finally {
+    globalThis.chrome = previousChrome;
+  }
+});

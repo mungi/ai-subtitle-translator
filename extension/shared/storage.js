@@ -1,7 +1,7 @@
 import { buildDefaultCustom2StyleSystemPrompt, buildDefaultCustomStyleSystemPrompt, DEFAULT_SETTINGS, extractStyleSystemPrompt, getTargetLanguageLabel, normalizeCustomStyleLabel, normalizeLlmParallelRequests, normalizeSummarySystemPrompt, PROVIDERS, TARGET_LANGUAGES, WEB_FONT_PRESETS } from "./defaults.js";
 import { clearEncryptedProviderSecrets, readEncryptedProviderSecrets, writeEncryptedProviderSecrets } from "./secret-storage.js";
 import { normalizeGenericHosts } from "./platform-urls.js";
-import { CUSTOM_HEADER_SECRET_SUFFIX, CUSTOM_LLM_PROVIDER_ID, normalizeCustomHeaders, normalizeJsonMode, normalizeReasoningEffort } from "./custom-llm-options.js";
+import { CUSTOM_HEADER_SECRET_SUFFIX, isCustomLlmProviderId, normalizeCustomHeaders, normalizeJsonMode, normalizeReasoningEffort } from "./custom-llm-options.js";
 
 const SETTINGS_KEY = "llmSettings";
 const MIN_CHUNK_DURATION_SECONDS = 2 * 60;
@@ -98,7 +98,7 @@ function mergeProvider(defaultProvider, storedProvider = {}) {
     && storedProvider.baseUrl === "https://translate.googleapis.com/translate_a/single") {
     provider.baseUrl = defaultProvider.baseUrl;
   }
-  if (defaultProvider.id === CUSTOM_LLM_PROVIDER_ID) {
+  if (isCustomLlmProviderId(defaultProvider.id)) {
     provider.reasoningEffort = normalizeReasoningEffort(provider.reasoningEffort);
     provider.jsonMode = normalizeJsonMode(provider.jsonMode);
     provider.customHeaders = normalizeCustomHeaders(provider.customHeaders);

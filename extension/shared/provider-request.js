@@ -1,6 +1,6 @@
 import { assertProviderEndpoint } from "./provider-security.js";
 import { fitMaxTokensToContext } from "./provider-context.js";
-import { buildCustomHeaders, CUSTOM_LLM_PROVIDER_ID, normalizeJsonMode, normalizeReasoningEffort } from "./custom-llm-options.js";
+import { buildCustomHeaders, isCustomLlmProviderId, normalizeJsonMode, normalizeReasoningEffort } from "./custom-llm-options.js";
 
 function joinUrl(baseUrl, path) {
   return `${baseUrl.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
@@ -78,7 +78,7 @@ export function getReasoningProbeModes(provider) {
   // A reasoning value chosen in Custom LLM settings is the only one the connection test tries.
   const chosenEffort = getChosenReasoningEffort(provider);
   if (chosenEffort) return [chosenEffort];
-  if (provider.id === "local" || provider.id === "openai" || provider.id === "openrouter") {
+  if (isCustomLlmProviderId(provider.id) || provider.id === "openai" || provider.id === "openrouter") {
     // Start with "low" for natural translations; step down to turning reasoning off only on an error.
     return ["low", "minimal", "none", "omit"];
   }
@@ -96,7 +96,7 @@ export function createReasoningProfile(provider, mode) {
 
 // The Custom LLM's reasoning setting when it is not "auto"; "omit" means send no reasoning_effort.
 function getChosenReasoningEffort(provider) {
-  if (provider?.id !== CUSTOM_LLM_PROVIDER_ID) return null;
+  if (!isCustomLlmProviderId(provider?.id)) return null;
   const effort = normalizeReasoningEffort(provider.reasoningEffort);
   return effort === "auto" ? null : effort;
 }
@@ -128,7 +128,7 @@ function buildOpenAICompatibleOptions(provider, { structuredOutput = true, reaso
     };
   }
 
-  if (provider.id === "local") {
+  if (isCustomLlmProviderId(provider.id)) {
     // JSON mode is the user's choice: many local servers do not accept response_format.
     const jsonMode = structuredOutput ? normalizeJsonMode(provider.jsonMode) : "off";
     return {

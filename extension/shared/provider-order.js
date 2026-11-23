@@ -6,7 +6,8 @@ export const PROVIDER_DISPLAY_ORDER = [
   "anthropic",
   "openrouter",
   "nvidiaNim",
-  "local"
+  "local",
+  "local2"
 ];
 
 export const PROVIDER_TAB_SEPARATOR_AFTER_ID = "deepl";

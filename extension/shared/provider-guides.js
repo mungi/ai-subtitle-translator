@@ -125,7 +125,8 @@ export const PROVIDER_GUIDES = {
     messageKey: "providerGuideNvidiaNim",
     links: [commonLinks.nvidiaApiKeys, commonLinks.nvidiaCatalog, commonLinks.nvidiaNimFaq, commonLinks.nvidiaLlmApiDocs]
   },
-  local: { messageKey: "providerGuideLocal", links: [] }
+  local: { messageKey: "providerGuideLocal", links: [] },
+  local2: { messageKey: "providerGuideLocal", links: [] }
 };
 
 export function getProviderGuide(providerId) {

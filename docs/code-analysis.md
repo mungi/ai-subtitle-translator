@@ -41,7 +41,7 @@ extension/
 ## 현재 구현 범위
 
 - Udemy, YouTube, TED, NVIDIA Academy, Vimeo의 자막 track을 수집하고 영어 source track을 우선 선택합니다.
-- Google Translate, DeepL, OpenAI, Anthropic, Google AI, OpenRouter, NVIDIA NIM, Custom LLM을 번역 provider로 지원합니다.
+- Google Translate, DeepL, OpenAI, Anthropic, Google AI, OpenRouter, NVIDIA NIM, Custom LLM 1·2를 번역 provider로 지원합니다. Custom LLM은 `local`·`local2` 두 슬롯이 같은 동작(JSON 모드, 추론 강도, 추가 헤더, 컨텍스트 감지)을 공유하며 URL, 키, 모델, 헤더를 각자 저장합니다. 판별은 `isCustomLlmProviderId()`를 씁니다. 설정 화면의 공급자 탭은 한 줄로 표시하며, 기계 번역(Google Translate·DeepL)과 LLM 공급자를 구분선으로 나눕니다.
 - 원문 또는 임시 번역을 먼저 표시하고, 선택한 최종 provider의 cue별 번역 결과로 교체합니다.
 - 옵션 화면에서 provider, 번역 스타일, 자막 모양, 암호화된 API key 저장, 설정 백업·복구를 관리합니다.
 - API key는 AES-GCM vault에 저장하고, content script에는 비밀 정보를 제외한 공개 설정만 전달합니다.

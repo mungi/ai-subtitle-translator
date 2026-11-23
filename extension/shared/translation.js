@@ -3,6 +3,7 @@ import { classifyProviderLimit, providerRetryDelay } from "./provider-limits.js"
 import { buildProviderRequest, createReasoningProfile, extractText, getReasoningFallbackMode } from "./provider-request.js";
 import { assertProviderEndpoint } from "./provider-security.js";
 import { getCustomSystemPromptSettingKey, getDeepLEndpoint, isCustomTranslationStyle, buildSystemPromptFromSettings, buildStyleSystemPrompt, extractStyleSystemPrompt, normalizeLlmParallelRequests } from "./defaults.js";
+import { isCustomLlmProviderId } from "./custom-llm-options.js";
 import { getSettings } from "./storage.js";
 import { decodeXmlEntities, normalizeCue, validateCues } from "./subtitles.js";
 
@@ -1566,7 +1567,7 @@ export async function translateSubtitleDocument(document, {
     }
   }
 
-  const effectiveChunkSize = provider.id === "local"
+  const effectiveChunkSize = isCustomLlmProviderId(provider.id)
     ? Math.min(configuredChunkSize, DEFAULT_MAX_CUE_CHARS_PER_CHUNK)
     : configuredChunkSize;
   const sentenceGroups = buildSentenceGroups(document.cues);

@@ -30,7 +30,8 @@ const PROVIDER_MENU_ORDER = [
   ["anthropic", "Anthropic", "anthropic-messages"],
   ["openrouter", "OpenRouter", "openai-chat"],
   ["nvidiaNim", "NVIDIA NIM", "openai-chat"],
-  ["local", "Custom LLM", "openai-chat"]
+  ["local", "Custom LLM 1", "openai-chat"],
+  ["local2", "Custom LLM 2", "openai-chat"]
 ];
 const TRANSLATION_STYLE_MESSAGE_KEYS = {
   natural: "styleNatural",

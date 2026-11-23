@@ -2,6 +2,12 @@
 // translation requests, and up to three extra HTTP headers sent with every request to the server.
 
 export const CUSTOM_LLM_PROVIDER_ID = "local";
+// Two independent Custom LLM slots (e.g. two local servers); they share every Custom LLM behavior.
+export const CUSTOM_LLM_PROVIDER_IDS = [CUSTOM_LLM_PROVIDER_ID, "local2"];
+
+export function isCustomLlmProviderId(id) {
+  return CUSTOM_LLM_PROVIDER_IDS.includes(id);
+}
 // "auto" probes from "low" and steps down to "none" on an error at the connection test; "omit" leaves reasoning_effort out.
 export const CUSTOM_LLM_REASONING_OPTIONS = ["auto", "none", "minimal", "low", "medium", "high", "omit"];
 // "json_object" asks for any JSON object; "json_schema" also gives the exact translation shape.
@@ -44,7 +50,7 @@ export function isUsableHeaderName(name) {
 
 // Headers to add to a request; only for the Custom LLM, only rows with a usable name and a value.
 export function buildCustomHeaders(provider) {
-  if (provider?.id !== CUSTOM_LLM_PROVIDER_ID) return {};
+  if (!isCustomLlmProviderId(provider?.id)) return {};
   const headers = {};
   for (const header of normalizeCustomHeaders(provider.customHeaders)) {
     if (header.value && isUsableHeaderName(header.name)) headers[header.name] = header.value;
