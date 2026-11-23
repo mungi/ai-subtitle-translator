@@ -379,10 +379,10 @@
   box-sizing: border-box;
   display: grid;
   place-items: center;
-  flex: 0 0 36px;
-  width: 36px;
-  height: 36px;
-  min-height: 36px;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
   padding: 0;
   border: 0;
   border-radius: 8px;
@@ -638,8 +638,8 @@
 }
 
 .ast-provider-menu-udemy .ast-provider-menu-item {
-  min-height: 38px;
-  padding: 8px 32px;
+  min-height: 34px;
+  padding: 6px 32px;
   font-size: 14px;
   font-weight: 300;
   line-height: 1.6;
@@ -669,7 +669,7 @@
 }
 
 .ast-provider-menu-youtube .ast-provider-menu-item {
-  min-height: 38px;
+  min-height: 34px;
   padding: 0 12px;
   border-radius: 8px;
   font-size: 14px;
@@ -722,7 +722,7 @@
 .ast-provider-menu-generic .ast-provider-menu-item,
 .ast-provider-menu-vimeo .ast-provider-menu-item,
 .ast-provider-menu-ted .ast-provider-menu-item {
-  min-height: 36px;
+  min-height: 32px;
   padding: 0 12px;
   border-radius: 6px;
   font-size: 14px;
@@ -973,7 +973,7 @@
 }
 
 .ast-provider-menu-coursera .ast-provider-menu-item {
-  min-height: 32px;
+  min-height: 28px;
 }
 
 @keyframes ast-provider-spin {
