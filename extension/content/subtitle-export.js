@@ -5,6 +5,8 @@
   const SENTENCE_END = /[.!?。！？…]["'”’」』)\]]*$/u;
   const PAUSE_BREAK_SECONDS = 2;
   const MAX_LINE_LENGTH = 200;
+  // Pieces of one translated sentence shown across neighbouring cues are one entry in a file.
+  const CONTINUATION_GAP_SECONDS = 1.2;
 
   function cueText(cue, kind) {
     const text = kind === "source" ? (cue?.sourceText ?? cue?.text) : (cue?.sourceText !== undefined ? cue.text : "");
@@ -13,9 +15,24 @@
 
   function pickCues(cues, kind) {
     if (!Array.isArray(cues)) return [];
-    return cues
-      .map((cue) => ({ start: Number(cue?.start), end: Number(cue?.end), text: cueText(cue, kind) }))
+    const picked = cues
+      .map((cue) => ({ start: Number(cue?.start), end: Number(cue?.end), text: cueText(cue, kind), source: cueText(cue, "source") }))
       .filter((cue) => cue.text && Number.isFinite(cue.start) && Number.isFinite(cue.end));
+    if (kind === "source") return picked;
+    // A translated piece kept on screen over the next cue repeats there; the file holds it once,
+    // over both cues' time. Two lines that only happen to read the same (two "Okay."s) stay apart.
+    const merged = [];
+    for (const cue of picked) {
+      const previous = merged.at(-1);
+      if (previous && previous.text === cue.text && previous.source !== cue.source
+        && cue.start - previous.end <= CONTINUATION_GAP_SECONDS) {
+        previous.end = Math.max(previous.end, cue.end);
+        previous.source = cue.source;
+        continue;
+      }
+      merged.push({ ...cue });
+    }
+    return merged;
   }
 
   // True when the cue list holds a translation worth downloading (at least one translated cue).

@@ -18,12 +18,79 @@ test("sentence groups preserve all original cues and separate sentence boundarie
   assert.ok(long.every((group) => group.members.length <= 10));
 });
 
+// The text each cue shows, with a cue that keeps showing the piece before it written as "".
+function pieces(result) {
+  return result.map((item, index) => (index > 0 && item.text === result[index - 1].text ? "" : item.text));
+}
+
+function timedGroup(rows) {
+  return buildSentenceGroups(rows.map(([id, start, end, text]) => ({ id, start, end, text })))[0];
+}
+
 test("group translation is distributed in order without changing IDs or source timing", () => {
   const group = buildSentenceGroups(cues(["When you build", "a harness."]))[0];
   const result = distributeGroupTranslation(group, "하네스를 만들 때에는 문맥을 유지해야 해.");
   assert.deepEqual(result.map((item) => item.id), ["yt-0", "yt-1"]);
-  assert.equal(result.map((item) => item.text).join(" "), "하네스를 만들 때에는 문맥을 유지해야 해.");
+  // Every word appears once, in order; a sentence this short stays whole across both cues.
+  assert.equal(pieces(result).filter(Boolean).join(" "), "하네스를 만들 때에는 문맥을 유지해야 해.");
   assert.deepEqual(distributeGroupTranslation(group, "좋아.").map((item) => item.text), ["좋아.", "좋아."]);
+});
+
+test("a translation breaks at commas and full stops, and a fragment of a word or two is not shown alone", () => {
+  // Source cues and the LLM's sentence from a Vimeo talk (Brain Dump, SC26).
+  const bronson = timedGroup([
+    ["97", 49.47, 52.29, "Dr. Bronson Messer is a computational astrophysicist,"],
+    ["98", 52.29, 54.074, "distinguished staff scientist,"],
+    ["99", 54.074, 57.451, "and director of science for the Oak Ridge Leadership Computing Facility"],
+    ["100", 58.11, 59.701, "at Oak Ridge National Laboratory."]
+  ]);
+  const bronsonResult = distributeGroupTranslation(bronson,
+    "브론슨 메서 박사는 계산천체물리학자이자 석좌 연구원이며, 오크리지 국립연구소의 오크리지 리더십 컴퓨팅 시설에서 과학 책임자를 맡고 있어.");
+  assert.deepEqual(bronsonResult.map((item) => item.id), ["97", "98", "99", "100"]);
+  assert.deepEqual(pieces(bronsonResult), [
+    "브론슨 메서 박사는 계산천체물리학자이자 석좌 연구원이며,", "",
+    "오크리지 국립연구소의 오크리지 리더십 컴퓨팅 시설에서 과학 책임자를 맡고 있어.", ""
+  ]);
+
+  const session = timedGroup([
+    ["46", 116.22, 117.914, "After today's session,"],
+    ["47", 117.914, 124.262, "our own unpaid student volunteer will work after hours to download the agent-generated"],
+    ["48", 124.262, 129.303, "transcripts and read them out loud at a series of strategic locations:"],
+    ["49", 129.303, 133.5, "inside a robo-taxi, on a street corner with a traffic camera,"],
+    ["50", 133.95, 136.38, "and in a kitchen full of smart appliances."]
+  ]);
+  const sessionPieces = pieces(distributeGroupTranslation(session,
+    "오늘 세션이 끝나면, 우리 학생 자원봉사자가 무급으로 시간 외 근무를 하면서 에이전트가 생성한 대본을 내려받아 여러 전략적 장소에서 소리 내 읽을 거야. 로보택시 안, 교통 카메라가 있는 길모퉁이, 스마트 가전으로 가득한 주방 같은 곳에서 말이지."));
+  assert.equal(sessionPieces[0], "오늘 세션이 끝나면,");
+  assert.ok(sessionPieces.filter(Boolean).every((piece) => /[,.]$|하면서$/.test(piece)), sessionPieces.join(" | "));
+  assert.ok(sessionPieces.includes("에이전트가 생성한 대본을 내려받아 여러 전략적 장소에서 소리 내 읽을 거야."), sessionPieces.join(" | "));
+
+  // A lone trailing word joins the text before it instead of flashing by.
+  const tail = timedGroup([
+    ["193", 976.26, 980.971, "serves as a primary compute substrate for any number of higher precisions,"],
+    ["194", 980.971, 986.655, "as long as you accumulate the answer using a higher precision register"],
+    ["195", 986.655, 988.121, "or hardware."]
+  ]);
+  assert.deepEqual(pieces(distributeGroupTranslation(tail,
+    "더 높은 정밀도의 레지스터나 하드웨어로 결과를 누적하기만 하면, 다양한 상위 정밀도 연산을 위한 기본 계산 기반이 돼.")), [
+    "더 높은 정밀도의 레지스터나 하드웨어로 결과를 누적하기만 하면,", "다양한 상위 정밀도 연산을 위한 기본 계산 기반이 돼.", ""
+  ]);
+});
+
+test("text without spaces breaks after its own punctuation, and Latin text uses longer pieces", () => {
+  const japanese = timedGroup([
+    ["0", 0, 3, "If you accumulate the result in higher precision,"],
+    ["1", 3, 6, "FP8 serves as the compute substrate."]
+  ]);
+  assert.deepEqual(pieces(distributeGroupTranslation(japanese, "より高い精度で結果を累積すれば、FP8は計算の基盤になります。")),
+    ["より高い精度で結果を累積すれば、", "FP8は計算の基盤になります。"]);
+
+  const english = timedGroup([
+    ["0", 0, 2.5, "Nach der heutigen Sitzung"],
+    ["1", 2.5, 6, "wird unser Freiwilliger die Abschriften herunterladen."]
+  ]);
+  assert.deepEqual(pieces(distributeGroupTranslation(english, "After today's session, our volunteer will download the transcripts.")),
+    ["After today's session,", "our volunteer will download the transcripts."]);
 });
 
 test("only a missing sentence group is retried; valid sentences are retained", async () => {

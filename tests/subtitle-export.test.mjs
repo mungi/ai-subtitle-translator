@@ -34,6 +34,24 @@ test("TXT has no timing and breaks lines at sentence ends and long pauses", () =
   ], "source", { language: "ja" }), "こんにちは世界。\n");
 });
 
+test("a translated piece shown across neighbouring cues is one entry, but two separate lines stay apart", () => {
+  const cues = [
+    { start: 49.47, end: 52.29, text: "브론슨 메서 박사는 석좌 연구원이며,", sourceText: "Dr. Bronson Messer is a computational astrophysicist," },
+    { start: 52.29, end: 54.074, text: "브론슨 메서 박사는 석좌 연구원이며,", sourceText: "distinguished staff scientist," },
+    { start: 54.074, end: 57.451, text: "과학 책임자를 맡고 있어.", sourceText: "and director of science" },
+    { start: 58.11, end: 59.701, text: "과학 책임자를 맡고 있어.", sourceText: "at Oak Ridge National Laboratory." },
+    { start: 60, end: 61, text: "좋아.", sourceText: "Okay." },
+    { start: 61, end: 62, text: "좋아.", sourceText: "Okay." }
+  ];
+  assert.equal(api.buildSrt(cues, "translation"),
+    "1\n00:00:49,470 --> 00:00:54,074\n브론슨 메서 박사는 석좌 연구원이며,\n\n"
+    + "2\n00:00:54,074 --> 00:00:59,701\n과학 책임자를 맡고 있어.\n\n"
+    + "3\n00:01:00,000 --> 00:01:01,000\n좋아.\n\n4\n00:01:01,000 --> 00:01:02,000\n좋아.\n");
+  assert.equal(api.buildTxt(cues, "translation", { language: "ko" }), "브론슨 메서 박사는 석좌 연구원이며, 과학 책임자를 맡고 있어.\n좋아.\n좋아.\n");
+  // The source file keeps every cue.
+  assert.equal(api.buildSrt(cues, "source").split("\n\n").length, 6);
+});
+
 test("untranslated cues have a source file but no translation file", () => {
   assert.equal(api.hasTranslation(untranslated), false);
   assert.equal(api.hasTranslation(translated), true);
