@@ -6392,6 +6392,8 @@ function setAstSiteActive(active) {
   if (!contentPlatformStarted) {
     startPlatform(platform, handler);
   } else if (wasInactive) {
+    // The button watcher waits for a page change, which a paused player may not make for a while.
+    if (platform !== "generic") ensureButton(platform, { allowFloatingToolbar: shouldAllowFloatingToolbar(platform) });
     sendRuntimeMessage({ type: "settings.getSubtitleEnabled" }).then((preference) => {
       if (!subtitleState.siteInactive && preference?.ok && preference.enabled) subtitleState.autoEnablePending = true;
     }).catch(() => {});

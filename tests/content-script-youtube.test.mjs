@@ -738,6 +738,23 @@ async function flushPromises() {
   }
 }
 
+test("turning a site off removes the AST button and turning it back on returns it at once", async () => {
+  const harness = createYoutubeHarness();
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
+  await flushPromises();
+  await flushPromises();
+  assert.ok(harness.controls.querySelector("#ast-toolbar-button"));
+
+  harness.runtimeMessageListeners[0]({ type: "settings.changed", settings: { platforms: { youtube: false } } });
+  await flushPromises();
+  assert.equal(harness.controls.querySelector("#ast-toolbar-button"), null);
+
+  // No page change follows (a paused player), so the button must come back without waiting for one.
+  harness.runtimeMessageListeners[0]({ type: "settings.changed", settings: { platforms: { youtube: true } } });
+  await flushPromises();
+  assert.ok(harness.controls.querySelector("#ast-toolbar-button"));
+});
+
 test("YouTube subtitles start enabled and stay off after a manual toggle", async () => {
   const harness = createYoutubeHarness();
   vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
