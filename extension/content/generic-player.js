@@ -166,12 +166,15 @@ function rememberGenericTrack(track, meta) {
 
 async function listGenericCaptionTracks(video) {
   const tracks = [];
-  const trackElements = getGenericTrackElements(video);
+  // <track> elements read here by URL; the others (a blob: file the page made from caption text it
+  // fetched itself) are read from their text track under B.
+  const urlTrackElements = [];
 
   // A. <track src>
-  for (const element of trackElements) {
+  for (const element of getGenericTrackElements(video)) {
     const trackUrl = absolutizeGenericUrl(element.getAttribute("src"));
     if (!trackUrl) continue;
+    urlTrackElements.push(element);
     const languageCode = element.getAttribute("srclang") || "";
     tracks.push(rememberGenericTrack({
       id: `track:${trackUrl}`,
@@ -203,7 +206,7 @@ async function listGenericCaptionTracks(video) {
     for (let index = 0; index < (textTracks?.length || 0); index += 1) {
       const textTrack = textTracks[index];
       if (!["subtitles", "captions"].includes(textTrack.kind)) continue;
-      if (trackElements.some((element) => element.track === textTrack)) continue;
+      if (urlTrackElements.some((element) => element.track === textTrack)) continue;
       tracks.push(rememberGenericTrack({
         id: `texttrack:${index}:${textTrack.language || ""}:${textTrack.label || ""}`,
         languageCode: textTrack.language || "",
