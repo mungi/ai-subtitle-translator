@@ -5653,6 +5653,30 @@ test("a short pause between lines keeps the previous line up instead of flashing
   assert.equal(at(9.5), null);
 });
 
+test("a translated piece continued over the next line stays up across the pause between them", () => {
+  const harness = createYoutubeHarness();
+  vm.runInNewContext(readFileSync("extension/content/content-script.js", "utf8"), harness.context);
+  harness.context.testCues = [
+    { id: "a", start: 0, end: 2.5, text: "과학 책임자를 맡고 있어.", sourceText: "and director of science" },
+    { id: "b", start: 3.6, end: 5, text: "과학 책임자를 맡고 있어.", sourceText: "at Oak Ridge National Laboratory." },
+    { id: "c", start: 6.2, end: 8, text: "좋아.", sourceText: "Okay." },
+    { id: "d", start: 9.4, end: 11, text: "좋아.", sourceText: "Okay." },
+    { id: "e", start: 15, end: 17, text: "좋아.", sourceText: "Right." }
+  ];
+  const at = (time) => vm.runInNewContext(`findActiveCue(testCues, ${time})?.id ?? null`, harness.context);
+
+  // A 1.1s pause inside one sentence: the Korean line stays and the English one changes when the next cue starts.
+  assert.equal(at(3), "a");
+  assert.equal(at(3.6), "b");
+  // A 1.2s pause between the first sentence and the next one still clears the box (once its
+  // two seconds from 3.6s are over).
+  assert.equal(at(5.7), null);
+  // Two separate lines that read the same (two "Okay."s) are not one piece.
+  assert.equal(at(8.8), null);
+  // A long pause still clears the box even when the next line reads the same.
+  assert.equal(at(13), null);
+});
+
 test("a click on the subtitle edge without dragging keeps the set width even when the line is short", async () => {
   const { overlay, context } = await loadYoutubeOverlay();
   const setWidth = overlay.style.maxWidth;

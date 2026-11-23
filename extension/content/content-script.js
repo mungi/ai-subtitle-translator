@@ -2966,6 +2966,16 @@ const SUBTITLE_GAP_BRIDGE_SECONDS = 1;
 // A line that ends sooner than this after it starts stays up this long (enough to read the source
 // and its translation), unless the next line starts first.
 const SUBTITLE_MIN_DISPLAY_SECONDS = 2;
+// A translated sentence is laid over source cues no further apart than this (shared/sentence-groups.js),
+// so a piece carried over to the next cue is bridged up to the same pause.
+const SUBTITLE_CONTINUATION_BRIDGE_SECONDS = 1.2;
+
+// The next cue goes on showing this cue's translated piece: the same translation over different
+// source lines. Two separate lines that only read the same (two "Okay."s) have the same source too.
+function isContinuedTranslation(cue, next) {
+  return typeof cue.sourceText === "string" && typeof next.sourceText === "string"
+    && cue.text === next.text && cue.sourceText !== next.sourceText;
+}
 
 function findActiveCue(cues, currentTime, { minDisplaySeconds = SUBTITLE_MIN_DISPLAY_SECONDS } = {}) {
   if (!Array.isArray(cues)) return null;
@@ -2983,6 +2993,10 @@ function findActiveCue(cues, currentTime, { minDisplaySeconds = SUBTITLE_MIN_DIS
     if (cue.start > currentTime && (!next || cue.start < next.start)) next = cue;
   }
   if (previous && next && next.start - previous.end <= SUBTITLE_GAP_BRIDGE_SECONDS) return previous;
+  // A translated piece the next cue goes on showing (one sentence laid over several source cues)
+  // stays up across the pause, so the line does not blink off and back on with the same words.
+  if (previous && next && isContinuedTranslation(previous, next)
+    && next.start - previous.end < SUBTITLE_CONTINUATION_BRIDGE_SECONDS) return previous;
   if (previous && minDisplaySeconds > 0 && currentTime < previous.start + minDisplaySeconds) return previous;
   return null;
 }
