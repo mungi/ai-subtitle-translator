@@ -6724,15 +6724,12 @@ async function isNvidiaAcademyVimeoFrame() {
   return Boolean(response?.ok && response.isNvidiaCoursePlayer);
 }
 
-// A player embedded in another site this small is a thumbnail or a decoration, not one to translate.
-const VIMEO_EMBED_MIN_WIDTH = 240;
-const VIMEO_EMBED_MIN_HEIGHT = 135;
-
+// The frame's size lets the worker skip a player embedded in another site that is only a thumbnail.
 async function getVimeoPlayerPlatform() {
-  const response = await sendRuntimeMessage({ type: "platform.vimeo.getContext" });
-  if (!response?.ok || !isVimeoPlatform(response.platform)) return null;
-  if (response.embedded && (globalThis.innerWidth < VIMEO_EMBED_MIN_WIDTH || globalThis.innerHeight < VIMEO_EMBED_MIN_HEIGHT)) return null;
-  return response.platform;
+  const size = Number.isFinite(globalThis.innerWidth) && Number.isFinite(globalThis.innerHeight)
+    ? { width: globalThis.innerWidth, height: globalThis.innerHeight } : {};
+  const response = await sendRuntimeMessage({ type: "platform.vimeo.getContext", ...size });
+  return response?.ok && isVimeoPlatform(response.platform) ? response.platform : null;
 }
 
 async function initializeContentScript() {

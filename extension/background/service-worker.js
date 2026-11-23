@@ -180,7 +180,11 @@ const genericStateReady = (async () => {
 // What a Vimeo player frame is: the NVIDIA Academy player, a player on Vimeo itself, or a player
 // embedded in any other site (a conference page), which works without adding that site. Background
 // embeds (muted autoplaying loops used as decoration) are left alone.
-function getVimeoFrameContext(sender) {
+// A player embedded in another site this small is a thumbnail or a decoration, not one to translate.
+const VIMEO_EMBED_MIN_WIDTH = 240;
+const VIMEO_EMBED_MIN_HEIGHT = 135;
+
+export function getVimeoFrameContext(sender, { width, height } = {}) {
   const tabUrl = String(sender?.tab?.url || "");
   const frameUrl = String(sender?.url || tabUrl);
   if (/^https:\/\/www\.nvidia\.com\/[^?#]*\/training\/academy\/course-player\/?(?:[?#]|$)/i.test(tabUrl)) {
@@ -189,14 +193,67 @@ function getVimeoFrameContext(sender) {
   if (/^https:\/\/(?:www\.)?vimeo\.com\/|^https:\/\/player\.vimeo\.com\//i.test(tabUrl)) {
     return { platform: "vimeo", embedded: false };
   }
+  const tooSmall = Number(width) < VIMEO_EMBED_MIN_WIDTH || Number(height) < VIMEO_EMBED_MIN_HEIGHT;
   if (isVimeoPlayerFrameUrl(frameUrl)) {
-    return new URL(frameUrl).searchParams.get("background") === "1"
+    return new URL(frameUrl).searchParams.get("background") === "1" || tooSmall
       ? { platform: null }
       : { platform: "vimeo", embedded: true };
   }
   // Other Vimeo frames still work on a site the user added for the generic player.
   return isGenericTabAllowed(tabUrl) ? { platform: "vimeo", embedded: true } : { platform: null };
 }
+
+// Tabs whose page embeds a Vimeo player AST runs in (a conference page), with the page's host.
+// They get settings changes like supported sites do, and the popup offers the Vimeo switch there.
+// Kept in session storage so a restarted worker still knows them.
+const VIMEO_EMBED_TABS_KEY = "vimeoEmbedTabs";
+let vimeoEmbedTabs = null;
+
+async function loadVimeoEmbedTabs() {
+  if (vimeoEmbedTabs) return vimeoEmbedTabs;
+  let stored = {};
+  try {
+    stored = (await chrome.storage?.session?.get?.(VIMEO_EMBED_TABS_KEY))?.[VIMEO_EMBED_TABS_KEY] || {};
+  } catch {
+    stored = {};
+  }
+  vimeoEmbedTabs ||= new Map(Object.entries(stored)
+    .map(([tabId, host]) => [Number(tabId), String(host || "")])
+    .filter(([tabId, host]) => Number.isInteger(tabId) && host));
+  return vimeoEmbedTabs;
+}
+
+async function saveVimeoEmbedTabs(tabs) {
+  try {
+    await chrome.storage?.session?.set?.({ [VIMEO_EMBED_TABS_KEY]: Object.fromEntries(tabs) });
+  } catch {
+    // Kept in memory only; a restarted worker relearns the tab when its player starts.
+  }
+}
+
+export async function rememberVimeoEmbedTab(tabId, tabUrl) {
+  const host = getHostname(tabUrl);
+  if (!Number.isInteger(tabId) || tabId < 0 || !host) return;
+  const tabs = await loadVimeoEmbedTabs();
+  if (tabs.get(tabId) === host) return;
+  tabs.set(tabId, host);
+  await saveVimeoEmbedTabs(tabs);
+}
+
+export async function forgetVimeoEmbedTab(tabId) {
+  const tabs = await loadVimeoEmbedTabs();
+  if (tabs.delete(tabId)) await saveVimeoEmbedTabs(tabs);
+}
+
+// Whether the page now open in the tab is one where an embedded Vimeo player started.
+export async function hasVimeoEmbed(tabId, tabUrl) {
+  const host = getHostname(tabUrl);
+  return Boolean(host) && (await loadVimeoEmbedTabs()).get(tabId) === host;
+}
+
+chrome.tabs?.onRemoved?.addListener((tabId) => {
+  void forgetVimeoEmbedTab(tabId);
+});
 
 function isGenericTabAllowed(tabUrl) {
   return genericState.enabled
@@ -280,13 +337,20 @@ const SUPPORTED_VIDEO_TAB_URLS = [
   "https://www.nvidia.com/*"
 ];
 
-async function queryAstTabs() {
+export async function queryAstTabs() {
   if (!chrome.tabs?.query) return [];
   const supported = await chrome.tabs.query({ url: SUPPORTED_VIDEO_TAB_URLS }).catch(() => []);
   const listedPatterns = buildGenericProbeMatches(genericState.allowedHosts);
-  if (!genericState.enabled || listedPatterns.length === 0) return supported;
-  const generic = await chrome.tabs.query({ url: listedPatterns }).catch(() => []);
-  const byId = new Map([...supported, ...generic.filter((tab) => isGenericTabAllowed(tab.url))].map((tab) => [tab.id, tab]));
+  const generic = genericState.enabled && listedPatterns.length > 0
+    ? (await chrome.tabs.query({ url: listedPatterns }).catch(() => [])).filter((tab) => isGenericTabAllowed(tab.url))
+    : [];
+  // Pages with an embedded Vimeo player (any site) get changes too, such as Vimeo being turned off.
+  const embedTabs = await loadVimeoEmbedTabs();
+  const embedded = embedTabs.size > 0
+    ? (await chrome.tabs.query({ url: ["http://*/*", "https://*/*"] }).catch(() => []))
+      .filter((tab) => embedTabs.get(tab.id) === getHostname(tab.url))
+    : [];
+  const byId = new Map([...supported, ...generic, ...embedded].map((tab) => [tab.id, tab]));
   return [...byId.values()];
 }
 
@@ -1107,8 +1171,17 @@ export function dispatchBackgroundMessage(message, sender, sendResponse) {
   }
 
   if (message?.type === "platform.vimeo.getContext") {
-    sendResponse({ ok: true, ...getVimeoFrameContext(sender) });
+    const context = getVimeoFrameContext(sender, message);
+    if (context.embedded) void rememberVimeoEmbedTab(sender.tab?.id, sender.tab?.url);
+    sendResponse({ ok: true, ...context });
     return false;
+  }
+
+  if (message?.type === "popup.getTabContext") {
+    hasVimeoEmbed(message.tabId, message.tabUrl)
+      .then((vimeoEmbed) => sendResponse({ ok: true, vimeoEmbed }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
   }
 
   if (message?.type === "ast.providerMenu.setOpen") {

@@ -1192,6 +1192,18 @@
   "popupGenericSiteGuide": {
     "message": "汎用プレーヤー（テクニカルプレビュー）"
   },
+  "popupVimeoEmbedGuide": {
+    "message": "このページの Vimeo プレーヤー"
+  },
+  "popupVimeoEmbedTitle": {
+    "message": "Vimeo の字幕翻訳"
+  },
+  "popupVimeoEmbedOn": {
+    "message": "自動で動作します。オフにするとすべての Vimeo 動画でオフになります。"
+  },
+  "popupVimeoEmbedOff": {
+    "message": "オフになっています。オンにするとすべての Vimeo 動画でオンになります。"
+  },
   "genericPlayerReportPrefix": {
     "message": "動作しないウェブサイトがあれば、次の URL からお知らせください: "
   },

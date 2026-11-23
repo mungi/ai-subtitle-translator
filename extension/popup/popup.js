@@ -44,13 +44,28 @@ function formatTranslationStyle(style, currentSettings = {}) {
 }
 
 let activeTabUrl = "";
+let activeTabId = -1;
+// The page has a Vimeo player embedded from another site that AST runs in (a conference page).
+let pageHasVimeoEmbed = false;
 
-async function getActiveTabUrl() {
+async function loadActiveTab() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    return String(tab?.url || "");
+    activeTabUrl = String(tab?.url || "");
+    activeTabId = Number.isInteger(tab?.id) ? tab.id : -1;
   } catch {
-    return "";
+    activeTabUrl = "";
+    activeTabId = -1;
+  }
+}
+
+async function loadPageHasVimeoEmbed() {
+  if (activeTabId < 0 || !activeTabUrl) return false;
+  try {
+    const response = await chrome.runtime.sendMessage({ type: "popup.getTabContext", tabId: activeTabId, tabUrl: activeTabUrl });
+    return Boolean(response?.ok && response.vimeoEmbed);
+  } catch {
+    return false;
   }
 }
 
@@ -62,13 +77,25 @@ async function sendSettingsMessage(message) {
 
 // The popup manages only sites outside the supported ten: it adds them to, or removes them from,
 // the generic player list. The supported sites and the generic player itself are switched in settings.
+// A page with an embedded Vimeo player works without the list, so it shows the Vimeo switch instead.
 function renderGenericAndSiteSwitches(currentSettings) {
   const site = describeSiteForUrl(activeTabUrl, currentSettings || {});
 
+  const vimeoRow = document.getElementById("vimeoEmbedRow");
+  vimeoRow.hidden = site.kind !== "generic" || !pageHasVimeoEmbed;
+  if (!vimeoRow.hidden) {
+    const vimeoOn = currentSettings?.platforms?.vimeo !== false;
+    const vimeoToggle = document.getElementById("vimeoEmbedEnabled");
+    vimeoToggle.checked = vimeoOn;
+    vimeoToggle.disabled = false;
+    document.getElementById("vimeoEmbedNote").textContent = t(vimeoOn ? "popupVimeoEmbedOn" : "popupVimeoEmbedOff");
+  }
+
   // Any other site: add it to, or remove it from, the generic player list. With the generic
-  // player turned off in settings, the row is not shown at all.
+  // player turned off in settings, the row is not shown at all. On a Vimeo embed page it shows only
+  // when the site is already listed, so it can be removed.
   const genericRow = document.getElementById("genericSiteRow");
-  genericRow.hidden = site.kind !== "generic" || !site.genericEnabled;
+  genericRow.hidden = site.kind !== "generic" || !site.genericEnabled || (pageHasVimeoEmbed && !site.listed);
   if (!genericRow.hidden) {
     const button = document.getElementById("genericSiteButton");
     document.getElementById("genericSiteHost").textContent = site.host;
@@ -105,8 +132,22 @@ async function init() {
     if (areaName === "local" && changes.subtitleEnabled) toggle.checked = changes.subtitleEnabled.newValue !== false;
   });
   settings = await getSettings();
-  activeTabUrl = await getActiveTabUrl();
+  await loadActiveTab();
+  pageHasVimeoEmbed = await loadPageHasVimeoEmbed();
   renderGenericAndSiteSwitches(settings);
+  const vimeoToggle = document.getElementById("vimeoEmbedEnabled");
+  vimeoToggle.addEventListener("change", async () => {
+    const enabled = vimeoToggle.checked;
+    vimeoToggle.disabled = true;
+    document.getElementById("statusLine").textContent = "";
+    try {
+      settings = await sendSettingsMessage({ type: "settings.setPlatformEnabled", platform: "vimeo", enabled }) || settings;
+    } catch (error) {
+      document.getElementById("statusLine").textContent = t("popupLoadFailed", [error.message]);
+    } finally {
+      renderGenericAndSiteSwitches(settings);
+    }
+  });
   const genericSiteButton = document.getElementById("genericSiteButton");
   genericSiteButton.addEventListener("click", async () => {
     const site = describeSiteForUrl(activeTabUrl, settings);

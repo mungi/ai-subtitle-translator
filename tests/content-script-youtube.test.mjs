@@ -4620,14 +4620,17 @@ test("the popup toggle uses the NVIDIA platform resolved for an embedded Vimeo p
   assert.ok(vm.runInNewContext("subtitleState.subtitleLoadGeneration", h.context) > 0, "NVIDIA player did not start");
 });
 
-test("a Vimeo player embedded in another site starts unless its frame is too small to be a real player", async () => {
+test("a Vimeo player frame sends its size, and starts only when the worker says it is a player", async () => {
+  const asked = [];
   const start = async ({ width, height }) => {
     const h = createYoutubeHarness({
       subtitlePreference: { enabled: false },
       settings: { platforms: { vimeo: true } },
-      sendMessage: (message) => message.type === "platform.vimeo.getContext"
-        ? { ok: true, platform: "vimeo", embedded: true }
-        : { ok: false, error: "not needed" }
+      sendMessage: (message) => {
+        if (message.type !== "platform.vimeo.getContext") return { ok: false, error: "not needed" };
+        asked.push({ width: message.width, height: message.height });
+        return message.width >= 240 ? { ok: true, platform: "vimeo", embedded: true } : { ok: true, platform: null };
+      }
     });
     h.context.location = {
       hostname: "player.vimeo.com",
@@ -4646,6 +4649,7 @@ test("a Vimeo player embedded in another site starts unless its frame is too sma
   };
   assert.equal(await start({ width: 960, height: 540 }), "vimeo");
   assert.equal(await start({ width: 200, height: 112 }), null);
+  assert.deepEqual(asked, [{ width: 960, height: 540 }, { width: 200, height: 112 }]);
 });
 
 function createHumanCaptionHarness({ settings = {}, targetCaption } = {}) {

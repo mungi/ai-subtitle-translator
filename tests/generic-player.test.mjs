@@ -403,7 +403,7 @@ test("options, popup, and packaging expose the generic player as a technical pre
   assert.match(popupHtml, /data-i18n="popupGenericSiteGuide"/);
   // With the generic player off in settings, the add/remove row is hidden, not just disabled.
   const popupJs = readFileSync(new URL("../extension/popup/popup.js", import.meta.url), "utf8");
-  assert.ok(popupJs.includes('genericRow.hidden = site.kind !== "generic" || !site.genericEnabled;'));
+  assert.ok(popupJs.includes('genericRow.hidden = site.kind !== "generic" || !site.genericEnabled ||'));
   // Supported sites are switched in settings only; the popup has no per-site switch for them.
   assert.doesNotMatch(popupHtml, /id="siteEnabled"/);
   assert.match(popupHtml, /id="genericSiteButton" type="button"/);

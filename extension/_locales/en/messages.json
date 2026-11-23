@@ -1192,6 +1192,18 @@
   "popupGenericSiteGuide": {
     "message": "Generic player (Technical Preview)"
   },
+  "popupVimeoEmbedGuide": {
+    "message": "Vimeo player on this page"
+  },
+  "popupVimeoEmbedTitle": {
+    "message": "Vimeo subtitle translation"
+  },
+  "popupVimeoEmbedOn": {
+    "message": "Works automatically. Turning it off turns it off for all Vimeo videos."
+  },
+  "popupVimeoEmbedOff": {
+    "message": "Off. Turning it on turns it on for all Vimeo videos."
+  },
   "genericPlayerReportPrefix": {
     "message": "If a website does not work, let us know here: "
   },

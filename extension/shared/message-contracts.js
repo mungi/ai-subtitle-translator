@@ -46,6 +46,7 @@ const BACKGROUND_MESSAGE_TYPES = new Set([
   "captions.ted.fetchTranscript",
   "platform.nvidia.isCoursePlayer",
   "platform.vimeo.getContext",
+  "popup.getTabContext",
   "translation.translateDocument",
   "translation.cancelRequest",
   "translation.setPriority",
@@ -60,7 +61,8 @@ const EXTENSION_PAGE_MESSAGE_TYPES = new Set([
   "translation.clearCache",
   "settings.setPlatformEnabled",
   "settings.setGenericPlayerEnabled",
-  "settings.setGenericSiteAllowed"
+  "settings.setGenericSiteAllowed",
+  "popup.getTabContext"
 ]);
 
 const CONTENT_SCRIPT_MESSAGE_TYPES = new Set([
@@ -148,6 +150,10 @@ function isNonEmptyValue(value) {
 
 function isOptionalString(value) {
   return value === undefined || typeof value === "string";
+}
+
+function isOptionalNumber(value) {
+  return value === undefined || (typeof value === "number" && Number.isFinite(value));
 }
 
 function validateSubtitleStylePatch(patch) {
@@ -493,6 +499,13 @@ export function validateBackgroundMessage(message) {
       } else if (!isNonEmptyValue(message.videoId)) {
         error = "videoId is required.";
       }
+      break;
+    case "platform.vimeo.getContext":
+      if (!isOptionalNumber(message.width) || !isOptionalNumber(message.height)) error = "width and height must be numbers.";
+      break;
+    case "popup.getTabContext":
+      if (!Number.isInteger(message.tabId) || message.tabId < 0) error = "tabId must be a tab id.";
+      else if (typeof message.tabUrl !== "string") error = "tabUrl must be a string.";
       break;
     case "summary.generate":
       if (typeof message.text !== "string" || !message.text.trim()) error = "text is required.";

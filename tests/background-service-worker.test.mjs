@@ -268,6 +268,54 @@ test("a Vimeo player frame is a Vimeo player on any site, except a background em
   assert.deepEqual(context("https://player.vimeo.com/video/1", "https://www.nvidia.com/en-us/training/academy/course-player/"), { ok: true, platform: "nvidia", embedded: false });
   // A frame that is not Vimeo's player stays unsupported.
   assert.deepEqual(context("https://ads.example.com/frame", conference), { ok: true, platform: null });
+  const { forgetVimeoEmbedTab } = await import("../extension/background/service-worker.js");
+  await forgetVimeoEmbedTab(3);
+});
+
+test("a player embedded in a frame too small to be a real player is skipped, and started embeds are remembered per tab", async () => {
+  const session = {};
+  const sent = [];
+  globalThis.chrome = {
+    runtime: { id: "test-extension", onMessage: { addListener() {} } },
+    storage: {
+      local: { get: async () => ({}), set: async () => {}, setAccessLevel: async () => {} },
+      session: { get: async (key) => ({ [key]: session[key] }), set: async (patch) => Object.assign(session, patch) }
+    },
+    tabs: {
+      query: async ({ url }) => {
+        const all = [
+          { id: 4, url: "https://sc26.conference-program.com/session/?sess=sess151" },
+          { id: 5, url: "https://example.com/other" },
+          { id: 6, url: "https://www.youtube.com/watch?v=abc123def45" }
+        ];
+        return url.some((pattern) => pattern.includes("youtube")) ? all.filter((tab) => tab.id === 6) : all;
+      },
+      sendMessage: async (tabId, message) => { sent.push([tabId, message.type]); },
+      onRemoved: { addListener() {} }
+    }
+  };
+  const { dispatchBackgroundMessage, getVimeoFrameContext, queryAstTabs } = await import("../extension/background/service-worker.js");
+  const frame = { url: "https://player.vimeo.com/video/1145209543", tab: { id: 4, url: "https://sc26.conference-program.com/session/?sess=sess151" } };
+  assert.deepEqual(getVimeoFrameContext(frame, { width: 200, height: 112 }), { platform: null });
+  assert.deepEqual(getVimeoFrameContext(frame, { width: 960, height: 540 }), { platform: "vimeo", embedded: true });
+
+  const ask = (message, sender = {}) => new Promise((resolve) => {
+    const result = dispatchBackgroundMessage(message, sender, resolve);
+    if (result !== true) return;
+  });
+  assert.deepEqual(await ask({ type: "popup.getTabContext", tabId: 4, tabUrl: frame.tab.url }), { ok: true, vimeoEmbed: false });
+  await ask({ type: "platform.vimeo.getContext", width: 960, height: 540 }, frame);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.deepEqual(await ask({ type: "popup.getTabContext", tabId: 4, tabUrl: frame.tab.url }), { ok: true, vimeoEmbed: true });
+  assert.equal(session.vimeoEmbedTabs?.[4], "sc26.conference-program.com", "kept for a restarted worker");
+  // Another page later opened in the same tab is not an embed page.
+  assert.deepEqual(await ask({ type: "popup.getTabContext", tabId: 4, tabUrl: "https://example.com/" }), { ok: true, vimeoEmbed: false });
+
+  // Settings changes reach the embed page as well as supported sites.
+  assert.deepEqual((await queryAstTabs()).map((tab) => tab.id).sort(), [4, 6]);
+  const { forgetVimeoEmbedTab } = await import("../extension/background/service-worker.js");
+  await forgetVimeoEmbedTab(4);
+  assert.deepEqual((await queryAstTabs()).map((tab) => tab.id), [6]);
 });
 
 test("a summary uses the style picked in the player menu and remembers it", async () => {
