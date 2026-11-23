@@ -774,6 +774,16 @@
   margin: 4px 8px;
 }
 
+/* Vimeo's player sets `.player button:not(.exclude-global-button-styles) { padding: 0; margin: 0 }`,
+   which outranks the rules above, so the menu's buttons lost their inner side space there. */
+.ast-provider-menu.ast-provider-menu-vimeo button.ast-provider-menu-item {
+  padding: 0 12px;
+}
+
+.ast-provider-menu.ast-provider-menu-vimeo button:is(.ast-segmented-option, .ast-word-highlight-toggle) {
+  padding: 2px 10px;
+}
+
 /* On Shorts the menu sits on the page under the button at the top of the Short (placed by script),
    so its submenus open downward. */
 .ast-provider-menu.ast-provider-menu-youtube.ast-provider-menu-floating {
